@@ -1,0 +1,52 @@
+/* Tambahan untuk Registrasi - Adaptif Dark Mode */
+.form-control:focus {
+    border-color: #628141;
+    box-shadow: 0 0 0 0.25rem rgba(98, 129, 65, 0.25);
+}
+
+.btn-custom-green {
+    background-color: #628141;
+    border-color: #628141;
+}
+
+.btn-custom-green:hover {
+    background-color: #506834;
+    border-color: #506834;
+}
+
+[data-theme="dark"] .btn-custom-green {
+    background-color: #7a9a52;
+    border-color: #7a9a52;
+}
+
+[data-theme="dark"] .btn-custom-green:hover {
+    background-color: #8aac65;
+    border-color: #8aac65;
+}
+
+/* Placeholder & Ikon untuk Registrasi (sama seperti login) */
+::placeholder {
+    color: #212529 !important; /* Gelap di light */
+}
+
+[data-theme="dark"] ::placeholder {
+    color: #ced4da !important; /* Terang di dark */
+}
+
+.input-group-text i {
+    color: #495057 !important; /* Gelap di light */
+}
+
+[data-theme="dark"] .input-group-text i {
+    color: #ced4da !important; /* Terang di dark */
+}
+
+/* Preview Foto Profil di Registrasi */
+#image-preview {
+    border: 2px solid #628141;
+    transition: border-color 0.3s ease;
+}
+
+[data-theme="dark"] #image-preview {
+    border-color: #7a9a52;
+}
