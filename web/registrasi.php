@@ -5,6 +5,11 @@
 error_reporting(E_ALL);
 ini_set('display_errors', 1);
 
+// Start session untuk cek login
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+
 require_once 'includes/config.php';
 require_once 'includes/functions.php';
 
@@ -13,7 +18,20 @@ $error_message = '';
 $success_message = '';
 
 // ========================================
-// CEK: APAKAH SUDAH ADA ADMIN?
+// TENTUKAN MODE: PUBLIC atau ADMIN
+// ========================================
+$mode = 'public'; // default
+
+// Cek apakah ada admin yang sudah login
+if (isset($_SESSION['user_id']) && isset($_SESSION['role']) && $_SESSION['role'] === 'admin') {
+    $mode = 'admin';
+    $is_logged_in_as_admin = true;
+} else {
+    $is_logged_in_as_admin = false;
+}
+
+// ========================================
+// CEK: APAKAH SUDAH ADA ADMIN DI DATABASE?
 // ========================================
 $stmt_check_admin = $conn->prepare("SELECT COUNT(*) FROM users WHERE role = 'admin' AND is_deleted = 0");
 $stmt_check_admin->execute();
@@ -23,21 +41,61 @@ $admin_exists = $row_admin[0] > 0;
 $stmt_check_admin->close();
 
 // ========================================
-// LOGIC ACCESS CONTROL
+// LOGIC ACCESS CONTROL BERDASARKAN MODE
 // ========================================
-if ($admin_exists) {
-    requireRole(['admin']);
+if ($mode === 'admin') {
+    // Mode admin: admin yang sudah login membuat user
     $allowed_roles = ['member', 'staff', 'admin'];
     $default_role = 'member';
     $is_first_setup = false;
-} else {
+    
+    // Judul dan teks
+    $page_title = "Buat User Baru - Panel Admin";
+    $form_title = "Buat User Baru";
+    $form_subtitle = "Panel Administrator";
+    $submit_text = "Buat User Baru";
+    $back_link = "apps/dashboard.php";
+    $back_text = "Kembali ke Dashboard";
+    
+} elseif (!$admin_exists) {
+    // Mode first setup: buat admin pertama
+    $mode = 'first_setup';
     $allowed_roles = ['admin'];
     $default_role = 'admin';
     $is_first_setup = true;
+    
+    // Judul dan teks
+    $page_title = "Setup Admin Utama - ELIOT";
+    $form_title = "Setup Admin Utama";
+    $form_subtitle = "Langkah pertama menggunakan ELIOT";
+    $submit_text = "Buat Admin & Mulai";
+    $back_link = "login.php";
+    $back_text = "Sudah punya akun? Login";
+    
+} else {
+    // Mode public: user mendaftar sendiri sebagai member
+    $mode = 'public';
+    $allowed_roles = ['member']; // Hanya boleh daftar sebagai member
+    $default_role = 'member';
+    $is_first_setup = false;
+    
+    // Judul dan teks
+    $page_title = "Registrasi Member - ELIOT";
+    $form_title = "Daftar Member Baru";
+    $form_subtitle = "Electronic Library of Things";
+    $submit_text = "Daftar Sekarang";
+    $back_link = "login.php";
+    $back_text = "Sudah punya akun? Login";
+    
+    // Redirect jika sudah login
+    if (isset($_SESSION['user_id'])) {
+        header('Location: apps/dashboard.php');
+        exit;
+    }
 }
 
 // ========================================
-// PROSES FORM SUBMISSION - VERSI SIMPLE
+// PROSES FORM SUBMISSION
 // ========================================
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $nama = trim($_POST['nama'] ?? '');
@@ -74,10 +132,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $stmt->close();
             
             // ============================================================
-            // SOLUSI UPLOAD FOTO YANG SANGAT SEDERHANA
+            // PROSES UPLOAD FOTO (OPSIONAL)
             // ============================================================
             $foto_path = null;
-
+            
             if (isset($_FILES['foto']) && $_FILES['foto']['error'] === UPLOAD_ERR_OK) {
                 // Validasi sederhana
                 $max_size = 2 * 1024 * 1024; // 2MB
@@ -85,61 +143,52 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $file_extension = strtolower(pathinfo($_FILES['foto']['name'], PATHINFO_EXTENSION));
                 
                 if ($_FILES['foto']['size'] > $max_size) {
-                    $error_message = 'Ukuran foto maksimal 2MB.';
+                    // Error size, tapi lanjut tanpa foto
+                    error_log("File too large: " . $_FILES['foto']['size']);
                 } elseif (!in_array($file_extension, $allowed_extensions)) {
-                    $error_message = 'Format foto harus JPG, PNG, atau GIF.';
+                    // Error format, tapi lanjut tanpa foto
+                    error_log("Invalid file extension: " . $file_extension);
                 } else {
-                    // **PERBAIKAN PATH DI SINI**
-                    // Gunakan path absolut ke folder upload
+                    // PATH KE FOLDER YANG SUDAH ADA
                     $upload_dir = '/home/user/Documents/ELIOT/web/public/assets/img/profiles/';
                     
-                    // Debug: tampilkan path
-                    error_log("Upload dir: $upload_dir");
-                    
-                    // Pastikan folder ada
-                    if (!file_exists($upload_dir)) {
-                        if (!mkdir($upload_dir, 0775, true)) {
-                            $error_message = 'Gagal membuat folder upload: ' . $upload_dir;
-                            $foto_path = null;
-                        }
-                    }
-                    
-                    // Periksa apakah folder writable
+                    // HANYA upload jika folder ada dan writable
                     if (file_exists($upload_dir) && is_writable($upload_dir)) {
+                        // Generate nama file unik
                         $filename = 'profile_' . time() . '_' . uniqid() . '.' . $file_extension;
                         $target_file = $upload_dir . $filename;
                         
-                        // Debug info
-                        error_log("Target file: $target_file");
-                        error_log("Temp file: " . $_FILES['foto']['tmp_name']);
-                        error_log("Is writable: " . (is_writable($upload_dir) ? 'yes' : 'no'));
-                        
+                        // Pindahkan file
                         if (move_uploaded_file($_FILES['foto']['tmp_name'], $target_file)) {
-                            // **PATH RELATIF untuk database**
                             $foto_path = 'public/assets/img/profiles/' . $filename;
-                            error_log("Foto berhasil diupload ke: $foto_path");
-                        } else {
-                            $upload_error = error_get_last();
-                            $error_message = 'Upload foto gagal: ' . ($upload_error['message'] ?? 'Unknown error');
-                            error_log("Upload error: " . print_r($upload_error, true));
-                            $foto_path = null;
+                            
+                            // Set permission file
+                            chmod($target_file, 0644);
                         }
-                    } else {
-                        $error_message = 'Folder upload tidak bisa ditulis: ' . $upload_dir;
-                        error_log("Folder not writable: $upload_dir");
-                        $foto_path = null;
                     }
                 }
-                
-                // Jika ada error upload foto, reset agar bisa lanjut tanpa foto
-                if (!empty($error_message) && strpos($error_message, 'foto') !== false) {
-                    // Reset error message untuk upload foto
-                    $error_message = '';
-                    $foto_path = null;
-                }
             }
-                        
-            // INSERT USER (jika tidak ada error validasi utama)
+            
+            // ============================================================
+            // TENTUKAN STATUS USER
+            // ============================================================
+            if ($mode === 'first_setup') {
+                // Admin pertama langsung aktif
+                $status = 'aktif';
+            } else {
+                // User baru: suspended (tunggu verifikasi admin)
+                $status = 'suspended';
+            }
+            
+            // Pastikan status valid sesuai ENUM
+            $allowed_statuses = ['aktif', 'nonaktif', 'suspended'];
+            if (!in_array($status, $allowed_statuses)) {
+                $status = 'suspended';
+            }
+            
+            // ============================================================
+            // INSERT USER KE DATABASE
+            // ============================================================
             if (empty($error_message)) {
                 $password_hash = password_hash($password, PASSWORD_DEFAULT);
                 
@@ -147,20 +196,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 if ($foto_path) {
                     $stmt_insert = $conn->prepare("INSERT INTO users 
                         (nama, email, no_identitas, no_telepon, alamat, password_hash, role, status, foto_path, created_at, updated_at, is_deleted)
-                        VALUES (?, ?, ?, ?, ?, ?, ?, 'aktif', ?, NOW(), NOW(), 0)");
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW(), 0)");
                     
                     if ($stmt_insert) {
-                        $stmt_insert->bind_param("ssssssss", $nama, $email, $no_identitas, $no_telepon, $alamat, $password_hash, $role, $foto_path);
+                        $stmt_insert->bind_param("sssssssss", 
+                            $nama, $email, $no_identitas, $no_telepon, 
+                            $alamat, $password_hash, $role, $status, $foto_path
+                        );
                     } else {
                         $error_message = 'Error preparing statement: ' . $conn->error;
                     }
                 } else {
                     $stmt_insert = $conn->prepare("INSERT INTO users 
                         (nama, email, no_identitas, no_telepon, alamat, password_hash, role, status, created_at, updated_at, is_deleted)
-                        VALUES (?, ?, ?, ?, ?, ?, ?, 'aktif', NOW(), NOW(), 0)");
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW(), 0)");
                     
                     if ($stmt_insert) {
-                        $stmt_insert->bind_param("sssssss", $nama, $email, $no_identitas, $no_telepon, $alamat, $password_hash, $role);
+                        $stmt_insert->bind_param("ssssssss", 
+                            $nama, $email, $no_identitas, $no_telepon, 
+                            $alamat, $password_hash, $role, $status
+                        );
                     } else {
                         $error_message = 'Error preparing statement: ' . $conn->error;
                     }
@@ -169,25 +224,35 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 // Jika statement berhasil dibuat
                 if (empty($error_message) && $stmt_insert) {
                     if ($stmt_insert->execute()) {
-                        $success_message = "User '$nama' berhasil dibuat dengan role '$role'!";
                         
-                        // Redirect berdasarkan kondisi
-                        if ($is_first_setup) {
-                            // Admin pertama → redirect ke login
+                        if ($mode === 'first_setup') {
+                            $success_message = "Admin utama '$nama' berhasil dibuat!";
                             echo "<script>
                                 setTimeout(function(){ 
                                     alert('Admin utama berhasil dibuat! Silakan login.');
                                     window.location.href = 'login.php'; 
                                 }, 2000);
                             </script>";
-                        } else {
-                            // Admin membuat user baru → redirect ke dashboard
+                            
+                        } elseif ($mode === 'admin') {
+                            $success_message = "User '$nama' berhasil dibuat!";
                             echo "<script>
                                 setTimeout(function(){ 
                                     window.location.href = 'apps/dashboard.php'; 
                                 }, 2000);
                             </script>";
+                            
+                        } else {
+                            // Mode public
+                            $success_message = "Pendaftaran berhasil! Akun Anda sedang menunggu verifikasi admin.";
+                            echo "<script>
+                                setTimeout(function(){ 
+                                    alert('Pendaftaran berhasil! Silakan tunggu verifikasi admin.');
+                                    window.location.href = 'login.php'; 
+                                }, 2000);
+                            </script>";
                         }
+                        
                     } else {
                         $error_message = 'Gagal menyimpan data: ' . $stmt_insert->error;
                     }
@@ -204,13 +269,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Registrasi User - ELIOT</title>
+    <title><?= htmlspecialchars($page_title) ?></title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
     <link rel="stylesheet" href="public/assets/css/style.css">
     <link rel="stylesheet" href="public/assets/css/registrasi.css">
     <style>
-        /* Styling untuk alert */
         .alert-dismissible {
             padding-right: 3.5rem;
             position: relative;
@@ -224,7 +288,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             padding: 0.75rem;
         }
         
-        /* Tema dark untuk alert close */
         [data-theme="dark"] .alert-dismissible .btn-close {
             filter: invert(1) grayscale(100%) brightness(200%);
         }
@@ -235,21 +298,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <div class="container login-card-container">
             <div class="row g-0 card-shadow overflow-hidden rounded-4">
                 
-                <!-- Panel Kiri -->
+                <!-- Panel Kiri - Hanya Logo & Deskripsi -->
                 <div class="col-md-6 d-none d-md-flex align-items-center justify-content-center left-panel position-relative">
                     <div class="overlay-content text-center text-white p-5">
                         <h1 class="display-4 fw-bold mb-3">ELIOT</h1>
                         <p class="lead mb-4">Electronic Library of Things</p>
-                        
-                        <?php if ($is_first_setup): ?>
-                            <div class="alert alert-warning bg-white text-dark border-0 shadow-sm">
-                                <i class="fas fa-info-circle me-2"></i>
-                                <strong>Setup Awal</strong><br>
-                                <small>Buat akun Admin pertama</small>
-                            </div>
-                        <?php else: ?>
-                            <p class="mb-4 small opacity-90">Panel Admin - Buat User Baru</p>
-                        <?php endif; ?>
                     </div>
                 </div>
 
@@ -261,23 +314,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     </button>
 
                     <div class="form-content">
-                        <div class="text-center mb-3">
-                            <?php if ($is_first_setup): ?>
-                                <h2 class="fw-bold text-dark mb-1">Setup Admin Utama</h2>
-                                <p class="text-secondary small mb-0">Langkah pertama menggunakan ELIOT</p>
-                            <?php else: ?>
-                                <h2 class="fw-bold text-dark mb-1">Buat User Baru</h2>
-                                <p class="text-secondary small mb-0">Panel Administrator</p>
-                            <?php endif; ?>
+                        <div class="text-center mb-4">
+                            <h2 class="fw-bold text-dark mb-1"><?= htmlspecialchars($form_title) ?></h2>
+                            <p class="text-secondary small mb-0"><?= htmlspecialchars($form_subtitle) ?></p>
                         </div>
 
                         <!-- ALERT SUCCESS -->
                         <?php if ($success_message): ?>
-                            <div class="alert alert-success alert-dismissible fade show" role="alert">
+                            <div class="alert alert-success alert-dismissible fade show mb-3" role="alert">
                                 <div class="d-flex align-items-start">
                                     <i class="fas fa-check-circle me-2 mt-1 fs-5"></i>
                                     <div class="flex-grow-1">
-                                        <?= $success_message ?>
+                                        <?= htmlspecialchars($success_message) ?>
                                     </div>
                                 </div>
                                 <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
@@ -286,7 +334,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                         <!-- ALERT ERROR -->
                         <?php if ($error_message): ?>
-                            <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                            <div class="alert alert-danger alert-dismissible fade show mb-3" role="alert">
                                 <div class="d-flex align-items-start">
                                     <i class="fas fa-exclamation-triangle me-2 mt-1 fs-5"></i>
                                     <div class="flex-grow-1">
@@ -337,9 +385,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                 <textarea name="alamat" class="form-control" rows="2" placeholder="Alamat lengkap"><?= htmlspecialchars($_POST['alamat'] ?? '') ?></textarea>
                             </div>
 
-                            <!-- ROLE SELECTION -->
-                            <?php if (!$is_first_setup && count($allowed_roles) > 1): ?>
-                            <div class="mb-2">
+                            <!-- ROLE SELECTION (hanya untuk admin) -->
+                            <?php if ($mode === 'admin' && count($allowed_roles) > 1): ?>
+                            <div class="mb-3">
                                 <label class="form-label small fw-bold">Role <span class="text-danger">*</span></label>
                                 <select name="role" class="form-select" required>
                                     <?php foreach ($allowed_roles as $role_option): ?>
@@ -350,7 +398,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                 </select>
                             </div>
                             <?php else: ?>
-                                <input type="hidden" name="role" value="<?= $default_role ?>">
+                                <input type="hidden" name="role" value="<?= htmlspecialchars($default_role) ?>">
                             <?php endif; ?>
 
                             <!-- Password -->
@@ -378,11 +426,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             </div>
 
                             <!-- Foto Profil -->
-                            <div class="mb-3">
+                            <div class="mb-4">
                                 <label class="form-label small fw-bold">Foto Profil <span class="text-muted">(Opsional)</span></label>
                                 <input type="file" name="foto" class="form-control form-control-sm" accept="image/*">
                                 <small class="text-muted d-block mt-1">
-                                    Max 2MB - JPG, PNG, GIF (Untuk demo, bisa skip)
+                                    Max 2MB - JPG, PNG, GIF
                                 </small>
                             </div>
 
@@ -391,7 +439,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                 <button type="submit" class="btn btn-custom-green text-white fw-bold" id="submitBtn">
                                     <i class="fas fa-user-plus me-2"></i>
                                     <span id="btnText">
-                                        <?= $is_first_setup ? 'Buat Admin & Mulai' : 'Buat User Baru' ?>
+                                        <?= htmlspecialchars($submit_text) ?>
                                     </span>
                                 </button>
                             </div>
@@ -399,15 +447,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                         <!-- Link Kembali -->
                         <div class="text-center mt-3">
-                            <?php if ($is_first_setup): ?>
-                                <a href="login.php" class="text-decoration-none small text-muted">
-                                    <i class="fas fa-arrow-left me-1"></i> Sudah punya akun? Login
-                                </a>
-                            <?php else: ?>
-                                <a href="apps/dashboard.php" class="text-decoration-none small text-muted">
-                                    <i class="fas fa-arrow-left me-1"></i> Kembali ke Dashboard
-                                </a>
-                            <?php endif; ?>
+                            <a href="<?= htmlspecialchars($back_link) ?>" class="text-decoration-none small text-muted">
+                                <i class="fas fa-arrow-left me-1"></i> <?= htmlspecialchars($back_text) ?>
+                            </a>
                         </div>
                     </div>
                 </div>
@@ -417,93 +459,93 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <script>
-        // Toggle password visibility
-        document.getElementById('togglePassword')?.addEventListener('click', function() {
-            const input = document.getElementById('password');
-            const icon = this.querySelector('i');
-            
-            if (input.type === 'password') {
-                input.type = 'text';
-                icon.classList.remove('fa-eye');
-                icon.classList.add('fa-eye-slash');
-            } else {
-                input.type = 'password';
-                icon.classList.remove('fa-eye-slash');
-                icon.classList.add('fa-eye');
-            }
-        });
+    // Toggle password visibility
+    document.getElementById('togglePassword')?.addEventListener('click', function() {
+        const input = document.getElementById('password');
+        const icon = this.querySelector('i');
+        
+        if (input.type === 'password') {
+            input.type = 'text';
+            icon.classList.remove('fa-eye');
+            icon.classList.add('fa-eye-slash');
+        } else {
+            input.type = 'password';
+            icon.classList.remove('fa-eye-slash');
+            icon.classList.add('fa-eye');
+        }
+    });
 
-        document.getElementById('toggleConfirmPassword')?.addEventListener('click', function() {
-            const input = document.getElementById('confirm_password');
-            const icon = this.querySelector('i');
-            
-            if (input.type === 'password') {
-                input.type = 'text';
-                icon.classList.remove('fa-eye');
-                icon.classList.add('fa-eye-slash');
-            } else {
-                input.type = 'password';
-                icon.classList.remove('fa-eye-slash');
-                icon.classList.add('fa-eye');
-            }
-        });
+    document.getElementById('toggleConfirmPassword')?.addEventListener('click', function() {
+        const input = document.getElementById('confirm_password');
+        const icon = this.querySelector('i');
+        
+        if (input.type === 'password') {
+            input.type = 'text';
+            icon.classList.remove('fa-eye');
+            icon.classList.add('fa-eye-slash');
+        } else {
+            input.type = 'password';
+            icon.classList.remove('fa-eye-slash');
+            icon.classList.add('fa-eye');
+        }
+    });
 
-        // Theme toggle
-        function setThemeFromStorage() {
-            const savedTheme = localStorage.getItem('theme') || 'light';
-            document.documentElement.setAttribute('data-theme', savedTheme);
-            updateThemeIcon(savedTheme);
+    // Theme toggle
+    function setThemeFromStorage() {
+        const savedTheme = localStorage.getItem('theme') || 'light';
+        document.documentElement.setAttribute('data-theme', savedTheme);
+        updateThemeIcon(savedTheme);
+    }
+    
+    function updateThemeIcon(theme) {
+        const icon = document.getElementById('themeToggle')?.querySelector('i');
+        if (icon) {
+            if (theme === 'dark') {
+                icon.classList.remove('fa-moon');
+                icon.classList.add('fa-sun');
+            } else {
+                icon.classList.remove('fa-sun');
+                icon.classList.add('fa-moon');
+            }
+        }
+    }
+    
+    document.getElementById('themeToggle')?.addEventListener('click', function() {
+        const html = document.documentElement;
+        const currentTheme = html.getAttribute('data-theme');
+        const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+        
+        html.setAttribute('data-theme', newTheme);
+        localStorage.setItem('theme', newTheme);
+        updateThemeIcon(newTheme);
+    });
+
+    // Form validation
+    function validateForm() {
+        const password = document.getElementById('password').value;
+        const confirmPassword = document.getElementById('confirm_password').value;
+        
+        if (password !== confirmPassword) {
+            alert('Password dan konfirmasi password tidak cocok!');
+            return false;
         }
         
-        function updateThemeIcon(theme) {
-            const icon = document.getElementById('themeToggle')?.querySelector('i');
-            if (icon) {
-                if (theme === 'dark') {
-                    icon.classList.remove('fa-moon');
-                    icon.classList.add('fa-sun');
-                } else {
-                    icon.classList.remove('fa-sun');
-                    icon.classList.add('fa-moon');
-                }
-            }
+        if (password.length < 6) {
+            alert('Password minimal 6 karakter!');
+            return false;
         }
         
-        document.getElementById('themeToggle')?.addEventListener('click', function() {
-            const html = document.documentElement;
-            const currentTheme = html.getAttribute('data-theme');
-            const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
-            
-            html.setAttribute('data-theme', newTheme);
-            localStorage.setItem('theme', newTheme);
-            updateThemeIcon(newTheme);
-        });
+        // Loading state
+        const btn = document.getElementById('submitBtn');
+        const btnText = document.getElementById('btnText');
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Memproses...';
+        
+        return true;
+    }
 
-        // Form validation
-        function validateForm() {
-            const password = document.getElementById('password').value;
-            const confirmPassword = document.getElementById('confirm_password').value;
-            
-            if (password !== confirmPassword) {
-                alert('Password dan konfirmasi password tidak cocok!');
-                return false;
-            }
-            
-            if (password.length < 6) {
-                alert('Password minimal 6 karakter!');
-                return false;
-            }
-            
-            // Loading state
-            const btn = document.getElementById('submitBtn');
-            const btnText = document.getElementById('btnText');
-            btn.disabled = true;
-            btn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Memproses...';
-            
-            return true;
-        }
-
-        // Set tema saat load
-        document.addEventListener('DOMContentLoaded', setThemeFromStorage);
+    // Set tema saat load
+    document.addEventListener('DOMContentLoaded', setThemeFromStorage);
     </script>
 </body>
 </html>

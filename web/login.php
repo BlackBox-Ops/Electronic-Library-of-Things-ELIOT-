@@ -105,6 +105,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         <div class="text-center mt-4 d-md-none">
                             <p class="small text-secondary">Kembali ke <a href="index.php" class="text-decoration-none fw-bold" style="color: var(--color-green-primary);">Katalog Buku</a></p>
                         </div>
+                        <div class="text-center mt-4">
+                            <p class="mb-2">
+                                <a href="registrasi.php" class="text-decoration-none fw-bold">
+                                    <i class="fas fa-user-plus me-1"></i> Belum punya akun? Daftar Member
+                                </a>
+                            </p>
+                            <p class="small text-muted">
+                                Daftar sebagai member untuk meminjam buku di ELIOT
+                            </p>
+                        </div>
                     </div>
                 </div>
             </div>
