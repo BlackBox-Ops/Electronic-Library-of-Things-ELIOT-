@@ -1,5 +1,5 @@
 <?php
-// ~/Documents/ELIOT/web/logout.php
+// ~/Documents/ELIOT/web/apps/logout.php
 session_start();
 
 // Hapus semua data session
@@ -18,6 +18,6 @@ if (ini_get("session.use_cookies")) {
 session_destroy();
 
 // Redirect ke login page
-header('Location: login.php');
+header('Location: ../login.php');
 exit();
 ?>
