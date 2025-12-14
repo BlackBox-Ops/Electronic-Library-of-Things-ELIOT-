@@ -43,11 +43,11 @@ body {
     transition: background-color 0.3s ease;
 }
 
+/* BACKGROUND IMAGE - SAMA SEPERTI REGISTRASI.CSS */
 .left-panel {
     min-height: 550px;
-    background-image: url('../img/green.jpg');
+    background: url('../img/green.jpg') no-repeat center center;
     background-size: cover;
-    background-position: center;
     position: relative;
 }
 
@@ -78,8 +78,15 @@ body {
     box-shadow: 0 0 0 0.25rem rgba(var(--color-green-rgb), 0.2);
 }
 
-[data-theme="dark"] .bg-white { background-color: var(--bg-card) !important; }
-[data-theme="dark"] .text-dark { color: var(--text-primary) !important; }
+/* DARK MODE STYLES */
+[data-theme="dark"] .bg-white { 
+    background-color: var(--bg-card) !important; 
+}
+
+[data-theme="dark"] .text-dark { 
+    color: var(--text-primary) !important; 
+}
+
 [data-theme="dark"] .form-control,
 [data-theme="dark"] .input-group-text,
 [data-theme="dark"] .btn-light {
@@ -88,25 +95,43 @@ body {
     color: var(--text-primary);
 }
 
-@media (max-width: 767px) { .card-shadow { border-radius: 0; } }
+[data-theme="dark"] .text-secondary { 
+    color: #bbbbbb !important; 
+}
 
+[data-theme="dark"] .text-muted { 
+    color: #999 !important; 
+}
+
+[data-theme="dark"] .card-shadow {
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+}
+
+@media (max-width: 767px) { 
+    .card-shadow { 
+        border-radius: 0; 
+    } 
+}
+
+/* PLACEHOLDER STYLES */
 /* Light Mode: Placeholder gelap (abu-abu tua) */
 ::placeholder {
-    color: #495057 !important;  /* Gelap, mudah dibaca di background terang */
+    color: #495057 !important;
     opacity: 1;
 }
 
 /* Dark Mode: Placeholder terang (abu-abu muda) */
 [data-theme="dark"] ::placeholder {
-    color: #ced4da !important;  /* Terang, mudah dibaca di background gelap */
+    color: #ced4da !important;
     opacity: 1;
 }
 
-/* Tambahan untuk browser lama (Firefox, etc.) */
+/* Tambahan untuk browser lama */
 ::-webkit-input-placeholder { 
     color: #495057 !important;
     opacity: 1;
 }
+
 [data-theme="dark"]::-webkit-input-placeholder {
     color: #ced4da !important;
 }
@@ -115,6 +140,7 @@ body {
     color: #495057 !important;
     opacity: 1;
 }
+
 [data-theme="dark"]::-moz-placeholder {
     color: #ced4da !important;
 }
@@ -122,14 +148,16 @@ body {
 :-ms-input-placeholder { 
     color: #495057 !important;
 }
+
 [data-theme="dark"]:-ms-input-placeholder {
     color: #ced4da !important;
 }
 
+/* IKON STYLES */
 /* Light Mode: Ikon gelap */
 .input-group-text i,
 .input-group-text {
-    color: #495057 !important; /* Abu-abu tua */
+    color: #495057 !important;
     background-color: #f8f9fa !important;
     border-color: #dee2e6 !important;
 }
@@ -137,17 +165,17 @@ body {
 /* Dark Mode: Ikon terang */
 [data-theme="dark"] .input-group-text i,
 [data-theme="dark"] .input-group-text {
-    color: #ced4da !important; /* Abu-abu muda/putih */
-    background-color: #2d3529 !important;
-    border-color: #44503a !important;
+    color: #ced4da !important;
+    background-color: var(--input-bg) !important;
+    border-color: var(--input-border) !important;
 }
 
-/* Tombol Toggle Password (eye) - Ikon tetap kontras */
+/* TOMBOL TOGGLE PASSWORD */
 [data-theme="dark"] #togglePassword i {
     color: #ced4da !important;
 }
 
-/* Tombol Theme Toggle (moon/sun) */
+/* TOMBOL THEME TOGGLE */
 .theme-toggle-btn i {
     color: var(--text-secondary);
     transition: color 0.3s ease;
@@ -162,10 +190,10 @@ body {
     color: var(--color-green-primary) !important;
 }
 
-/* Tombol Registrasi - Warna #E3E3E3, kontras tinggi, adaptif dark mode */
+/* TOMBOL REGISTRASI */
 .btn-registrasi {
-    background-color: #e3e3e3;        /* Abu-abu terang sesuai permintaan */
-    color: #212529;                   /* Teks hitam jelas */
+    background-color: #e3e3e3;
+    color: #212529;
     border: none;
     font-size: 0.85rem;
     font-weight: 600;
@@ -182,13 +210,47 @@ body {
     color: #212529;
 }
 
-/* Dark Mode: Button jadi lebih gelap agar kontras, teks terang */
+/* Dark Mode: Button jadi lebih gelap */
 [data-theme="dark"] .btn-registrasi {
     background-color: #333333;
-    color: #e0e6dc;                    /* Teks terang */
+    color: #e0e6dc;
 }
 
 [data-theme="dark"] .btn-registrasi:hover {
     background-color: #444444;
     box-shadow: 0 6px 15px rgba(0, 0, 0, 0.4);
+}
+
+/* LINK LUPA PASSWORD */
+.text-muted {
+    color: #6c757d !important;
+}
+
+.text-muted:hover {
+    color: #495057 !important;
+    text-decoration: underline;
+}
+
+/* Untuk form validation */
+.was-validated .form-control:valid {
+    border-color: #198754;
+}
+
+.was-validated .form-control:invalid {
+    border-color: #dc3545;
+}
+
+/* RESPONSIVE */
+@media (max-width: 767px) {
+    .left-panel {
+        min-height: 200px;
+    }
+    
+    .overlay-content h1 {
+        font-size: 2.5rem;
+    }
+    
+    .overlay-content .lead {
+        font-size: 1.1rem;
+    }
 }

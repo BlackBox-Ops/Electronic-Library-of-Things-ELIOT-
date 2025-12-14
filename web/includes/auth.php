@@ -54,4 +54,21 @@ class Auth {
         $stmt->bind_param("isss", $user_id, $modul, $aksi, $ip);
         $stmt->execute();
     }
+    
+    // ========================================
+    // GET USER BY EMAIL - TAMBAHKAN INI
+    // ========================================
+    public function getUserByEmail($email) {
+        $query = "SELECT * FROM users WHERE email = ? AND is_deleted = 0 LIMIT 1";
+        $stmt = mysqli_prepare($this->conn, $query);
+        mysqli_stmt_bind_param($stmt, "s", $email);
+        mysqli_stmt_execute($stmt);
+        $result = mysqli_stmt_get_result($stmt);
+        
+        if (mysqli_num_rows($result) > 0) {
+            return mysqli_fetch_assoc($result);
+        }
+        
+        return null;
+    }
 }
