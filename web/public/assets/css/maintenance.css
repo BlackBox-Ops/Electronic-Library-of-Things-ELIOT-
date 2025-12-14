@@ -1,0 +1,362 @@
+/* ========================================
+   maintenance.css - Maintenance Page Styles
+   Disinkronkan dengan Dark Mode dari login.css & 404.css
+   ======================================== */
+
+/* Variabel Global (Diambil dari login.css & 404.css) */
+:root {
+    --color-green-primary: #628141;
+    --color-green-hover: #506834;
+    --color-green-rgb: 98, 129, 65;
+    
+    --bg-body: #f5f7f3;
+    --bg-card: #ffffff;
+    --text-primary: #212529;
+    --text-secondary: #6c757d;
+    --border-color: #e9ecef;
+    
+    /* Variabel Khusus Maintenance (dari input user) */
+    --color-progress: var(--color-green-primary);
+    --color-phase: #2196f3;
+    --color-feature: #9c27b0;
+    --button-primary: #4a6fa5;
+    --button-secondary: var(--bg-body); 
+    --button-hover: #3a5a8c;
+}
+
+[data-theme="dark"] {
+    --bg-body: #1a1f18;
+    --bg-card: #242924;
+    --text-primary: #e0e6dc;
+    --text-secondary: #a8b49a;
+    --border-color: #404040;
+    --color-green-primary: #8BA76C; 
+    --color-green-hover: #9db87d;
+    
+    /* Variabel Khusus Maintenance Dark Mode */
+    --color-maintenance: #ffb74d;
+    --color-progress: var(--color-green-primary);
+    --color-phase: #64b5f6;
+    --color-feature: #ba68c8;
+    --button-primary: #5a7bb5;
+    --button-secondary: var(--bg-body);
+    --button-hover: #4a6aa5;
+}
+
+/* ========================================
+   GLOBAL STYLES
+   ======================================== */
+
+body {
+    background-color: var(--bg-body);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    overflow-y: auto;
+    padding: 30px 15px;
+    transition: background-color 0.3s ease;
+    color: var(--text-primary);
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+.maintenance-container {
+    max-width: 950px;
+    width: 100%;
+}
+
+.maintenance-card {
+    display: flex;
+    background-color: var(--bg-card);
+    border-radius: 15px;
+    box-shadow: 0 12px 40px rgba(0,0,0,0.1);
+    overflow: hidden;
+    position: relative;
+    border: 1px solid var(--border-color);
+}
+
+[data-theme="dark"] .maintenance-card {
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4);
+}
+
+.text-primary { color: var(--text-primary) !important; }
+.text-secondary { color: var(--text-secondary) !important; }
+
+/* ========================================
+   ILLUSTRATION (Left Panel)
+   ======================================== */
+
+.maintenance-illustration {
+    width: 40%;
+    min-width: 350px;
+    background: linear-gradient(135deg, var(--color-green-primary) 30%, var(--color-green-hover));
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 40px;
+    position: relative;
+    color: white;
+}
+
+[data-theme="dark"] .maintenance-illustration {
+    background: linear-gradient(135deg, var(--color-green-primary) 30%, var(--color-green-hover));
+}
+
+.maintenance-illustration svg {
+    display: block;
+    margin-bottom: 20px;
+}
+
+/* Gear & Progress Styling (Menggunakan warna putih untuk kontras dengan background hijau) */
+.gear-large circle, .gear-small circle,
+.gear-large path, .gear-small path { stroke: white !important; } 
+.maintenance-illustration svg circle:first-child { fill: rgba(255, 255, 255, 0.1) !important; }
+.maintenance-illustration .progress-ring { stroke: white !important; }
+
+/* Animasi Gear */
+.gear-large { transform-origin: 160px 160px; animation: rotate-cw 30s linear infinite; }
+.gear-small { transform-origin: 220px 100px; animation: rotate-ccw 20s linear infinite; }
+@keyframes rotate-cw { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+@keyframes rotate-ccw { 0% { transform: rotate(0deg); } 100% { transform: rotate(-360deg); } }
+
+.maintenance-illustration .progress-text h3 { color: white !important; }
+.maintenance-illustration .progress-text .progress-percent { color: rgba(255, 255, 255, 0.8) !important; }
+
+
+/* ========================================
+   CONTENT (Right Panel)
+   ======================================== */
+
+.maintenance-content {
+    flex-grow: 1;
+    padding: 40px;
+    color: var(--text-primary);
+}
+
+.content-header { margin-bottom: 15px; }
+
+/* BADGES & LABELS */
+.maintenance-badge {
+    background: rgba(255, 152, 0, 0.15);
+    color: var(--color-maintenance);
+    padding: 8px 16px;
+    border-radius: 18px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    border: 1px solid rgba(255, 152, 0, 0.3);
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+[data-theme="dark"] .maintenance-badge {
+    background: rgba(255, 183, 77, 0.15);
+    border-color: rgba(255, 183, 77, 0.4);
+}
+
+.maintenance-content h1 {
+    font-size: 2rem;
+    font-weight: 700;
+    margin-bottom: 10px;
+    color: var(--text-primary);
+}
+
+.maintenance-message {
+    font-size: 1.1rem;
+    color: var(--text-secondary);
+    margin-bottom: 25px;
+}
+
+/* ========================================
+   PROGRESS BAR
+   ======================================== */
+
+.progress-container { margin-bottom: 20px; }
+.progress-bar-bg {
+    height: 10px;
+    background: var(--border-color);
+    border-radius: 6px;
+    overflow: hidden;
+    margin: 8px 0 5px;
+}
+
+.progress-bar-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--color-phase), var(--color-progress));
+    border-radius: 6px;
+    transition: width 0.8s ease;
+}
+
+.progress-label { font-size: 0.85rem; color: var(--text-secondary); }
+
+/* ========================================
+   COUNTDOWN TIMER
+   ======================================== */
+
+.countdown-container {
+    background: rgba(98, 129, 65, 0.05);
+    border-radius: 12px;
+    padding: 18px;
+    margin: 18px 0;
+    text-align: center;
+    border: 1px dashed rgba(98, 129, 65, 0.2);
+}
+
+[data-theme="dark"] .countdown-container {
+    background: rgba(139, 167, 108, 0.05);
+    border-color: rgba(139, 167, 108, 0.2);
+}
+
+.countdown-title {
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+}
+
+.countdown-timer {
+    font-size: 2rem !important;
+    font-weight: 700;
+    color: var(--color-green-primary);
+    font-family: 'Courier New', monospace;
+    letter-spacing: 1px;
+    margin: 10px 0;
+}
+
+.countdown-timer[data-complete="1"] {
+    color: #dc3545;
+}
+
+/* ========================================
+   ACTION BUTTONS
+   ======================================== */
+
+.action-buttons {
+    margin: 20px 0;
+}
+
+.secondary-buttons {
+    display: flex;
+    gap: 8px;
+    margin-top: 8px !important;
+}
+
+.btn-mini {
+    padding: 8px 16px !important;
+    font-size: 0.85rem !important;
+    height: 36px !important;
+    border-radius: 8px !important;
+    font-weight: 500 !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    transition: all 0.2s ease !important;
+    border: 1px solid var(--border-color) !important;
+    cursor: pointer !important;
+    text-decoration: none !important;
+}
+
+/* Primary Mini Button */
+.btn-notify-action {
+    background: var(--button-primary);
+    color: white !important;
+    border: none !important;
+    padding: 8px 20px !important;
+    width: 100%;
+    box-shadow: 0 2px 8px rgba(var(--color-green-rgb), 0.2); 
+}
+
+.btn-notify-action:hover {
+    background: var(--button-hover);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(var(--color-green-rgb), 0.3);
+}
+
+.btn-notify-action:disabled {
+    background: #95a5a6 !important;
+    opacity: 0.7 !important;
+    cursor: not-allowed !important;
+    transform: none !important;
+    box-shadow: none !important;
+}
+
+/* Secondary Mini Button */
+.btn-secondary-mini {
+    flex-grow: 1;
+    background: var(--button-secondary) !important;
+    color: var(--text-primary) !important;
+    border: 1px solid var(--border-color) !important;
+}
+
+.btn-secondary-mini:hover {
+    background: var(--bg-card) !important; 
+    border-color: var(--color-green-primary) !important;
+    transform: translateY(-2px);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+/* FOOTER */
+.maintenance-footer {
+    text-align: center;
+    margin-top: 30px;
+}
+
+/* THEME TOGGLE BUTTON */
+.theme-toggle-btn i {
+    color: var(--text-secondary);
+    transition: color 0.3s ease;
+}
+
+[data-theme="dark"] .theme-toggle-btn i {
+    color: var(--text-primary) !important;
+}
+
+/* ========================================
+   RESPONSIVE
+   ======================================== */
+
+@media (max-width: 992px) {
+    .maintenance-card {
+        flex-direction: column;
+    }
+
+    .maintenance-illustration {
+        width: 100%;
+        min-height: 300px;
+        min-width: auto;
+        padding: 30px;
+        border-bottom-left-radius: 0;
+        border-bottom-right-radius: 0;
+    }
+    
+    .maintenance-content {
+        padding: 30px;
+    }
+
+    .theme-toggle-btn {
+        top: auto;
+        bottom: 0;
+        right: 0;
+        margin: 10px !important;
+        z-index: 10;
+    }
+}
+
+@media (max-width: 576px) {
+    .maintenance-illustration svg {
+        width: 250px;
+        height: 250px;
+    }
+    
+    .countdown-timer {
+        font-size: 1.8rem !important;
+    }
+    
+    .secondary-buttons {
+        flex-direction: column;
+    }
+}

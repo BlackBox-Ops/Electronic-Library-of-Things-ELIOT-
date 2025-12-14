@@ -10,6 +10,8 @@
     --text-primary: #212529;
     --text-secondary: #6c757d;
     --border-color: #e9ecef;
+    --color-error: #dc3545;
+    --color-warning: #ffc107;
 }
 
 /* ========================================
@@ -23,6 +25,8 @@
     --border-color: #404040;
     --color-green-primary: #8BA76C;
     --color-green-hover: #9db87d;
+    --color-error: #f87171;
+    --color-warning: #fbbf24;
 }
 
 /* ========================================
