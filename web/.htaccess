@@ -60,3 +60,21 @@ ErrorDocument 404 /eliot/404.php
     # Redirect semua 404 ke custom page
     RewriteRule . 404.php [L]
 </IfModule>
+
+ErrorDocument 404 /eliot/web/404.php
+ErrorDocument 500 /eliot/web/500.php
+ErrorDocument 403 /eliot/web/403.php
+ErrorDocument 401 /eliot/web/401.php
+
+RewriteEngine On
+
+# Jika file atau folder tidak ditemukan, redirect ke 404.php
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^(.*)$ /eliot/web/404.php [L,QSA]
+
+# Maintenance Mode - Uncomment to enable
+# RewriteEngine On
+# RewriteCond %{REQUEST_URI} !^/eliot/web/maintenance\.php$
+# RewriteCond %{REQUEST_URI} !\.(css|js|jpg|png|gif|svg)$
+# RewriteRule ^(.*)$ /eliot/web/maintenance.php [L,R=503]
