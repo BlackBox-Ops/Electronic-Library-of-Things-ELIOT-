@@ -36,8 +36,8 @@ $base_url = $protocol . '://' . $host . '/eliot';
 
             <div class="error-left">
                 <div class="error-image">
-                    <span class="error-code">500</span>
-                    </div>
+                    <span class="error-code fall-object">500</span>
+                </div>
             </div>
             
             <div class="error-right">

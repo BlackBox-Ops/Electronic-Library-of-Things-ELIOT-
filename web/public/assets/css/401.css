@@ -1,0 +1,282 @@
+/* ========================================
+    401.css - Unauthorized Error Page Styles with Dark Mode
+    Menggunakan tema Primary Green (Hijau ELIOT)
+   ======================================== */
+
+:root {
+    /* Menggunakan variabel Green Primary sebagai primary color */
+    --color-green-primary: #628141; /* Hijau Primary */
+    --color-green-hover: #506834;   /* Hijau hover */
+    
+    --bg-body: #f5f7f3;
+    --bg-card: #ffffff;
+    --text-primary: #212529;
+    --text-secondary: #6c757d;
+    --border-color: #e9ecef;
+    --color-error: #dc3545; 
+    --color-warning: #ffc107;
+}
+
+/* ========================================
+    DARK MODE VARIABLES
+   ======================================== */
+[data-theme="dark"] {
+    --bg-body: #1a1a1a;
+    --bg-card: #2d2d2d;
+    --text-primary: #f3f4f6;
+    --text-secondary: #9ca3af;
+    --border-color: #404040;
+    
+    --color-green-primary: #8BA76C; /* Hijau terang di dark mode */
+    --color-green-hover: #9db87d;   
+    --color-error: #f87171;
+    --color-warning: #fbbf24;
+    --color-401-dark: #8BA76C; /* Warna terang untuk 401 di dark mode */
+}
+
+/* ========================================
+    BASE STYLES
+   ======================================== */
+
+* { 
+    box-sizing: border-box; 
+    margin: 0; 
+    padding: 0; 
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+}
+
+body {
+    background-color: var(--bg-body);
+    transition: background-color 0.3s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    padding: 20px;
+}
+
+.error-container {
+    width: 100%;
+    max-width: 1200px;
+}
+
+.error-card {
+    display: flex;
+    background-color: var(--bg-card);
+    border-radius: 12px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+    min-height: 500px;
+    overflow: hidden;
+    position: relative;
+    transition: background-color 0.3s ease;
+}
+
+/* ========================================
+    ERROR LEFT (Sisi 401)
+   ======================================== */
+.error-left {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: #e8f5e9; /* Warna latar belakang kontras hijau muda */
+    position: relative;
+}
+
+[data-theme="dark"] .error-left {
+    background-color: #1e2815; /* Latar belakang gelap kehijauan */
+}
+
+.error-image {
+    text-align: center;
+    position: relative;
+    z-index: 1;
+    padding: 50px;
+}
+
+.error-code {
+    color: var(--color-green-primary); 
+    font-size: 10rem;
+    font-weight: 900;
+    line-height: 1;
+    position: relative;
+    z-index: 2;
+    transition: color 0.3s ease;
+}
+
+[data-theme="dark"] .error-code {
+    color: var(--color-401-dark); 
+}
+
+/* Gaya ikon (kunci) */
+.fall-object-icon {
+    font-size: 8rem;
+    color: var(--color-green-primary);
+    display: block;
+    margin-bottom: 20px;
+    animation: bounce-scale 2s infinite alternate;
+}
+
+/* ========================================
+    ANIMASI JATUH KODE ERROR (Sama untuk 404, 500, 400)
+   ======================================== */
+
+@keyframes fallBounce {
+    0% {
+        opacity: 0;
+        transform: translateY(-200px);
+    }
+    60% {
+        opacity: 1;
+        transform: translateY(10px); 
+    }
+    80% {
+        transform: translateY(-5px); 
+    }
+    100% {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Objek yang dianimasikan (teks 401 dan ikon) */
+.fall-object, .fall-object-icon {
+    display: inline-block;
+    opacity: 0;
+    animation: fallBounce 1.2s cubic-bezier(0.68, -0.55, 0.265, 1.55) forwards; 
+}
+
+/* Beri delay pada ikon (opsional) */
+.fall-object-icon {
+    animation-delay: 0.2s;
+}
+
+/* ========================================
+    ERROR RIGHT (Sisi Konten)
+   ======================================== */
+.error-right {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding: 40px;
+}
+
+.error-content {
+    max-width: 400px;
+}
+
+.error-content h1 {
+    font-size: 1.8rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    transition: color 0.3s ease;
+}
+
+.error-content p {
+    color: var(--text-secondary);
+}
+
+/* ========================================
+    BUTTONS
+   ======================================== */
+.action-buttons a,
+.action-buttons button {
+    font-weight: 600;
+    padding: 10px 20px;
+    border-radius: 8px;
+    transition: all 0.2s ease-in-out;
+    text-decoration: none;
+    cursor: pointer;
+}
+
+/* Button 401 menggunakan warna green primary */
+.btn-primary-custom {
+    background-color: var(--color-green-primary);
+    color: white; 
+    border: 2px solid var(--color-green-primary);
+}
+
+.btn-primary-custom:hover {
+    background-color: var(--color-green-hover);
+    border-color: var(--color-green-hover);
+    color: white;
+}
+
+.btn-secondary-custom {
+    background-color: transparent;
+    color: var(--text-secondary);
+    border: 2px solid var(--border-color);
+}
+
+.btn-secondary-custom:hover {
+    color: var(--color-green-primary);
+    border-color: var(--color-green-primary);
+}
+
+/* DARK MODE button secondary */
+[data-theme="dark"] .btn-secondary-custom {
+    background-color: var(--bg-card);
+    color: var(--text-primary);
+    border-color: var(--border-color);
+}
+
+[data-theme="dark"] .btn-secondary-custom:hover {
+    border-color: var(--color-green-primary);
+}
+
+/* THEME TOGGLE BUTTON & FOOTER */
+.theme-toggle-btn { z-index: 10; position: absolute; top: 0; bleed: 0; margin: 20px;}
+.theme-toggle-btn i { color: var(--text-secondary); transition: color 0.3s ease; }
+[data-theme="dark"] .theme-toggle-btn i { color: var(--text-primary) !important; }
+
+.logo-back-link { display: inline-flex; align-items: center; gap: 10px; text-decoration: none; }
+.rfid-logo { height: 24px; width: auto; transition: all 0.3s ease; }
+.error-footer { margin-top: 30px; padding-top: 15px; border-top: 1px solid var(--border-color); }
+
+/* Pastikan semua teks footer mengikuti tema */
+.text-secondary { color: var(--text-secondary) !important; }
+.text-muted { color: var(--text-secondary) !important; }
+
+/* ========================================
+    RESPONSIVE
+   ======================================== */
+
+@media (max-width: 992px) {
+    .error-code {
+        font-size: 8rem;
+    }
+    .fall-object-icon {
+        font-size: 6rem;
+    }
+}
+
+@media (max-width: 768px) {
+    .error-card { 
+        flex-direction: column; 
+        min-height: auto; 
+    }
+    .error-left {
+        width: 100%; 
+        min-height: 250px;
+        padding: 30px 10px;
+    }
+    .error-right {
+        width: 100%;
+        padding: 30px 20px;
+        text-align: center;
+        align-items: center;
+    }
+    .error-code {
+        font-size: 6rem;
+    }
+    .error-content h1 {
+        font-size: 1.5rem;
+    }
+    .logo-back-link {
+        justify-content: center;
+    }
+    .action-buttons .row > div {
+        margin-bottom: 10px;
+    }
+}

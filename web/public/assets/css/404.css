@@ -279,3 +279,33 @@ body {
         margin: 10px !important;
     }
 }
+
+/* 1. KEYFRAMES untuk efek jatuh dan pantulan (bounce) */
+@keyframes fallBounce {
+    0% {
+        opacity: 0;
+        transform: translateY(-200px); /* Mulai 200px di atas */
+    }
+    60% {
+        opacity: 1;
+        transform: translateY(10px); /* Jatuh, sedikit melewati posisi akhir */
+    }
+    80% {
+        transform: translateY(-5px); /* Pantulan ke atas sedikit */
+    }
+    100% {
+        opacity: 1;
+        transform: translateY(0); /* Posisi akhir stabil */
+    }
+}
+
+/* 2. Gaya untuk objek yang dianimasikan (teks 404 utuh) */
+.fall-object {
+    display: inline-block; /* Penting agar transform bekerja */
+    opacity: 0; /* Sembunyikan secara default */
+    
+    /* Terapkan animasi pada objek 404 utuh */
+    animation: fallBounce 1.2s cubic-bezier(0.68, -0.55, 0.265, 1.55) forwards; 
+    
+    /* TIDAK PERLU animation-delay karena ini objek tunggal */
+}
