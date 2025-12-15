@@ -1,5 +1,5 @@
 <?php
-// ~/Documents/ELIOT/web/registrasi.php - VERSI SIMPLE
+// ~/Documents/ELIOT/web/registrasi.php - VERSI REVISI DENGAN VALIDASI KEAMANAN DAN STRENGTH METER
 
 // ERROR REPORTING
 error_reporting(E_ALL);
@@ -12,6 +12,7 @@ if (session_status() === PHP_SESSION_NONE) {
 
 require_once 'includes/config.php';
 require_once 'includes/functions.php';
+require_once 'includes/auth.php'; // WAJIB: Memuat class Auth untuk validasi keamanan
 
 // Variabel untuk status
 $error_message = '';
@@ -109,15 +110,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $requested_role = trim($_POST['role'] ?? $default_role);
     $role = in_array($requested_role, $allowed_roles) ? $requested_role : $default_role;
     
+    // INISIALISASI AUTH UNTUK VALIDASI
+    $auth = new Auth($conn);
+    
     // VALIDASI INPUT
     if (empty($nama) || empty($email) || empty($password)) {
         $error_message = 'Nama, email, dan password wajib diisi!';
     } elseif ($password !== $confirm_password) {
         $error_message = 'Password dan konfirmasi tidak cocok!';
-    } elseif (strlen($password) < 6) {
-        $error_message = 'Password minimal 6 karakter!';
     } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
         $error_message = 'Format email tidak valid!';
+    } elseif (!$auth->isPasswordSecure($password)) { // <--- VALIDASI KEAMANAN BARU
+        $error_message = 'Password harus minimal 6 karakter dan mengandung huruf kapital, huruf kecil, dan angka!';
     } else {
         // CEK EMAIL DUPLIKAT
         $stmt = $conn->prepare("SELECT id FROM users WHERE email = ? AND is_deleted = 0");
@@ -291,6 +295,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         [data-theme="dark"] .alert-dismissible .btn-close {
             filter: invert(1) grayscale(100%) brightness(200%);
         }
+        /* START New CSS for Strength Meter */
+        .progress {
+            border-radius: 4px;
+            height: 6px; 
+            background-color: var(--input-border);
+        }
+        .progress-bar {
+            transition: width 0.3s ease-in-out;
+        }
+        /* Penyesuaian warna teks agar kontras */
+        [data-theme="dark"] .text-danger { color: #f8d7da !important; }
+        [data-theme="dark"] .text-warning { color: #ffc107 !important; }
+        [data-theme="dark"] .text-info { color: #6cbfff !important; }
+        [data-theme="dark"] .text-success { color: #d1e7dd !important; }
+        /* END New CSS */
     </style>
 </head>
 <body>
@@ -298,7 +317,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <div class="container login-card-container">
             <div class="row g-0 card-shadow overflow-hidden rounded-4">
                 
-                <!-- Panel Kiri - Hanya Logo & Deskripsi -->
                 <div class="col-md-6 d-none d-md-flex align-items-center justify-content-center left-panel position-relative">
                     <div class="overlay-content text-center text-white p-5">
                         <h1 class="display-4 fw-bold mb-3">ELIOT</h1>
@@ -306,7 +324,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     </div>
                 </div>
 
-                <!-- Panel Kanan - Form -->
                 <div class="col-md-6 bg-white p-5 d-flex flex-column justify-content-center position-relative">
                     
                     <button class="btn btn-link theme-toggle-btn position-absolute top-0 end-0 m-3 text-decoration-none" id="themeToggle" type="button">
@@ -319,7 +336,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             <p class="text-secondary small mb-0"><?= htmlspecialchars($form_subtitle) ?></p>
                         </div>
 
-                        <!-- ALERT SUCCESS -->
                         <?php if ($success_message): ?>
                             <div class="alert alert-success alert-dismissible fade show mb-3" role="alert">
                                 <div class="d-flex align-items-start">
@@ -332,7 +348,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             </div>
                         <?php endif; ?>
 
-                        <!-- ALERT ERROR -->
                         <?php if ($error_message): ?>
                             <div class="alert alert-danger alert-dismissible fade show mb-3" role="alert">
                                 <div class="d-flex align-items-start">
@@ -344,18 +359,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                 <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
                             </div>
                         <?php endif; ?>
+                        
+                        <div class="alert alert-info small py-2 mb-3">
+                            <i class="fas fa-info-circle me-2"></i>
+                            Password minimal 6 karakter, harus mengandung huruf <b>Kapital</b>, <b>Kecil</b>, dan <b>Angka</b>.
+                        </div>
 
-                        <!-- FORM REGISTRASI -->
                         <form method="POST" enctype="multipart/form-data" id="registerForm" onsubmit="return validateForm()">
                             
-                            <!-- Nama -->
                             <div class="mb-3">
                                 <label class="form-label small fw-bold">Nama Lengkap <span class="text-danger">*</span></label>
                                 <input type="text" name="nama" class="form-control" placeholder="Nama lengkap" required 
                                        value="<?= htmlspecialchars($_POST['nama'] ?? '') ?>">
                             </div>
 
-                            <!-- Email -->
                             <div class="mb-3">
                                 <label class="form-label small fw-bold">Email <span class="text-danger">*</span></label>
                                 <div class="input-group">
@@ -365,27 +382,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                 </div>
                             </div>
 
-                            <!-- No Identitas -->
                             <div class="mb-3">
                                 <label class="form-label small fw-bold">No Identitas (NIM/NIP)</label>
                                 <input type="text" name="no_identitas" class="form-control" placeholder="NIM/NIP" 
                                        value="<?= htmlspecialchars($_POST['no_identitas'] ?? '') ?>">
                             </div>
 
-                            <!-- No Telepon -->
                             <div class="mb-3">
                                 <label class="form-label small fw-bold">No Telepon</label>
                                 <input type="tel" name="no_telepon" class="form-control" placeholder="08123456789" 
                                        value="<?= htmlspecialchars($_POST['no_telepon'] ?? '') ?>">
                             </div>
 
-                            <!-- Alamat -->
                             <div class="mb-3">
                                 <label class="form-label small fw-bold">Alamat</label>
                                 <textarea name="alamat" class="form-control" rows="2" placeholder="Alamat lengkap"><?= htmlspecialchars($_POST['alamat'] ?? '') ?></textarea>
                             </div>
 
-                            <!-- ROLE SELECTION (hanya untuk admin) -->
                             <?php if ($mode === 'admin' && count($allowed_roles) > 1): ?>
                             <div class="mb-3">
                                 <label class="form-label small fw-bold">Role <span class="text-danger">*</span></label>
@@ -401,7 +414,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                 <input type="hidden" name="role" value="<?= htmlspecialchars($default_role) ?>">
                             <?php endif; ?>
 
-                            <!-- Password -->
                             <div class="mb-3">
                                 <label class="form-label small fw-bold">Password <span class="text-danger">*</span></label>
                                 <div class="input-group">
@@ -411,9 +423,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                         <i class="fas fa-eye"></i>
                                     </button>
                                 </div>
-                            </div>
+                                <div class="mt-2" id="password-strength-container" style="display:none;">
+                                    <div class="progress">
+                                        <div id="strength-bar" class="progress-bar" role="progressbar" style="width: 0%;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
+                                    </div>
+                                    <span id="strength-text" class="small fw-bold mt-1 d-block"></span>
+                                </div>
+                                </div>
 
-                            <!-- Konfirmasi Password -->
                             <div class="mb-3">
                                 <label class="form-label small fw-bold">Konfirmasi Password <span class="text-danger">*</span></label>
                                 <div class="input-group">
@@ -425,7 +442,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                 </div>
                             </div>
 
-                            <!-- Foto Profil -->
                             <div class="mb-4">
                                 <label class="form-label small fw-bold">Foto Profil <span class="text-muted">(Opsional)</span></label>
                                 <input type="file" name="foto" class="form-control form-control-sm" accept="image/*">
@@ -434,7 +450,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                 </small>
                             </div>
 
-                            <!-- Submit Button -->
                             <div class="d-grid">
                                 <button type="submit" class="btn btn-custom-green text-white fw-bold" id="submitBtn">
                                     <i class="fas fa-user-plus me-2"></i>
@@ -445,7 +460,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             </div>
                         </form>
 
-                        <!-- Link Kembali -->
                         <div class="text-center mt-3">
                             <a href="<?= htmlspecialchars($back_link) ?>" class="text-decoration-none small text-muted">
                                 <i class="fas fa-arrow-left me-1"></i> <?= htmlspecialchars($back_text) ?>
@@ -490,13 +504,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     });
 
-    // Theme toggle
-    function setThemeFromStorage() {
-        const savedTheme = localStorage.getItem('theme') || 'light';
-        document.documentElement.setAttribute('data-theme', savedTheme);
-        updateThemeIcon(savedTheme);
+    // Theme toggle dan Sinkronisasi (Dark Mode)
+    function getSystemTheme() {
+        return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
     }
-    
+
     function updateThemeIcon(theme) {
         const icon = document.getElementById('themeToggle')?.querySelector('i');
         if (icon) {
@@ -510,6 +522,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     }
     
+    function setThemeFromStorage() {
+        const savedTheme = localStorage.getItem('theme');
+        const initialTheme = savedTheme || getSystemTheme();
+        document.documentElement.setAttribute('data-theme', initialTheme);
+        updateThemeIcon(initialTheme);
+    }
+    
     document.getElementById('themeToggle')?.addEventListener('click', function() {
         const html = document.documentElement;
         const currentTheme = html.getAttribute('data-theme');
@@ -520,18 +539,138 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         updateThemeIcon(newTheme);
     });
 
+    const systemThemeQuery = window.matchMedia('(prefers-color-scheme: dark)');
+    systemThemeQuery.addEventListener('change', (e) => {
+        if (!localStorage.getItem('theme')) {
+            setThemeFromStorage();
+        }
+    });
+    
+    // ==============================================
+    // FUNGSI PENILAIAN KEKUATAN PASSWORD (CLIENT SIDE)
+    // ==============================================
+    function checkPasswordStrength(password) {
+        let score = 0;
+        const length = password.length;
+
+        if (length < 6) return { level: 0, strength: "Terlalu Pendek", width: 0 };
+        
+        // Kriteria penilaian
+        if (length >= 8) score++; 
+        if (password.match(/[A-Z]/)) score++; 
+        if (password.match(/[a-z]/)) score++; 
+        if (password.match(/[0-9]/)) score++; 
+        if (password.match(/[^a-zA-Z0-9\s]/)) score++; // Simbol
+
+        let level, strength, width;
+
+        if (score < 3) {
+            strength = "Lemah";
+            level = 1;
+        } else if (score == 3) {
+            strength = "Sedang";
+            level = 2;
+        } else if (score == 4) {
+            strength = "Kuat";
+            level = 3;
+        } else if (score == 5) {
+            strength = "Sangat Kuat";
+            level = 4;
+        } else {
+             strength = "Sangat Lemah";
+             level = 0;
+        }
+
+        // Atur lebar bar
+        switch (level) {
+            case 1: width = 25; break;
+            case 2: width = 50; break;
+            case 3: width = 75; break;
+            case 4: width = 100; break;
+            default: width = 0;
+        }
+        
+        // Override untuk kriteria wajib (min 6, Kapital, Kecil, Angka)
+        if (length >= 6 && (!password.match(/[A-Z]/) || !password.match(/[a-z]/) || !password.match(/[0-9]/))) {
+            strength = "Lemah (Wajib Kapital, Kecil, Angka)";
+            level = 1;
+            width = 25;
+        }
+        
+        return { level, strength, width };
+    }
+
+    function updatePasswordStrengthUI(strengthData) {
+        const bar = document.getElementById('strength-bar');
+        const text = document.getElementById('strength-text');
+        const container = document.getElementById('password-strength-container');
+        const width = strengthData.width;
+        
+        if (!bar || !text || !container) return;
+        
+        bar.style.width = width + '%';
+        bar.setAttribute('aria-valuenow', width);
+        text.textContent = 'Kekuatan: ' + strengthData.strength;
+        
+        // Reset class
+        bar.classList.remove('bg-danger', 'bg-warning', 'bg-info', 'bg-success');
+        text.classList.remove('text-danger', 'text-warning', 'text-info', 'text-success');
+        
+        // Set class berdasarkan level
+        switch (strengthData.level) {
+            case 1: 
+                bar.classList.add('bg-danger'); 
+                text.classList.add('text-danger');
+                break;
+            case 2: 
+                bar.classList.add('bg-warning'); 
+                text.classList.add('text-warning');
+                break;
+            case 3: 
+                bar.classList.add('bg-info'); 
+                text.classList.add('text-info');
+                break;
+            case 4: 
+                bar.classList.add('bg-success'); 
+                text.classList.add('text-success');
+                break;
+            default: 
+                // Level 0 (Terlalu pendek/kosong)
+                bar.classList.add('bg-danger');
+                text.classList.add('text-danger');
+        }
+
+        if (width === 0) {
+            container.style.display = 'none';
+        } else {
+            container.style.display = 'block';
+        }
+    }
+
+    // Event Listener untuk input password
+    document.getElementById('password')?.addEventListener('input', function() {
+        const password = this.value;
+        const strengthData = checkPasswordStrength(password);
+        updatePasswordStrengthUI(strengthData);
+    });
+
+
     // Form validation
     function validateForm() {
-        const password = document.getElementById('password').value;
+        const passwordInput = document.getElementById('password');
+        const password = passwordInput.value;
         const confirmPassword = document.getElementById('confirm_password').value;
         
+        // Cek Kesamaan Password
         if (password !== confirmPassword) {
             alert('Password dan konfirmasi password tidak cocok!');
             return false;
         }
         
-        if (password.length < 6) {
-            alert('Password minimal 6 karakter!');
+        // Cek Keamanan Password (Harus sinkron dengan PHP: min 6, Kapital, Kecil, Angka)
+        if (password.length < 6 || !password.match(/[A-Z]/) || !password.match(/[a-z]/) || !password.match(/[0-9]/)) {
+            alert('Password harus minimal 6 karakter dan mengandung huruf kapital, huruf kecil, dan angka!');
+            passwordInput.focus();
             return false;
         }
         

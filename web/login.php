@@ -4,6 +4,11 @@ require_once 'includes/config.php';
 require_once 'includes/functions.php';
 require_once 'includes/auth.php';
 
+// Pastikan session sudah dimulai
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+
 if (isLoggedIn()) {
     redirect('apps/dashboard.php');
 }
@@ -18,15 +23,62 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (empty($email) || empty($password)) {
         $error_message = 'Email dan password wajib diisi!';
     } else {
+        // Lakukan verifikasi login awal
         $result = $auth->login($email, $password);
+        
         if ($result === true) {
-            redirect('apps/dashboard.php');
+            // LOGIN BERHASIL (Email & Password cocok)
+            
+            // ===============================================
+            // TAHAP 1: VALIDASI KEAMANAN PASSWORD BARU
+            // ===============================================
+            
+            $is_default = $auth->isDefaultPassword($password);
+            $is_secure = $auth->isPasswordSecure($password);
+            
+            if ($is_default) {
+                // KASUS 1: Password adalah password bawaan (Wajib ganti)
+                $redirect_message = "Password Anda terdeteksi sebagai password bawaan/sangat lemah (e.g., 'admin1', 'admin2'). Anda wajib ganti password Anda sekarang.";
+                
+                // Simpan ID pengguna yang baru saja login untuk proses reset
+                $_SESSION['force_reset_user_id'] = $_SESSION['user_id'] ?? null; 
+                unset($_SESSION['user_id']); // Hapus session login yang berhasil
+
+                // Tampilkan pesan menggunakan alert() lalu redirect
+                echo "<script>
+                    alert('".$redirect_message."');
+                    window.location.href = 'forgot_password.php?force_reset=true'; 
+                </script>";
+                exit;
+
+            } elseif (!$is_secure) {
+                // KASUS 2: Password yang baru dimasukkan TIDAK memenuhi kriteria keamanan (Wajib ganti)
+                $redirect_message = "Password Anda tidak memenuhi standar keamanan baru (min. 6 digit, harus ada huruf kapital, huruf kecil, dan angka). Anda wajib ganti sekarang.";
+                
+                $_SESSION['force_reset_user_id'] = $_SESSION['user_id'] ?? null;
+                unset($_SESSION['user_id']); 
+
+                // Tampilkan pesan menggunakan alert() lalu redirect
+                echo "<script>
+                    alert('".$redirect_message."');
+                    window.location.href = 'forgot_password.php?force_reset=true'; 
+                </script>";
+                exit;
+            } else {
+                // KASUS 3: Password aman dan lolos semua cek
+                redirect('apps/dashboard.php');
+            }
+            
         } else {
+            // Login gagal (Email/Password salah)
             $error_message = $result;
         }
     }
 }
 ?>
+
+<!DOCTYPE html>
+
 
 <!DOCTYPE html>
 <html lang="id" data-theme="light">

@@ -2,14 +2,14 @@
 // ~/Documents/ELIOT/web/reset_password.php
 require_once 'includes/config.php';
 require_once 'includes/functions.php';
-require_once 'includes/auth.php';
+require_once 'includes/auth.php'; // Membutuhkan class Auth dengan isPasswordSecure() dan assessPasswordStrength()
 
 // Jika sudah login, redirect ke dashboard
 if (isLoggedIn()) {
     redirect('apps/dashboard.php');
 }
 
-// Enable error reporting untuk debugging
+// Enable error reporting untuk debugging (Hapus/Ganti dengan error handling production)
 error_reporting(E_ALL);
 ini_set('display_errors', 1);
 
@@ -17,21 +17,17 @@ $error_message = '';
 $success_message = '';
 $token = $_GET['token'] ?? '';
 
-// Debug token
-error_log("=== DEBUG RESET PASSWORD ===");
-error_log("Token dari URL: " . $token);
+$auth = new Auth($conn); // Inisialisasi Auth
 
 // Validasi token
 if (empty($token)) {
     $error_message = 'Token reset password tidak valid!';
-    error_log("Error: Token kosong");
 } else {
     // CEK 1: Validasi format token (harus hex 64 karakter)
     if (strlen($token) !== 64 || !ctype_xdigit($token)) {
         $error_message = 'Format token tidak valid!';
-        error_log("Error: Format token tidak valid. Panjang: " . strlen($token));
     } else {
-        // CEK 2: Cek token di database dengan query yang lebih baik
+        // CEK 2: Cek token di database
         $query = "SELECT 
                     pr.*, 
                     u.email,
@@ -42,146 +38,79 @@ if (empty($token)) {
                   LEFT JOIN users u ON pr.user_id = u.id 
                   WHERE pr.token = ?";
         
-        error_log("Query: " . $query);
-        error_log("Parameter token: " . $token);
-        
         $stmt = mysqli_prepare($conn, $query);
+        
         if (!$stmt) {
             $error_message = 'Database error: ' . mysqli_error($conn);
-            error_log("Error prepare statement: " . mysqli_error($conn));
         } else {
             mysqli_stmt_bind_param($stmt, "s", $token);
+            mysqli_stmt_execute($stmt);
+            $result = mysqli_stmt_get_result($stmt);
             
-            if (!mysqli_stmt_execute($stmt)) {
-                $error_message = 'Database error: ' . mysqli_stmt_error($stmt);
-                error_log("Error execute statement: " . mysqli_stmt_error($stmt));
-            } else {
-                $result = mysqli_stmt_get_result($stmt);
-                $num_rows = mysqli_num_rows($result);
+            if (mysqli_num_rows($result) > 0) {
+                $reset_data = mysqli_fetch_assoc($result);
                 
-                error_log("Jumlah baris ditemukan: " . $num_rows);
-                
-                if ($num_rows > 0) {
-                    $reset_data = mysqli_fetch_assoc($result);
+                // CEK 3: Validasi user dan status
+                if (!$reset_data['email'] || $reset_data['is_deleted'] == 1 || $reset_data['status'] !== 'aktif') {
+                    $error_message = 'Akun tidak valid atau tidak aktif!';
+                } 
+                // CEK 4: Token sudah digunakan
+                elseif ($reset_data['used_at'] !== null) {
+                    $error_message = 'Token sudah digunakan!';
+                }
+                // CEK 5: Token kadaluarsa
+                else {
+                    $expires_timestamp = strtotime($reset_data['expires_at']);
+                    $now_timestamp = time();
                     
-                    // Debug data
-                    error_log("Data ditemukan: " . print_r($reset_data, true));
-                    
-                    // CEK 3: Validasi user
-                    if (!$reset_data['email']) {
-                        $error_message = 'User tidak ditemukan!';
-                        error_log("Error: User tidak ditemukan");
-                    } elseif ($reset_data['is_deleted'] == 1) {
-                        $error_message = 'Akun tidak aktif!';
-                        error_log("Error: User is_deleted = 1");
-                    } elseif ($reset_data['status'] !== 'aktif') {
-                        $error_message = 'Akun tidak aktif!';
-                        error_log("Error: User status = " . $reset_data['status']);
-                    } 
-                    // CEK 4: Validasi role (hanya staff dan member)
-                    elseif (!in_array($reset_data['role'], ['staff', 'member'])) {
-                        $error_message = 'Reset password hanya untuk staff dan member!';
-                        error_log("Error: User role = " . $reset_data['role']);
-                    }
-                    // CEK 5: Token sudah digunakan
-                    elseif ($reset_data['used_at'] !== null) {
-                        $error_message = 'Token sudah digunakan!';
-                        error_log("Error: Token sudah used_at = " . $reset_data['used_at']);
-                    }
-                    // CEK 6: Token kadaluarsa
-                    else {
-                        $expires_timestamp = strtotime($reset_data['expires_at']);
-                        $now_timestamp = time();
-                        
-                        error_log("expires_at: " . $reset_data['expires_at'] . " (" . $expires_timestamp . ")");
-                        error_log("Sekarang: " . date('Y-m-d H:i:s') . " (" . $now_timestamp . ")");
-                        error_log("Sisa waktu: " . ($expires_timestamp - $now_timestamp) . " detik");
-                        
-                        if ($expires_timestamp <= $now_timestamp) {
-                            $error_message = 'Token sudah kadaluarsa!';
-                            error_log("Error: Token expired. expires_at <= now");
-                        } else {
-                            // Semua validasi berhasil
-                            error_log("Token VALID!");
-                        }
-                    }
-                } else {
-                    $error_message = 'Token tidak ditemukan di database!';
-                    error_log("Error: Token tidak ditemukan di database");
-                    
-                    // Debug: Tampilkan semua token yang ada
-                    $debug_query = "SELECT token, expires_at, used_at FROM password_resets LIMIT 5";
-                    $debug_result = mysqli_query($conn, $debug_query);
-                    error_log("5 token pertama di database:");
-                    while ($row = mysqli_fetch_assoc($debug_result)) {
-                        error_log("Token: " . substr($row['token'], 0, 20) . "...");
+                    if ($expires_timestamp <= $now_timestamp) {
+                        $error_message = 'Token sudah kadaluarsa!';
                     }
                 }
+            } else {
+                $error_message = 'Token tidak ditemukan di database!';
             }
             mysqli_stmt_close($stmt);
         }
     }
 }
 
-// Proses reset password
+// Proses reset password (hanya jika token valid)
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && empty($error_message) && isset($reset_data)) {
     $new_password = $_POST['password'] ?? '';
     $confirm_password = $_POST['confirm_password'] ?? '';
     
-    error_log("=== PROCESS RESET PASSWORD ===");
-    error_log("Password: " . (empty($new_password) ? 'kosong' : 'ada'));
-    error_log("Confirm: " . (empty($confirm_password) ? 'kosong' : 'ada'));
-    
     if (empty($new_password) || empty($confirm_password)) {
         $error_message = 'Password baru dan konfirmasi harus diisi!';
-        error_log("Error: Password kosong");
     } elseif ($new_password !== $confirm_password) {
         $error_message = 'Password dan konfirmasi tidak cocok!';
-        error_log("Error: Password tidak cocok");
-    } elseif (strlen($new_password) < 6) {
-        $error_message = 'Password minimal 6 karakter!';
-        error_log("Error: Password < 6 karakter");
+    } elseif (!$auth->isPasswordSecure($new_password)) { // VALIDASI KEAMANAN BACKEND
+        $error_message = 'Password harus terdiri dari minimal 6 karakter, mengandung huruf kapital, huruf kecil, dan angka!';
     } else {
         // Update password user
         $hashed_password = password_hash($new_password, PASSWORD_DEFAULT);
         $update_query = "UPDATE users SET password_hash = ?, updated_at = NOW() WHERE id = ?";
         $update_stmt = mysqli_prepare($conn, $update_query);
         
-        if (!$update_stmt) {
-            $error_message = 'Database error: ' . mysqli_error($conn);
-            error_log("Error prepare update: " . mysqli_error($conn));
-        } else {
-            mysqli_stmt_bind_param($update_stmt, "si", $hashed_password, $reset_data['user_id']);
+        if (mysqli_stmt_bind_param($update_stmt, "si", $hashed_password, $reset_data['user_id']) && mysqli_stmt_execute($update_stmt)) {
             
-            if (!mysqli_stmt_execute($update_stmt)) {
-                $error_message = 'Gagal mereset password. Error: ' . mysqli_stmt_error($update_stmt);
-                error_log("Error execute update: " . mysqli_stmt_error($update_stmt));
-            } else {
-                // Tandai token sudah digunakan
-                $mark_used = "UPDATE password_resets SET used_at = NOW() WHERE token = ?";
-                $mark_stmt = mysqli_prepare($conn, $mark_used);
-                
-                if (!$mark_stmt) {
-                    error_log("Error prepare mark_used: " . mysqli_error($conn));
-                } else {
-                    mysqli_stmt_bind_param($mark_stmt, "s", $token);
-                    mysqli_stmt_execute($mark_stmt);
-                    mysqli_stmt_close($mark_stmt);
-                }
-                
-                $success_message = 'Password berhasil direset! Silakan login dengan password baru.';
-                error_log("Success: Password direset untuk user ID " . $reset_data['user_id']);
-                
-                // Clear $reset_data setelah sukses
-                unset($reset_data);
+            // Tandai token sudah digunakan
+            $mark_used = "UPDATE password_resets SET used_at = NOW() WHERE token = ?";
+            $mark_stmt = mysqli_prepare($conn, $mark_used);
+            if (mysqli_stmt_bind_param($mark_stmt, "s", $token)) {
+                mysqli_stmt_execute($mark_stmt);
             }
-            mysqli_stmt_close($update_stmt);
+            mysqli_stmt_close($mark_stmt);
+            
+            $success_message = 'Password berhasil direset! Silakan login dengan password baru.';
+            unset($reset_data); // Clear data agar form tidak ditampilkan lagi
+            
+        } else {
+            $error_message = 'Gagal mereset password. Silakan coba lagi.';
         }
+        mysqli_stmt_close($update_stmt);
     }
 }
-
-// Hapus data sensitive dari log
-error_log("=== END DEBUG ===");
 ?>
 
 <!DOCTYPE html>
@@ -194,48 +123,35 @@ error_log("=== END DEBUG ===");
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
     <link rel="stylesheet" href="public/assets/css/style.css">
     <link rel="stylesheet" href="public/assets/css/forgot_password.css">
+    
     <style>
-        .debug-info {
-            background-color: #f8f9fa;
-            border-left: 4px solid #dc3545;
-            padding: 10px;
-            margin-bottom: 15px;
-            font-size: 0.85rem;
-            display: none; /* Sembunyikan di production */
+        .progress {
+            border-radius: 4px;
+            height: 6px; /* Tinggikan sedikit untuk visibilitas */
+            background-color: var(--input-border);
         }
-        .debug-toggle {
-            position: fixed;
-            bottom: 10px;
-            right: 10px;
-            z-index: 1000;
+        .progress-bar {
+            transition: width 0.3s ease-in-out;
         }
+        /* Penyesuaian warna teks agar kontras */
+        [data-theme="dark"] .text-danger { color: #f8d7da !important; }
+        [data-theme="dark"] .text-warning { color: #ffc107 !important; }
+        [data-theme="dark"] .text-info { color: #6cbfff !important; }
+        [data-theme="dark"] .text-success { color: #d1e7dd !important; }
     </style>
 </head>
 <body>
     <div class="main-wrapper">
         <div class="container login-card-container">
             <div class="row g-0 card-shadow overflow-hidden rounded-4">
-                <!-- Panel Kiri dengan Background -->
                 <div class="col-md-6 d-none d-md-flex align-items-center justify-content-center left-panel position-relative">
                     <div class="overlay-content text-center text-white p-5">
                         <h1 class="display-4 fw-bold mb-3">ELIOT</h1>
                         <p class="lead mb-4">Electronic Library of Things</p>
                         <p class="mb-4 small opacity-75">Buat password baru untuk akun Anda</p>
-                        
-                        <!-- Debug info di panel kiri -->
-                        <?php if (!empty($token) && !empty($error_message) && $error_message !== 'Token reset password tidak valid!'): ?>
-                        <div class="debug-info bg-dark bg-opacity-25 mt-4 p-3 rounded">
-                            <small>
-                                <strong>Debug Info:</strong><br>
-                                Token: <?= htmlspecialchars(substr($token, 0, 20)) ?>...<br>
-                                Error: <?= htmlspecialchars($error_message) ?>
-                            </small>
-                        </div>
-                        <?php endif; ?>
                     </div>
                 </div>
 
-                <!-- Panel Kanan - Form -->
                 <div class="col-md-6 bg-white p-5 d-flex flex-column justify-content-center position-relative">
                     <button class="btn btn-link theme-toggle-btn position-absolute top-0 end-0 m-3" id="themeToggle">
                         <i class="fas fa-moon fs-5"></i>
@@ -252,9 +168,6 @@ error_log("=== END DEBUG ===");
                                 <i class="fas fa-exclamation-triangle me-2"></i>
                                 <div>
                                     <strong>Error:</strong> <?= htmlspecialchars($error_message) ?>
-                                    <?php if ($error_message === 'Token tidak ditemukan di database!'): ?>
-                                    <br><small class="text-muted">Pastikan Anda menggunakan link yang benar dari email.</small>
-                                    <?php endif; ?>
                                 </div>
                             </div>
                         <?php endif; ?>
@@ -298,7 +211,14 @@ error_log("=== END DEBUG ===");
                                     <div class="invalid-feedback">
                                         Password minimal 6 karakter
                                     </div>
-                                </div>
+                                    
+                                    <div class="mt-2" id="password-strength-container" style="display:none;">
+                                        <div class="progress">
+                                            <div id="strength-bar" class="progress-bar" role="progressbar" style="width: 0%;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
+                                        </div>
+                                        <span id="strength-text" class="small fw-bold mt-1 d-block"></span>
+                                    </div>
+                                    </div>
 
                                 <div class="mb-4">
                                     <label class="form-label small fw-bold text-secondary">Konfirmasi Password <span class="text-danger">*</span></label>
@@ -321,18 +241,7 @@ error_log("=== END DEBUG ===");
                                 </div>
                             </form>
                             
-                            <!-- Debug info tambahan -->
-                            <div class="mt-3 small text-muted">
-                                <details>
-                                    <summary class="cursor-pointer">Info Token</summary>
-                                    <div class="mt-2 p-2 bg-light rounded">
-                                        Token: <?= htmlspecialchars(substr($token, 0, 20)) ?>...<br>
-                                        Berakhir: <?= htmlspecialchars($reset_data['expires_at']) ?><br>
-                                        Dibuat: <?= htmlspecialchars($reset_data['created_at']) ?>
-                                    </div>
-                                </details>
-                            </div>
-                        <?php endif; ?>
+                            <?php endif; ?>
 
                         <div class="text-center mt-4">
                             <a href="login.php" class="text-decoration-none small text-muted">
@@ -345,18 +254,11 @@ error_log("=== END DEBUG ===");
         </div>
     </div>
 
-    <!-- Debug Toggle Button -->
-    <button class="btn btn-sm btn-outline-secondary debug-toggle" onclick="toggleDebug()">
-        <i class="fas fa-bug"></i>
-    </button>
-
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <script>
-        // Fungsi untuk set tema dari localStorage
-        function setThemeFromStorage() {
-            const savedTheme = localStorage.getItem('theme') || 'light';
-            document.documentElement.setAttribute('data-theme', savedTheme);
-            updateThemeIcon(savedTheme);
+        // --- FUNGSI TEMA (TETAP SAMA) ---
+        function getSystemTheme() {
+            return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
         }
         
         function updateThemeIcon(theme) {
@@ -370,6 +272,15 @@ error_log("=== END DEBUG ===");
                     icon.classList.add('fa-moon');
                 }
             }
+        }
+
+        function setThemeFromStorage() {
+            const storedTheme = localStorage.getItem('theme');
+            const systemTheme = getSystemTheme();
+            const theme = storedTheme || systemTheme;
+            
+            document.documentElement.setAttribute('data-theme', theme);
+            updateThemeIcon(theme);
         }
         
         // Theme Toggle
@@ -402,7 +313,116 @@ error_log("=== END DEBUG ===");
             }
         });
 
-        // Form Validation dengan custom confirm password
+        // ==============================================
+        // FUNGSI PENILAIAN KEKUATAN PASSWORD (CLIENT SIDE)
+        // ==============================================
+        function checkPasswordStrength(password) {
+            let score = 0;
+            const length = password.length;
+
+            if (length < 6) return { level: 0, strength: "Terlalu Pendek", width: 0 };
+            
+            // Kriteria penilaian
+            if (length >= 8) score++; 
+            if (password.match(/[A-Z]/)) score++; 
+            if (password.match(/[a-z]/)) score++; 
+            if (password.match(/[0-9]/)) score++; 
+            if (password.match(/[^a-zA-Z0-9\s]/)) score++; // Simbol
+
+            let level, strength, width;
+
+            if (score < 3) {
+                strength = "Lemah";
+                level = 1;
+            } else if (score == 3) {
+                strength = "Sedang";
+                level = 2;
+            } else if (score == 4) {
+                strength = "Kuat";
+                level = 3;
+            } else if (score == 5) {
+                strength = "Sangat Kuat";
+                level = 4;
+            } else {
+                 strength = "Sangat Lemah";
+                 level = 0;
+            }
+
+            // Atur lebar bar
+            switch (level) {
+                case 1: width = 25; break;
+                case 2: width = 50; break;
+                case 3: width = 75; break;
+                case 4: width = 100; break;
+                default: width = 0;
+            }
+            
+            // Override untuk kriteria wajib (min 6, Kapital, Kecil, Angka)
+            if (length >= 6 && (!password.match(/[A-Z]/) || !password.match(/[a-z]/) || !password.match(/[0-9]/))) {
+                strength = "Lemah (Wajib Kapital, Kecil, Angka)";
+                level = 1;
+                width = 25;
+            }
+            
+            return { level, strength, width };
+        }
+
+        function updatePasswordStrengthUI(strengthData) {
+            const bar = document.getElementById('strength-bar');
+            const text = document.getElementById('strength-text');
+            const container = document.getElementById('password-strength-container');
+            const width = strengthData.width;
+            
+            if (!bar || !text || !container) return; // Exit jika elemen tidak ada
+            
+            bar.style.width = width + '%';
+            bar.setAttribute('aria-valuenow', width);
+            text.textContent = 'Kekuatan: ' + strengthData.strength;
+            
+            // Reset class
+            bar.classList.remove('bg-danger', 'bg-warning', 'bg-info', 'bg-success');
+            text.classList.remove('text-danger', 'text-warning', 'text-info', 'text-success');
+            
+            // Set class berdasarkan level
+            switch (strengthData.level) {
+                case 1: 
+                    bar.classList.add('bg-danger'); 
+                    text.classList.add('text-danger');
+                    break;
+                case 2: 
+                    bar.classList.add('bg-warning'); 
+                    text.classList.add('text-warning');
+                    break;
+                case 3: 
+                    bar.classList.add('bg-info'); 
+                    text.classList.add('text-info');
+                    break;
+                case 4: 
+                    bar.classList.add('bg-success'); 
+                    text.classList.add('text-success');
+                    break;
+                default: 
+                    // Level 0 (Terlalu pendek/kosong)
+                    bar.classList.add('bg-danger');
+                    text.classList.add('text-danger');
+            }
+
+            // Tampilkan atau sembunyikan container
+            if (width === 0) {
+                container.style.display = 'none';
+            } else {
+                container.style.display = 'block';
+            }
+        }
+
+        // Event Listener untuk input password
+        document.getElementById('password')?.addEventListener('input', function() {
+            const password = this.value;
+            const strengthData = checkPasswordStrength(password);
+            updatePasswordStrengthUI(strengthData);
+        });
+
+        // Form Validation (Bootstrap Standard & Custom Confirm)
         (function() {
             'use strict';
             var forms = document.querySelectorAll('.needs-validation');
@@ -433,6 +453,7 @@ error_log("=== END DEBUG ===");
             const confirmPassword = document.getElementById('confirm_password');
             
             if (password && confirmPassword) {
+                // Gunakan fungsi yang sudah ada untuk validasi real-time
                 password.addEventListener('input', validatePasswords);
                 confirmPassword.addEventListener('input', validatePasswords);
             }
@@ -447,14 +468,6 @@ error_log("=== END DEBUG ===");
                 }
             }
         })();
-
-        // Toggle debug info
-        function toggleDebug() {
-            const debugElements = document.querySelectorAll('.debug-info');
-            debugElements.forEach(el => {
-                el.style.display = el.style.display === 'none' ? 'block' : 'none';
-            });
-        }
 
         // Set tema saat halaman dimuat
         document.addEventListener('DOMContentLoaded', setThemeFromStorage);

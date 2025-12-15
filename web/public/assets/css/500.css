@@ -1,16 +1,18 @@
 /* ========================================
-    404.css - Error Page Styles with Dark Mode
+    500.css - Server Error Page Styles with Dark Mode
+    Berdasarkan 404.css, tapi dengan tema merah/error
    ======================================== */
 
 :root {
-    --color-green-primary: #628141;
-    --color-green-hover: #506834;
+    /* Menggunakan variabel error/merah sebagai primary color */
+    --color-error-primary: #dc3545; /* Merah primary */
+    --color-error-hover: #c82333;   /* Merah hover */
     --bg-body: #f5f7f3;
     --bg-card: #ffffff;
     --text-primary: #212529;
     --text-secondary: #6c757d;
     --border-color: #e9ecef;
-    --color-error: #dc3545;
+    --color-error: #dc3545; 
     --color-warning: #ffc107;
 }
 
@@ -23,11 +25,11 @@
     --text-primary: #f3f4f6;
     --text-secondary: #9ca3af;
     --border-color: #404040;
-    --color-green-primary: #8BA76C;
-    --color-green-hover: #9db87d;
+    --color-error-primary: #f87171; /* Merah terang di dark mode */
+    --color-error-hover: #ef4444;   
     --color-error: #f87171;
     --color-warning: #fbbf24;
-    --color-404-dark: #f3f4f6; /* Tetap terang di dark mode agar kontras */
+    --color-500-dark: #f3f4f6; /* Warna terang untuk angka 500 */
 }
 
 /* ========================================
@@ -62,7 +64,7 @@ body {
     border-radius: 12px;
     box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
     overflow: hidden;
-    position: relative; /* Penting untuk tombol toggle */
+    position: relative;
     border: 1px solid var(--border-color);
 }
 
@@ -71,13 +73,13 @@ body {
 }
 
 /* ========================================
-    ERROR LEFT (Ilustrasi 404)
+    ERROR LEFT (Ilustrasi 500)
    ======================================== */
 
 .error-left {
     width: 40%;
     min-width: 300px;
-    background-color: #f8f9fa; 
+    background-color: #f8f9fa;
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -93,15 +95,15 @@ body {
 
 .error-image {
     position: relative;
-    color: var(--color-green-primary);
+    color: var(--color-error-primary); 
     display: flex;
     align-items: center;
     justify-content: center;
 }
 
 .error-code {
-    /* Perubahan warna 404 sesuai permintaan: #213448 */
-    color: #213448; 
+    /* Warna 500: Menggunakan warna error primary */
+    color: var(--color-error-primary); 
     font-size: 8rem;
     font-weight: 900;
     line-height: 1;
@@ -111,23 +113,11 @@ body {
 }
 
 [data-theme="dark"] .error-code {
-    color: var(--color-404-dark);
+    color: var(--color-500-dark); 
 }
 
-.error-image i {
-    position: absolute;
-    font-size: 5rem;
-    color: var(--color-warning); 
-    opacity: 0.3;
-    z-index: 1;
-    transition: color 0.3s ease, opacity 0.3s ease;
-    animation: bounce-scale 4s infinite ease-in-out;
-}
-
-@keyframes bounce-scale {
-    0%, 100% { transform: scale(1) rotate(0deg); }
-    50% { transform: scale(1.1) rotate(5deg); }
-}
+/* Ikon yang di-override (ditiadakan di 500.php) */
+.error-image i { display: none; } 
 
 /* ========================================
     ERROR RIGHT (Konten)
@@ -154,7 +144,7 @@ body {
 }
 
 /* ========================================
-    BUTTONS
+    BUTTONS (Menggunakan variabel ERROR)
    ======================================== */
 
 .btn-primary-custom, .btn-secondary-custom {
@@ -170,16 +160,18 @@ body {
 }
 
 .btn-primary-custom {
-    background-color: var(--color-green-primary);
+    /* Menggunakan warna merah untuk tombol utama */
+    background-color: var(--color-error-primary); 
     color: white;
-    border: 1px solid var(--color-green-primary);
+    border: 1px solid var(--color-error-primary);
 }
 
 .btn-primary-custom:hover {
-    background-color: var(--color-green-hover);
-    border-color: var(--color-green-hover);
+    background-color: var(--color-error-hover);
+    border-color: var(--color-error-hover);
     transform: translateY(-2px);
-    box-shadow: 0 4px 10px rgba(98, 129, 65, 0.3);
+    /* Menggunakan variabel error untuk shadow */
+    box-shadow: 0 4px 10px rgba(220, 53, 69, 0.3); 
 }
 
 .btn-secondary-custom {
@@ -190,7 +182,7 @@ body {
 
 .btn-secondary-custom:hover {
     background-color: var(--bg-card);
-    border-color: var(--color-green-primary);
+    border-color: var(--color-error-primary); /* Border merah saat hover */
     transform: translateY(-2px);
     box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
 }
@@ -202,80 +194,35 @@ body {
 }
 
 [data-theme="dark"] .btn-secondary-custom:hover {
-    border-color: var(--color-green-primary);
+    border-color: var(--color-error-primary);
 }
 
-/* THEME TOGGLE BUTTON */
-.theme-toggle-btn {
-    z-index: 10;
-}
+/* THEME TOGGLE BUTTON & FOOTER */
+.theme-toggle-btn { z-index: 10; }
+.theme-toggle-btn i { color: var(--text-secondary); transition: color 0.3s ease; }
+[data-theme="dark"] .theme-toggle-btn i { color: var(--text-primary) !important; }
 
-.theme-toggle-btn i {
-    color: var(--text-secondary);
-    transition: color 0.3s ease;
-}
+.logo-back-link { display: inline-flex; align-items: center; gap: 10px; text-decoration: none; }
+.rfid-logo { height: 24px; width: auto; transition: all 0.3s ease; }
+.error-footer { margin-top: 30px; padding-top: 15px; border-top: 1px solid var(--border-color); }
 
-[data-theme="dark"] .theme-toggle-btn i {
-    color: var(--text-primary) !important;
-}
-
-/* Logo and Footer Styles */
-.logo-back-link {
-    display: inline-flex;
-    align-items: center;
-    gap: 10px;
-    text-decoration: none;
-}
-
-.rfid-logo {
-    height: 24px;
-    width: auto;
-    transition: all 0.3s ease;
-}
-
-.error-footer {
-    margin-top: 30px;
-    padding-top: 15px;
-    border-top: 1px solid var(--border-color);
-}
-
-[data-theme="dark"] .error-footer .text-muted {
-    color: #a8b49a !important;
-}
+/* Pastikan semua teks footer mengikuti tema */
+.text-secondary { color: var(--text-secondary) !important; }
+.text-muted { color: var(--text-secondary) !important; }
 
 /* ========================================
     RESPONSIVE
    ======================================== */
 
 @media (max-width: 768px) {
-    .error-card {
-        flex-direction: column;
-    }
-
+    .error-card { flex-direction: column; }
     .error-left {
-        width: 100%;
-        min-height: 250px;
-        border-right: none;
+        width: 100%; min-height: 250px; border-right: none;
         border-bottom: 1px solid var(--border-color);
         border-radius: 12px 12px 0 0;
     }
-
-    .error-right {
-        padding: 30px;
-        text-align: center;
-    }
-
-    .error-right h1 {
-        font-size: 1.5rem;
-    }
-    
-    .logo-back-link {
-        justify-content: center;
-    }
-    
-    .theme-toggle-btn {
-        top: 0;
-        right: 0;
-        margin: 10px !important;
-    }
+    .error-right { padding: 30px; text-align: center; }
+    .error-right h1 { font-size: 1.5rem; }
+    .logo-back-link { justify-content: center; }
+    .theme-toggle-btn { top: 0; right: 0; margin: 10px !important; }
 }
