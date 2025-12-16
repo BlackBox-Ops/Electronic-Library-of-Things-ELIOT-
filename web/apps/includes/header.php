@@ -64,9 +64,9 @@ $pageTitle = $pageTitle ?? 'Dashboard';
         ?>
 
         <div class="main-content" id="mainContent">
-            <nav class="navbar topbar eliot-topbar shadow-sm fixed-top-custom">
+            <nav class="navbar topbar eliot-topbar shadow-sm">
                 <div class="container-fluid"> 
-                    <div class="d-flex align-items-center navbar-left-group navbar-left-fixed">
+                    <div class="d-flex align-items-center navbar-left-group">
                         <button class="btn btn-link sidebar-toggle-btn" id="sidebarToggle" type="button" aria-controls="sidebar" aria-expanded="false" aria-label="Toggle navigation">
                             <i class="fas fa-bars fs-5"></i>
                         </button>
@@ -93,24 +93,22 @@ $pageTitle = $pageTitle ?? 'Dashboard';
                             <i class="fas fa-moon fs-5 eliot-theme-icon"></i>
                         </button>
 
-                    <div class="dropdown">
-                        <a href="#" class="d-flex align-items-center text-decoration-none dropdown-toggle" id="userDropdown" data-bs-toggle="dropdown" aria-expanded="false">
-                            <i class="fas fa-user-circle fs-4 me-2 profile-icon-placeholder" style="color: var(--colorGreenPrimary);"></i> 
-                            
-                            <span class="d-none d-sm-inline text-dark fw-medium"><?= $userName ?></span>
-                        </a>
-                        <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
-                            <li><h6 class="dropdown-header">Role: <?= ucfirst($userRole) ?></h6></li>
-                            <li><hr class="dropdown-divider"></li>
-                            <li><a class="dropdown-item" href="<?= $baseUrl ?>/apps/profile.php"><i class="fas fa-user-circle me-2"></i> Profil</a></li>
-                            <li><a class="dropdown-item" href="<?= $baseUrl ?>/apps/settings.php"><i class="fas fa-cog me-2"></i> Pengaturan</a></li>
-                            <li><hr class="dropdown-divider"></li>
-                            <li><a class="dropdown-item text-danger" href="<?= $baseUrl ?>/logout.php"><i class="fas fa-sign-out-alt me-2"></i> Logout</a></li>
-                        </ul>
+                        <div class="dropdown">
+                            <a href="#" class="d-flex align-items-center text-decoration-none dropdown-toggle" id="userDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                                <i class="fas fa-user-circle fs-4 me-2" style="color: var(--colorGreenPrimary);"></i> 
+                                <span class="d-none d-sm-inline fw-medium"><?= $userName ?></span>
+                            </a>
+                            <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
+                                <li><h6 class="dropdown-header">Role: <?= ucfirst($userRole) ?></h6></li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li><a class="dropdown-item" href="<?= $baseUrl ?>/apps/profile.php"><i class="fas fa-user-circle me-2"></i> Profil</a></li>
+                                <li><a class="dropdown-item" href="<?= $baseUrl ?>/apps/settings.php"><i class="fas fa-cog me-2"></i> Pengaturan</a></li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li><a class="dropdown-item text-danger" href="<?= $baseUrl ?>/logout.php"><i class="fas fa-sign-out-alt me-2"></i> Logout</a></li>
+                            </ul>
+                        </div>
                     </div>
                 </div>
             </nav>
         
-        <div class="main-content-padding"></div> 
-
-        <main class="content-wrapper p-4">
+            <main class="content-wrapper">

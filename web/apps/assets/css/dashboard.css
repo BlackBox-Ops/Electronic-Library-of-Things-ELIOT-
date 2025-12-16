@@ -1,6 +1,6 @@
 /* ========================================
-   dashboard.css - Layout Utama Dashboard
-   ======================================== */
+   dashboard.css - Layout Utama Dashboard
+   ======================================== */
 
 :root {
     --colorGreenPrimary: #628141;
@@ -25,8 +25,8 @@
 }
 
 /* ========================================
-   DARK MODE
-   ======================================== */
+   DARK MODE
+   ======================================== */
 
 [data-theme="dark"] {
     --bgBody: #121212;
@@ -46,11 +46,10 @@
 }
 
 /* ========================================
-   GLOBAL
-   ======================================== */
+   GLOBAL
+   ======================================== */
 
 body {
-    margin: 0;
     background-color: var(--bgBody);
     color: var(--textPrimary);
     font-family: 'Poppins', sans-serif;
@@ -59,11 +58,12 @@ body {
 .wrapper {
     display: flex;
     min-height: 100vh;
+    flex-direction: column;
 }
 
 /* ========================================
-   SIDEBAR
-   ======================================== */
+   SIDEBAR
+   ======================================== */
 
 .sidebar {
     position: fixed;
@@ -82,87 +82,55 @@ body {
 
 /* Sidebar Header */
 .sidebar-header {
-    height: var(--navbarHeight);   
+    height: var(--navbarHeight);
     min-height: var(--navbarHeight);
     display: flex;
     align-items: center;
-    padding: 0 20px;
+    padding: 0 15px;
     border-bottom: 1px solid rgba(255,255,255,0.1);
 }
 
 .sidebar-header a {
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: 10px;
     color: var(--sidebarText);
     text-decoration: none;
 }
 
 .sidebar-logo {
-    height: 36px;
+    height: 32px;
     width: auto;
 }
 
 .sidebar-title {
-    font-size: 1.4rem;
+    font-size: 1.25rem;
     font-weight: 700;
 }
 
 /* Sidebar Menu */
-.sidebar .nav-link {
-    color: var(--sidebarText);
-    padding: 10px 20px;
-    margin: 5px 0;
-    border-radius: 0 50px 50px 0;
+.sidebar-menu {
+    flex: 1;
+    overflow-y: auto;
+    padding: 0.5rem 0;
+    
+    /* Sembunyikan scrollbar tapi tetap bisa scroll */
+    scrollbar-width: none; /* Firefox */
+    -ms-overflow-style: none; /* IE and Edge */
 }
 
-.sidebar .nav-link:hover,
-.sidebar .nav-link.active {
-    background-color: var(--sidebarActiveBg);
-    color: var(--sidebarActiveText);
+/* Sembunyikan scrollbar untuk Chrome, Safari dan Opera */
+.sidebar-menu::-webkit-scrollbar {
+    display: none;
 }
 
-/* Sidebar Footer */
-.sidebar-footer {
-    margin-top: auto;
-    padding: 1rem 20px;
-    border-top: 1px solid rgba(255,255,255,0.1);
-}
-
-/* Setiap item menu */
-.sidebar-menu .nav-item {
-    position: relative;
-}
-
-/* Spacing menu */
 .sidebar-menu .nav-link {
-    padding: 10px 20px;
-    position: relative;
-}
-
-/* Underline divider */
-.sidebar-menu .nav-item:not(:last-child)::after {
-    content: '';
-    position: absolute;
-    left: 20px;
-    right: 20px;
-    bottom: 0;
-    height: 1px;
-    background: rgba(255,255,255,0.2);
-}
-
-/* Header menu */
-.sidebar-menu .nav-header {
-    padding: 15px 20px 8px;
-    font-size: 0.75rem;
-    font-weight: 600;
-    text-transform: uppercase;
-    color: rgba(255,255,255,0.6);
-}
-
-/* Header tidak punya underline */
-.sidebar-menu .nav-header::after {
-    display: none !important;
+    color: var(--sidebarText);
+    padding: 10px 15px;
+    margin: 3px 0;
+    border-radius: 0 50px 50px 0;
+    transition: background-color 0.2s;
+    font-size: 0.9rem;
 }
 
 .sidebar-menu .nav-link:hover {
@@ -171,17 +139,43 @@ body {
 
 .sidebar-menu .nav-link.active {
     background-color: var(--sidebarActiveBg);
+    color: var(--sidebarActiveText);
     font-weight: 600;
+}
+
+/* Setiap item menu */
+.sidebar-menu .nav-item {
+    position: relative;
+}
+
+/* Underline divider */
+.sidebar-menu .nav-item:not(:last-child)::after {
+    content: '';
+    position: absolute;
+    left: 15px;
+    width: calc(100% - 30px);
+    bottom: 0;
+    height: 1px;
+    background: rgba(255,255,255,0.2);
+}
+
+/* Header menu */
+.sidebar-menu .nav-header {
+    padding: 12px 15px 6px;
+    font-size: 0.7rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.6);
 }
 
 /* Sub menu (jika suatu saat ada) */
 .sidebar-menu .nav-item .nav {
-    padding-left: 22px; /* ⬅️ jarak ke kanan */
-    margin-top: 5px;
+    padding-left: 18px;
+    margin-top: 3px;
 }
 
 .sidebar-menu .nav-item .nav .nav-link {
-    font-size: 0.9rem;
+    font-size: 0.85rem;
     opacity: 0.9;
 }
 
@@ -190,16 +184,79 @@ body {
     display: none;
 }
 
-
 [data-theme="dark"] .sidebar-menu .nav-item:not(:last-child)::after {
     background: rgba(255,255,255,0.12);
 }
 
+/* Sidebar Footer */
+.sidebar-footer {
+    margin-top: auto;
+    padding: 0;
+    position: relative;
+}
 
+.sidebar-footer .nav-link {
+    color: var(--sidebarText);
+    padding: 10px 15px;
+    border-radius: 0;
+    transition: background-color 0.2s;
+    position: relative;
+    font-size: 0.9rem;
+}
+
+.sidebar-footer .nav-link:hover {
+    background-color: var(--sidebarActiveBg);
+}
+
+/* Underline antara profile dan logout */
+.sidebar-footer .nav-link::after {
+    content: '';
+    position: absolute;
+    left: 15px;
+    width: calc(100% - 30px);
+    bottom: 0;
+    height: 1px;
+    background: rgba(255,255,255,0.2);
+}
+
+[data-theme="dark"] .sidebar-footer .nav-link::after {
+    background: rgba(255,255,255,0.12);
+}
+
+.sidebar-footer .btn-logout {
+    background-color: #dc3545;
+    color: #ffffff;
+    border: none;
+    padding: 6px 12px;
+    font-size: 0.8rem;
+    border-radius: 4px;
+    text-align: center;
+    display: inline-flex;
+    align-items: center;
+    margin: 0.5rem 15px;
+    transition: background-color 0.2s;
+}
+
+.sidebar-footer .btn-logout:hover {
+    background-color: #bb2d3b;
+}
+
+.sidebar-footer .btn-logout i {
+    font-size: 0.75rem;
+}
+
+[data-theme="dark"] .sidebar-footer .btn-logout {
+    background-color: #dc3545;
+    color: #ffffff;
+}
+
+[data-theme="dark"] .sidebar-footer .btn-logout:hover {
+    background-color: #bb2d3b;
+}
 
 /* ========================================
-   TOP NAVBAR (ADAPTIVE)
-   ======================================== */
+   TOP NAVBAR (ADAPTIVE)
+   ======================================== */
 
 .eliot-topbar {
     position: fixed;
@@ -230,6 +287,11 @@ body {
 
 .sidebar-toggle-btn {
     padding: 0 0.3rem;
+    color: var(--textPrimary);
+}
+
+.sidebar-toggle-btn:hover {
+    color: var(--colorGreenPrimary);
 }
 
 .topbar-logo {
@@ -243,34 +305,124 @@ body {
 }
 
 /* Navbar Right */
+.action-buttons-right {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
 .action-buttons-right .btn-link {
     color: var(--textSecondary);
+    text-decoration: none;
 }
 
 .action-buttons-right .btn-link:hover {
     color: var(--colorGreenPrimary);
 }
 
+/* User Dropdown */
+.dropdown-toggle {
+    color: var(--textPrimary) !important;
+}
+
+.dropdown-toggle:hover {
+    color: var(--colorGreenPrimary) !important;
+}
+
+.dropdown-menu {
+    background-color: var(--bgCard);
+    border: 1px solid var(--borderColor);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}
+
+.dropdown-header {
+    color: var(--textSecondary);
+    font-size: 0.85rem;
+}
+
+.dropdown-item {
+    color: var(--textPrimary);
+    transition: all 0.2s;
+}
+
+.dropdown-item:hover {
+    background-color: var(--bgBody);
+    color: var(--colorGreenPrimary);
+}
+
+.dropdown-divider {
+    border-color: var(--borderColor);
+}
+
+.dropdown-item.text-danger {
+    color: #dc3545 !important;
+}
+
+.dropdown-item.text-danger:hover {
+    background-color: rgba(220, 53, 69, 0.1);
+    color: #dc3545 !important;
+}
+
+[data-theme="dark"] .dropdown-menu {
+    background-color: var(--bgCard);
+    border-color: var(--borderColor);
+}
+
+[data-theme="dark"] .dropdown-item:hover {
+    background-color: var(--sidebarActiveBg);
+}
+
 /* ========================================
-   MAIN CONTENT
-   ======================================== */
+   MAIN CONTENT
+   ======================================== */
 
 .main-content {
     margin-left: var(--sidebarWidth);
     padding-top: var(--navbarHeight);
-    width: 100%;
+    width: calc(100% - var(--sidebarWidth));
     min-height: 100vh;
-    transition: margin-left 0.3s;
+    display: flex;
+    flex-direction: column;
+    transition: margin-left 0.3s, width 0.3s;
 }
 
 .content-wrapper {
     flex: 1;
-    padding: 1rem;
+    padding: 1.5rem;
 }
 
 /* ========================================
-   SIDEBAR TOGGLED (DESKTOP)
-   ======================================== */
+   FOOTER
+   ======================================== */
+
+.footer {
+    background-color: var(--bgCard);
+    border-top: 1px solid var(--borderColor);
+    margin-top: auto;
+    padding: 1rem;
+    position: relative;
+}
+
+/* Perpanjang border footer ke sidebar */
+.footer::before {
+    content: '';
+    position: absolute;
+    top: -1px;
+    left: calc(-1 * var(--sidebarWidth));
+    width: var(--sidebarWidth);
+    height: 1px;
+    background: var(--borderColor);
+    transition: left 0.3s;
+}
+
+/* Hapus .footer .text-muted karena sudah dihandle di Utility Classes */
+/* .footer .text-muted {
+    color: var(--textSecondary) !important;
+} */
+
+/* ========================================
+   SIDEBAR TOGGLED (DESKTOP)
+   ======================================== */
 
 .wrapper.sidebar-toggled .sidebar {
     left: calc(-1 * var(--sidebarWidth));
@@ -283,14 +435,18 @@ body {
 
 .wrapper.sidebar-toggled .main-content {
     margin-left: 0;
+    width: 100%;
+}
+
+.wrapper.sidebar-toggled .footer::before {
+    left: calc(-2 * var(--sidebarWidth)); /* Sembunyikan saat sidebar toggled */
 }
 
 /* ========================================
-   RESPONSIVE (MOBILE)
-   ======================================== */
+   RESPONSIVE (MOBILE)
+   ======================================== */
 
 @media (max-width: 768px) {
-
     .sidebar {
         left: calc(-1 * var(--sidebarWidth));
     }
@@ -302,10 +458,19 @@ body {
 
     .main-content {
         margin-left: 0;
+        width: 100%;
+    }
+
+    .footer::before {
+        left: calc(-2 * var(--sidebarWidth)); /* Sembunyikan di mobile */
     }
 
     .wrapper.sidebar-toggled .sidebar {
         left: 0;
+    }
+
+    .wrapper.sidebar-toggled .footer::before {
+        left: calc(-1 * var(--sidebarWidth)); /* Tampilkan saat sidebar terbuka */
     }
 
     body.sidebar-mobile-overlay::after {
@@ -315,4 +480,41 @@ body {
         background: rgba(0,0,0,0.5);
         z-index: 1029;
     }
+
+    .eliot-brand-text {
+        font-size: 1.2rem;
+    }
+
+    .content-wrapper {
+        padding: 1rem;
+    }
+}
+
+/* ========================================
+   UTILITY CLASSES
+   ======================================== */
+
+/* Tambahan: Override text-muted agar menggunakan --textSecondary */
+.text-muted {
+    color: var(--textSecondary) !important;
+}
+
+.text-dark {
+    color: var(--textPrimary) !important;
+}
+
+.bg-light {
+    background-color: var(--bgCard) !important;
+}
+
+.border {
+    border-color: var(--borderColor) !important;
+}
+
+.shadow-sm {
+    box-shadow: 0 0.125rem 0.25rem rgba(0,0,0,0.075) !important;
+}
+
+[data-theme="dark"] .shadow-sm {
+    box-shadow: 0 0.125rem 0.25rem rgba(0,0,0,0.3) !important;
 }

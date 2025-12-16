@@ -47,6 +47,7 @@ $currentPage = basename($_SERVER['PHP_SELF']);
             <span class="sidebar-title">ELIOT</span>
         </a>
     </div>
+    
     <div class="sidebar-menu">
         <ul class="nav flex-column">
             <?php foreach ($activeMenu as $item): ?>
@@ -66,13 +67,14 @@ $currentPage = basename($_SERVER['PHP_SELF']);
             <?php endforeach; ?>
         </ul>
     </div>
+    
     <div class="sidebar-footer">
         <a href="<?= $baseUrl ?>/apps/profile.php" class="nav-link">
             <i class="fas fa-user-circle me-2"></i> 
             Profil Saya
         </a>
-        <a href="<?= $baseUrl ?>/logout.php" class="btn btn-logout w-100 mt-2">
-            <i class="fas fa-sign-out-alt me-2"></i> Logout
+        <a href="<?= $baseUrl ?>/logout.php" class="btn btn-logout btn-sm">
+            <i class="fas fa-sign-out-alt me-1"></i>Logout
         </a>
     </div>
 </aside>
