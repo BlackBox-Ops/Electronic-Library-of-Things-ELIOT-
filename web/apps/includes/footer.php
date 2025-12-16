@@ -1,62 +1,19 @@
 <?php
-// ~/Documents/ELIOT/web/apps/includes/footer.php
+// ~/includes/footer.php
 ?>
-        </main>
-        
-        <footer class="footer border-top">
-            <div class="container-fluid">
-                <span class="text-muted small d-block text-center">
-                    &copy; <?= date('Y') ?> ELIOT - Integrated Asset Management.
-                </span>
-            </div>
-        </footer>
-    </div> 
-</div> 
+            </main>
 
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-<script src="<?= $baseUrl ?>/apps/assets/js/dashboard.js"></script>
+            <footer class="footer">
+                <div class="container-fluid">
+                    <span class="text-muted small">
+                        &copy; <?= date('Y') ?> ELIOT - Integrated Asset Management
+                    </span>
+                </div>
+            </footer>
+        </div>
+    </div>
 
-<script>
-// Logic ini diletakkan di footer sebagai fallback/ensure, tapi fungsi utamanya ada di dashboard.js
-document.addEventListener('DOMContentLoaded', function() {
-    const html = document.documentElement;
-    const themeToggleBtn = document.getElementById('themeToggle');
-
-    function updateThemeIcon(theme) {
-        if (!themeToggleBtn) return;
-        const icon = themeToggleBtn.querySelector('.eliot-theme-icon');
-        if (!icon) return;
-        if (theme === 'dark') {
-            icon.classList.remove('fa-moon');
-            icon.classList.add('fa-sun');
-        } else {
-            icon.classList.remove('fa-sun');
-            icon.classList.add('fa-moon');
-        }
-    }
-    
-    function getSystemTheme() {
-        return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-    }
-
-    function applyTheme(theme) {
-        html.setAttribute('data-theme', theme);
-        updateThemeIcon(theme);
-    }
-    
-    function setThemeOnLoad() {
-        const savedTheme = localStorage.getItem('theme');
-        if (savedTheme) {
-            applyTheme(savedTheme);
-        } else {
-            applyTheme(getSystemTheme());
-        }
-    }
-    
-    // Pastikan tema diterapkan saat load
-    setThemeOnLoad();
-});
-</script>
-
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="<?= $baseUrl ?>/apps/assets/js/dashboard.js"></script>
 </body>
 </html>

@@ -1,78 +1,142 @@
 <?php
-// ~/Documents/ELIOT/web/apps/dashboard.php
-
-// Start session jika belum
-if (session_status() === PHP_SESSION_NONE) {
-    session_start();
-}
-
-// Variabel khusus untuk header.php (Judul Halaman)
-$pageTitle = 'Dashboard Utama (Admin Test)'; 
-
-// FIX: Menggunakan __DIR__ untuk Path Absolut
-// Memanggil header (cek login dinonaktifkan untuk test)
-include __DIR__ . '/includes/header.php'; 
+// ~/apps/dashboard.php
+$pageTitle = 'Dashboard V3';
+include_once 'includes/header.php'; 
 ?>
 
-<div class="row mb-4">
-    <div class="col-12">
-        <h2 class="h4">Selamat Datang, <?= htmlspecialchars($userName) ?>!</h2>
-        <p class="text-muted">Ini adalah Dashboard Anda sebagai <?= ucfirst($userRole) ?>.</p>
-        <p class="text-danger small"><b>PENTING:</b> Cek otorisasi dinonaktifkan di header.php untuk pengujian layout.</p>
+<div class="container-fluid">
+    <!-- Header Selamat Datang -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="mb-1">Selamat Datang, <?= $userName ?>!</h2>
+            <p class="text-muted mb-0">Dashboard ELIOT - Integrated Asset Management</p>
+        </div>
+        <button class="btn btn-success px-4 py-2">
+            <i class="fas fa-plus me-2"></i>Tambah Aset Baru
+        </button>
+    </div>
+
+    <!-- Statistik Cards -->
+    <div class="row g-4 mb-5">
+        <div class="col-lg-3 col-md-6">
+            <div class="card shadow-sm">
+                <div class="card-body d-flex align-items-center">
+                    <div class="bg-success-subtle p-3 rounded-circle me-3">
+                        <i class="fas fa-boxes fa-2x text-success"></i>
+                    </div>
+                    <div>
+                        <h6 class="mb-0 text-muted">Total Aset</h6>
+                        <h4 class="mb-0">1,234</h4>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-3 col-md-6">
+            <div class="card shadow-sm">
+                <div class="card-body d-flex align-items-center">
+                    <div class="bg-primary-subtle p-3 rounded-circle me-3">
+                        <i class="fas fa-users fa-2x text-primary"></i>
+                    </div>
+                    <div>
+                        <h6 class="mb-0 text-muted">Pengguna Aktif</h6>
+                        <h4 class="mb-0">567</h4>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-3 col-md-6">
+            <div class="card shadow-sm">
+                <div class="card-body d-flex align-items-center">
+                    <div class="bg-warning-subtle p-3 rounded-circle me-3">
+                        <i class="fas fa-exchange-alt fa-2x text-warning"></i>
+                    </div>
+                    <div>
+                        <h6 class="mb-0 text-muted">Transaksi Hari Ini</h6>
+                        <h4 class="mb-0">89</h4>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-3 col-md-6">
+            <div class="card shadow-sm">
+                <div class="card-body d-flex align-items-center">
+                    <div class="bg-danger-subtle p-3 rounded-circle me-3">
+                        <i class="fas fa-exclamation-triangle fa-2x text-danger"></i>
+                    </div>
+                    <div>
+                        <h6 class="mb-0 text-muted">Aset Hilang</h6>
+                        <h4 class="mb-0">12</h4>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent Activity Table -->
+    <div class="card shadow-sm">
+        <div class="card-header bg-white border-0 d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">Aktivitas Terbaru</h5>
+            <a href="#" class="btn btn-sm btn-outline-secondary">Lihat Semua</a>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead class="bg-light">
+                        <tr>
+                            <th>Waktu</th>
+                            <th>Pengguna</th>
+                            <th>Aksi</th>
+                            <th>Aset</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php if (empty($data)): ?>
+                        <tr class="empty-state">
+                            <td colspan="5">
+                                <div class="empty-state-icon">
+                                    <i class="fas fa-inbox"></i>
+                                </div>
+                                <div class="empty-state-text">Tidak ada data</div>
+                                <div class="empty-state-subtext">Belum ada aktivitas untuk ditampilkan</div>
+                            </td>
+                        </tr>
+                        <?php else: ?>
+                        <!-- Data rows here -->
+                        <?php endif; ?>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Actions (opsional) -->
+    <div class="row mt-5">
+        <div class="col-md-4">
+            <div class="card shadow-sm text-center p-4">
+                <i class="fas fa-qrcode fa-3x text-success mb-3"></i>
+                <h5>Cetak Label RFID</h5>
+                <p class="text-muted small">Buat label baru untuk aset</p>
+                <a href="#" class="btn btn-outline-success btn-sm">Mulai</a>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card shadow-sm text-center p-4">
+                <i class="fas fa-file-alt fa-3x text-primary mb-3"></i>
+                <h5>Laporan Aset</h5>
+                <p class="text-muted small">Lihat laporan lengkap</p>
+                <a href="#" class="btn btn-outline-primary btn-sm">Lihat Laporan</a>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card shadow-sm text-center p-4">
+                <i class="fas fa-history fa-3x text-warning mb-3"></i>
+                <h5>Riwayat Transaksi</h5>
+                <p class="text-muted small">Semua aktivitas sistem</p>
+                <a href="#" class="btn btn-outline-warning btn-sm">Lihat Riwayat</a>
+            </div>
+        </div>
     </div>
 </div>
 
-<div class="row g-4">
-    <div class="col-lg-4 col-md-6">
-        <div class="card card-custom-primary shadow-sm h-100">
-            <div class="card-body">
-                <div class="d-flex align-items-center">
-                    <i class="fas fa-user-shield fa-3x me-3"></i>
-                    <div>
-                        <h5 class="card-title mb-0">Role Pengguna</h5>
-                        <p class="card-text h3 fw-bold"><?= ucfirst($userRole) ?></p>
-                    </div>
-                </div>
-                <hr>
-                <p class="card-text small text-muted">Akses Anda terbatas pada menu di sidebar sesuai peran Anda.</p>
-            </div>
-        </div>
-    </div>
-    
-    <div class="col-lg-4 col-md-6">
-        <div class="card card-custom-warning shadow-sm h-100">
-            <div class="card-body">
-                <div class="d-flex align-items-center">
-                    <i class="fas fa-boxes fa-3x me-3"></i>
-                    <div>
-                        <h5 class="card-title mb-0">Total Aset Aktif</h5>
-                        <p class="card-text h3 fw-bold">1289</p>
-                    </div>
-                </div>
-                <hr>
-                <p class="card-text small text-muted">Jumlah aset yang terdaftar dan tersedia di sistem.</p>
-            </div>
-        </div>
-    </div>
-    
-    <div class="col-lg-4 col-md-12">
-        <div class="card card-custom-success shadow-sm h-100">
-            <div class="card-body">
-                <div class="d-flex align-items-center">
-                    <i class="fas fa-exchange-alt fa-3x me-3"></i>
-                    <div>
-                        <h5 class="card-title mb-0">Transaksi Bulan Ini</h5>
-                        <p class="card-text h3 fw-bold">45</p>
-                    </div>
-                </div>
-                <hr>
-                <p class="card-text small text-muted">Total pinjaman dan pengembalian yang tercatat.</p>
-            </div>
-        </div>
-    </div>
-</div>
-
-<?php
-// Memanggil footer
-include __DIR__ . '/includes/footer.php';
-?>
+<?php include_once 'includes/footer.php'; ?>
