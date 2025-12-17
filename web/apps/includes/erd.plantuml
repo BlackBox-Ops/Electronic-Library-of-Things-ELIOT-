@@ -1,0 +1,253 @@
+@startuml Library_System_ERD
+
+skinparam linetype ortho
+skinparam classAttributeIconSize 0
+
+' ==================== MASTER TABLES ====================
+
+table(UID_BUFFER) {
+  primary_key(id : int)
+  uid : string {RFID/Barcode unik}
+  jenis : string {user, book}
+  timestamp : datetime
+  created_at : datetime
+  updated_at : datetime
+  is_deleted : boolean
+}
+
+table(BOOKS) {
+  primary_key(id : int)
+  nama_pengarang : string
+  judul_buku : string
+  unique(isbn : string)
+  penerbit : string
+  jumlah_halaman : int
+  kategori : enum {buku, jurnal, prosiding, skripsi, laporan_pkl}
+  jumlah_eksemplar : int
+  eksemplar_tersedia : int
+  tahun_terbit : int
+  lokasi_rak : string
+  deskripsi : string
+  created_at : datetime
+  updated_at : datetime
+  is_deleted : boolean
+}
+
+table(USERS) {
+  primary_key(id : int)
+  nama : string
+  unique(email : string)
+  no_identitas : string {NIP/NIM}
+  no_telepon : string
+  alamat : string
+  role : enum {admin, staff, member}
+  status : enum {aktif, nonaktif, suspended}
+  password_hash : string
+  max_peminjaman : int {default: 3}
+  created_at : datetime
+  updated_at : datetime
+  is_deleted : boolean
+}
+
+table(CATEGORIES) {
+  primary_key(id : int)
+  unique(nama_kategori : string)
+  deskripsi : string
+  created_at : datetime
+  updated_at : datetime
+  is_deleted : boolean
+}
+
+table(PUBLISHERS) {
+  primary_key(id : int)
+  unique(nama_penerbit : string)
+  alamat : string
+  no_telepon : string
+  email : string
+  created_at : datetime
+  updated_at : datetime
+  is_deleted : boolean
+}
+
+table(AUTHORS) {
+  primary_key(id : int)
+  unique(nama_pengarang : string)
+  biografi : string
+  created_at : datetime
+  updated_at : datetime
+  is_deleted : boolean
+}
+
+' ==================== RELATIONAL TABLES ====================
+
+table(RT_BOOK_AUTHOR) {
+  primary_key(id : int)
+  foreign_key(book_id : int)
+  foreign_key(author_id : int)
+  peran : enum {penulis_utama, co_author, editor}
+  created_at : datetime
+  updated_at : datetime
+  is_deleted : boolean
+}
+
+table(RT_BOOK_CATEGORY) {
+  primary_key(id : int)
+  foreign_key(book_id : int)
+  foreign_key(category_id : int)
+  created_at : datetime
+  updated_at : datetime
+  is_deleted : boolean
+}
+
+table(RT_USER_UID) {
+  primary_key(id : int)
+  foreign_key(user_id : int)
+  foreign_key(uid_buffer_id : int)
+  tanggal_aktif : datetime
+  tanggal_nonaktif : datetime
+  status : enum {aktif, nonaktif}
+  created_at : datetime
+  updated_at : datetime
+  is_deleted : boolean
+}
+
+table(RT_BOOK_UID) {
+  primary_key(id : int)
+  foreign_key(book_id : int)
+  foreign_key(uid_buffer_id : int)
+  unique(kode_eksemplar : string) {BOOK001-001}
+  kondisi : enum {baik, rusak_ringan, rusak_berat, hilang}
+  tanggal_registrasi : datetime
+  created_at : datetime
+  updated_at : datetime
+  is_deleted : boolean
+}
+
+' ==================== TRANSACTION TABLES ====================
+
+table(TS_PEMINJAMAN) {
+  primary_key(id : int)
+  unique(kode_peminjaman : string) {PJM-YYYYMMDD-XXXX}
+  foreign_key(user_id : int)
+  foreign_key(book_id : int)
+  foreign_key(uid_buffer_id : int) {UID buku yang dipinjam}
+  foreign_key(staff_id : int) {User yang memproses}
+  tanggal_pinjam : datetime
+  due_date : datetime
+  status : enum {dipinjam, dikembalikan, telat, hilang}
+  catatan : text
+  created_at : datetime
+  updated_at : datetime
+  is_deleted : boolean
+}
+
+table(TS_PENGEMBALIAN) {
+  primary_key(id : int)
+  unique(kode_pengembalian : string) {KMB-YYYYMMDD-XXXX}
+  foreign_key(peminjaman_id : int)
+  foreign_key(uid_buffer_id : int) {UID untuk verifikasi}
+  foreign_key(staff_id : int) {User yang memproses}
+  tanggal_kembali : datetime
+  hari_telat : int
+  denda : float
+  kondisi_buku : enum {baik, rusak_ringan, rusak_berat, hilang}
+  catatan : text
+  created_at : datetime
+  updated_at : datetime
+  is_deleted : boolean
+}
+
+table(TS_RESERVASI) {
+  primary_key(id : int)
+  unique(kode_reservasi : string) {RSV-YYYYMMDD-XXXX}
+  foreign_key(user_id : int)
+  foreign_key(book_id : int)
+  tanggal_reservasi : datetime
+  tanggal_expired : datetime
+  status : enum {menunggu, diambil, expired, dibatalkan}
+  catatan : text
+  created_at : datetime
+  updated_at : datetime
+  is_deleted : boolean
+}
+
+table(TS_DENDA) {
+  primary_key(id : int)
+  unique(kode_denda : string) {DND-YYYYMMDD-XXXX}
+  foreign_key(pengembalian_id : int)
+  foreign_key(user_id : int)
+  jumlah_denda : float
+  jenis_denda : enum {keterlambatan, kerusakan, kehilangan}
+  status_pembayaran : enum {belum_dibayar, dibayar, dibebaskan}
+  tanggal_bayar : datetime
+  foreign_key(staff_id : int) {User yang memproses pembayaran}
+  catatan : text
+  created_at : datetime
+  updated_at : datetime
+  is_deleted : boolean
+}
+
+table(TS_RIWAYAT_BUKU) {
+  primary_key(id : int)
+  foreign_key(book_id : int)
+  foreign_key(uid_buffer_id : int)
+  aksi : enum {peminjaman, pengembalian, perbaikan, penghapusan}
+  foreign_key(user_id : int) {User yang melakukan aksi}
+  keterangan : text
+  tanggal_aksi : datetime
+  created_at : datetime
+  is_deleted : boolean
+}
+
+table(TS_LOG_AKTIVITAS) {
+  primary_key(id : int)
+  foreign_key(user_id : int)
+  modul : enum {peminjaman, pengembalian, master_buku, master_user}
+  aksi : enum {create, read, update, delete}
+  deskripsi : text
+  data_sebelum : json
+  data_sesudah : json
+  ip_address : string
+  created_at : datetime
+}
+
+' ==================== RELATIONSHIPS ====================
+
+' Book relationships
+BOOKS ||--o{ RT_BOOK_AUTHOR
+AUTHORS ||--o{ RT_BOOK_AUTHOR
+BOOKS ||--o{ RT_BOOK_CATEGORY
+CATEGORIES ||--o{ RT_BOOK_CATEGORY
+BOOKS }o--|| PUBLISHERS
+
+' UID relationships
+USERS ||--o{ RT_USER_UID
+UID_BUFFER ||--o{ RT_USER_UID
+BOOKS ||--o{ RT_BOOK_UID
+UID_BUFFER ||--o{ RT_BOOK_UID
+
+' Transaction relationships
+USERS ||--o{ TS_PEMINJAMAN : "meminjam"
+BOOKS ||--o{ TS_PEMINJAMAN : "dipinjam"
+UID_BUFFER ||--o{ TS_PEMINJAMAN : "verifikasi"
+USERS ||--o{ TS_PEMINJAMAN : "staff"
+
+TS_PEMINJAMAN ||--o| TS_PENGEMBALIAN
+UID_BUFFER ||--o{ TS_PENGEMBALIAN
+USERS ||--o{ TS_PENGEMBALIAN : "staff"
+
+USERS ||--o{ TS_RESERVASI
+BOOKS ||--o{ TS_RESERVASI
+
+TS_PENGEMBALIAN ||--o| TS_DENDA
+USERS ||--o{ TS_DENDA : "user"
+USERS ||--o{ TS_DENDA : "staff"
+
+' History relationships
+BOOKS ||--o{ TS_RIWAYAT_BUKU
+UID_BUFFER ||--o{ TS_RIWAYAT_BUKU
+USERS ||--o{ TS_RIWAYAT_BUKU
+
+USERS ||--o{ TS_LOG_AKTIVITAS
+
+@enduml

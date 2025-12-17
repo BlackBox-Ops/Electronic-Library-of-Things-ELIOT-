@@ -6,7 +6,7 @@ $menu = [
     'admin' => [
         ['icon' => 'fas fa-tachometer-alt', 'title' => 'Dashboard', 'link' => 'dashboard.php', 'folder' => ''],
         ['header' => 'Manajemen Aset'],
-        ['icon' => 'fas fa-boxes', 'title' => 'Inventaris', 'link' => 'inventory.php', 'folder' => ''],
+        ['icon' => 'fas fa-boxes', 'title' => 'Inventaris', 'link' => 'inventory.php', 'folder' => 'admin'],
         ['icon' => 'fas fa-tags', 'title' => 'Kategori', 'link' => 'categories.php', 'folder' => ''],
         ['icon' => 'fas fa-qrcode', 'title' => 'Cetak RFID', 'link' => 'printLabels.php', 'folder' => ''],
         ['header' => 'Pengguna'],

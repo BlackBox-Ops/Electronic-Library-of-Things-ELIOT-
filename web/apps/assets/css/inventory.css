@@ -1,0 +1,52 @@
+/* Inventory Custom Styles */
+:root {
+    --colorGreenPrimary: #628141;
+    --colorGreenHover: #506834;
+    --bgBody: #f5f7f9;
+    --bgCard: #ffffff;
+    --textPrimary: #212529;
+    --textSecondary: #6c757d;
+    --borderColor: #e9ecef;
+}
+
+[data-theme="dark"] {
+    --bgBody: #121212;
+    --bgCard: #1e1e1e;
+    --textPrimary: #e0e0e0;
+    --textSecondary: #9e9e9e;
+    --borderColor: #333333;
+    --colorGreenPrimary: #8BA76C;
+}
+
+body { background-color: var(--bgBody); color: var(--textPrimary); transition: 0.3s; }
+.card { background-color: var(--bgCard); border: 1px solid var(--borderColor); border-radius: 10px; }
+
+/* Buttons & Badges */
+.btn-mini { padding: 0.25rem 0.6rem; font-size: 0.72rem; border-radius: 5px; font-weight: 500; }
+.btn-green { background-color: var(--colorGreenPrimary); color: white; border: none; }
+.btn-green:hover { background-color: var(--colorGreenHover); color: white; }
+.badge-soft { padding: 0.35em 0.7em; font-size: 0.7rem; border-radius: 6px; }
+
+/* Table Optimization */
+.table { color: var(--textPrimary); border-color: var(--borderColor); vertical-align: middle; }
+.table thead th { 
+    background: rgba(0,0,0,0.02); 
+    font-size: 0.75rem; 
+    text-transform: uppercase; 
+    color: var(--textSecondary);
+    border-top: none;
+}
+
+.main-row { cursor: pointer; border-left: 3px solid transparent; }
+.main-row:hover { background-color: rgba(98, 129, 65, 0.05); border-left: 3px solid var(--colorGreenPrimary); }
+
+.rotate-icon { transition: 0.3s; font-size: 0.7rem; color: var(--textSecondary); }
+.rotate-icon.active { transform: rotate(90deg); color: var(--colorGreenPrimary); }
+
+.detail-container {
+    background-color: rgba(0,0,0,0.02);
+    border-radius: 8px;
+    margin: 10px 20px;
+}
+
+code { color: var(--colorGreenPrimary); font-weight: bold; }
