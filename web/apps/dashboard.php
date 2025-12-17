@@ -11,7 +11,7 @@ include_once 'includes/header.php';
             <h2 class="mb-1">Selamat Datang, <?= $userName ?>!</h2>
             <p class="text-muted mb-0">Dashboard ELIOT - Integrated Asset Management</p>
         </div>
-        <button class="btn btn-success px-4 py-2">
+        <button class="btn btn-primary btn-sm px-3 shadow-sm">
             <i class="fas fa-plus me-2"></i>Tambah Aset Baru
         </button>
     </div>

@@ -1,24 +1,34 @@
 <?php
 // includes/sidebar.php
 
-// Menu berdasarkan role (contoh admin)
+// Menu berdasarkan role
 $menu = [
     'admin' => [
-        ['icon' => 'fas fa-tachometer-alt', 'title' => 'Dashboard', 'link' => 'dashboard.php'],
+        ['icon' => 'fas fa-tachometer-alt', 'title' => 'Dashboard', 'link' => 'dashboard.php', 'folder' => ''],
         ['header' => 'Manajemen Aset'],
-        ['icon' => 'fas fa-boxes', 'title' => 'Inventaris', 'link' => 'inventory.php'],
-        ['icon' => 'fas fa-tags', 'title' => 'Kategori', 'link' => 'categories.php'],
-        ['icon' => 'fas fa-qrcode', 'title' => 'Cetak RFID', 'link' => 'printLabels.php'],
+        ['icon' => 'fas fa-boxes', 'title' => 'Inventaris', 'link' => 'inventory.php', 'folder' => ''],
+        ['icon' => 'fas fa-tags', 'title' => 'Kategori', 'link' => 'categories.php', 'folder' => ''],
+        ['icon' => 'fas fa-qrcode', 'title' => 'Cetak RFID', 'link' => 'printLabels.php', 'folder' => ''],
         ['header' => 'Pengguna'],
-        ['icon' => 'fas fa-users', 'title' => 'Daftar Pengguna', 'link' => 'users.php'],
-        ['icon' => 'fas fa-user-shield', 'title' => 'Roles', 'link' => 'roles.php'],
+        ['icon' => 'fas fa-users', 'title' => 'Daftar Pengguna', 'link' => 'users.php', 'folder' => ''],
+        ['icon' => 'fas fa-user-shield', 'title' => 'Roles', 'link' => 'roles.php', 'folder' => 'admin'],
         ['header' => 'Laporan'],
-        ['icon' => 'fas fa-file-alt', 'title' => 'Laporan Aset', 'link' => 'reports.php'],
-        ['icon' => 'fas fa-history', 'title' => 'Log Aktivitas', 'link' => 'transactionsLog.php'],
+        ['icon' => 'fas fa-file-alt', 'title' => 'Laporan Aset', 'link' => 'reports.php', 'folder' => ''],
+        ['icon' => 'fas fa-history', 'title' => 'Log Aktivitas', 'link' => 'transactionsLog.php', 'folder' => ''],
+    ],
+    'staff' => [
+        ['icon' => 'fas fa-tachometer-alt', 'title' => 'Dashboard', 'link' => 'dashboard.php', 'folder' => ''],
+        ['header' => 'Operasional'],
+        ['icon' => 'fas fa-boxes', 'title' => 'Inventaris', 'link' => 'inventory.php', 'folder' => ''],
+    ],
+    'member' => [
+        ['icon' => 'fas fa-tachometer-alt', 'title' => 'Dashboard', 'link' => 'dashboard.php', 'folder' => ''],
+        ['header' => 'Pencarian'],
+        ['icon' => 'fas fa-search', 'title' => 'Cari Aset', 'link' => 'searchAssets.php', 'folder' => ''],
     ]
 ];
 
-$activeMenu = $menu[$userRole] ?? $menu['admin'];
+$activeMenu = $menu[$userRole] ?? $menu['member'];
 $currentPage = basename($_SERVER['PHP_SELF']);
 ?>
 <aside class="sidebar" id="sidebar">
@@ -35,8 +45,14 @@ $currentPage = basename($_SERVER['PHP_SELF']);
                 <?php if (isset($item['header'])): ?>
                     <li class="nav-header"><?= $item['header'] ?></li>
                 <?php else: ?>
+                    <?php 
+                        // Tentukan path berdasarkan folder
+                        $folder = $item['folder'] ?? '';
+                        $fullPath = $baseUrl . '/apps/' . ($folder ? $folder . '/' : '') . $item['link'];
+                        $isActive = $currentPage === $item['link'];
+                    ?>
                     <li class="nav-item">
-                        <a class="nav-link <?= ($currentPage === $item['link']) ? 'active' : '' ?>" href="<?= $baseUrl ?>/apps/<?= $item['link'] ?>">
+                        <a class="nav-link <?= $isActive ? 'active' : '' ?>" href="<?= $fullPath ?>">
                             <i class="<?= $item['icon'] ?>"></i>
                             <?= $item['title'] ?>
                         </a>
@@ -47,10 +63,10 @@ $currentPage = basename($_SERVER['PHP_SELF']);
     </div>
 
     <div class="sidebar-footer">
-        <a href="#" class="nav-link">
+        <a href="<?= $baseUrl ?>/apps/profile.php" class="nav-link">
             <i class="fas fa-user-circle"></i> Profil Saya
         </a>
-        <a href="#" class="btn btn-logout">
+        <a href="<?= $baseUrl ?>/logout.php" class="btn btn-logout">
             <i class="fas fa-sign-out-alt"></i> Logout
         </a>
     </div>
