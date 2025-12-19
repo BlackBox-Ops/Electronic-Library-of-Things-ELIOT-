@@ -1,0 +1,4 @@
+2025-12-19 05:59:44.488063 - DB Error: 1265 (01000): Data truncated for column 'jenis' at row 1
+2025-12-19 06:05:19.647725 - Success: 2 UIDs invalidated (set to 'invalid').
+2025-12-19 17:34:34.567301 - Ran cron: 0 UIDs invalidated (set to 'invalid').
+2025-12-19 17:34:34.567301 - Ran cron: 0 UIDs invalidated (set to 'invalid').

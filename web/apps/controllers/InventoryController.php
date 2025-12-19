@@ -9,6 +9,7 @@
  * - UC-4: Auto-generate kode eksemplar unik (ROB-001, ROB-002, dst)
  * - UC-5: Input kondisi buku per eksemplar
  * - UC-6: Multi-author dengan role (conditional)
+ * - Update: Validasi multi-UID count + timeout check per unit
  */
 
 require_once '../../includes/config.php';
@@ -139,10 +140,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // ========================================
     $rfid_units = json_decode($_POST['rfid_units'] ?? '[]', true);
     
-    if (empty($rfid_units) || !is_array($rfid_units)) {
+    if (empty($rfid_units) || !is_array($rfid_units) || count($rfid_units) != $jumlah_eksemplar) {
         echo json_encode([
             'success' => false, 
-            'message' => 'Minimal harus scan 1 RFID!'
+            'message' => "Jumlah RFID units harus sesuai stok ($jumlah_eksemplar)!"
         ]);
         exit;
     }
@@ -203,7 +204,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 // Author sudah ada, gunakan yang existing
                 $author_id = $checkAuth->fetch_assoc()['id'];
             } else {
-                // Insert author baru dengan biografi (max 200 karakter)
+                // Insert author baru dengan biografi
                 $sqlAuth = "INSERT INTO authors 
                            (nama_pengarang, biografi) 
                            VALUES 
@@ -328,6 +329,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 continue; // Skip invalid data
             }
             
+            // Cek apakah UID masih valid (timestamp <5 menit dari now, karena reset saat ambil)
+            $checkTimestamp = $conn->query("SELECT timestamp FROM uid_buffer WHERE id = $uid_buffer_id");
+            if ($checkTimestamp && $row = $checkTimestamp->fetch_assoc()) {
+                $timestamp = strtotime($row['timestamp']);
+                if (time() - $timestamp > 300) { // 5 menit = 300 detik
+                    error_log("[SKIP EXPIRED UID] Buffer ID: {$uid_buffer_id}, Expired");
+                    continue; // Skip expired
+                }
+            }
+            
             // Cek apakah UID sudah terdaftar
             $checkUID = $conn->query("
                 SELECT id 
@@ -368,9 +379,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             error_log("[RFID UNIT REGISTERED] Code: {$kode_eksemplar}, UID Buffer: {$uid_buffer_id}, Kondisi: {$kondisi}");
         }
 
-        // Validasi: minimal 1 unit berhasil disimpan
-        if ($successCount == 0) {
-            throw new Exception("Tidak ada unit RFID yang berhasil disimpan!");
+        // Validasi: minimal jumlah_eksemplar unit berhasil disimpan
+        if ($successCount != $jumlah_eksemplar) {
+            throw new Exception("Jumlah unit berhasil ($successCount) tidak sesuai stok ($jumlah_eksemplar)! Mungkin ada expired/duplikat.");
         }
 
         // ========================================

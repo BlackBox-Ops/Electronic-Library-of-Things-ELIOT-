@@ -2,6 +2,8 @@
  * Inventory Custom Styles - Enhanced & Optimized
  * Responsive & Dark Mode Adaptive
  * Supporting UC-1 to UC-6 UI Components
+ * Updated: Modal Minimalis, Modern, Full Dark Mode Support
+ * Fix: Adaptive text & placeholder in dark mode (override .text-dark)
  */
 
 /* ========================================
@@ -48,25 +50,32 @@ body {
 }
 
 /* ========================================
-   MODAL & FORM COMPONENTS
+   MODAL MODERN & MINIMALIS REDESIGN
    ======================================== */
+.modal-dialog {
+    max-width: 720px; /* Lebih kecil & nyaman dari modal-xl */
+    margin: 1.75rem auto;
+}
+
 .modal-content { 
     background-color: var(--bgModal); 
     color: var(--textPrimary); 
-    border: 1px solid var(--borderColor); 
-    border-radius: 16px;
-    box-shadow: 0 10px 40px var(--shadowColor);
+    border-radius: 20px;
+    overflow: hidden;
+    box-shadow: 0 20px 60px var(--shadowColor);
+    border: none;
 }
 
 .modal-header { 
-    border-color: var(--borderColor) !important; 
-    background: linear-gradient(135deg, var(--bgDetailContainer) 0%, var(--bgModal) 100%);
-    border-radius: 16px 16px 0 0;
+    padding: 1.25rem 1.5rem;
+    background: var(--bgModal) !important;
+    border-bottom: 1px solid var(--borderColor);
+    border-radius: 20px 20px 0 0;
 }
 
-.modal-footer { 
-    border-color: var(--borderColor) !important; 
-    background-color: var(--bgDetailContainer);
+.modal-header .modal-title {
+    font-size: 1.25rem;
+    font-weight: 700;
 }
 
 .modal-header .btn-close { 
@@ -77,9 +86,56 @@ body {
     filter: invert(1); 
 }
 
-/* Form Controls */
+.modal-footer { 
+    padding: 1rem 1.5rem;
+    background: var(--bgModal);
+    border-top: 1px solid var(--borderColor);
+}
+
+/* Tab Navigation Modern */
+.nav-tabs {
+    background: var(--bgModal);
+    padding: 0.75rem 1.5rem 0;
+    border-bottom: none;
+}
+
+.nav-tabs .nav-link {
+    color: var(--textSecondary);
+    border: none;
+    border-radius: 12px 12px 0 0;
+    padding: 0.75rem 1.25rem;
+    margin-bottom: -1px;
+    font-size: 0.95rem;
+    font-weight: 600;
+    transition: all 0.3s ease;
+}
+
+.nav-tabs .nav-link:hover {
+    border-bottom-color: rgba(98, 129, 65, 0.3);
+    background-color: transparent;
+}
+
+.nav-tabs .nav-link.active {
+    background: var(--bgDetailContainer) !important;
+    color: var(--colorGreenPrimary) !important;
+    border-bottom: 3px solid var(--colorGreenPrimary);
+}
+
+.modal-body-adaptive {
+    padding: 0;
+}
+
+.tab-pane {
+    padding: 1.5rem;
+    min-height: 500px;
+}
+
+/* ========================================
+   FORM CONTROLS & DARK MODE FIX
+   ======================================== */
 .form-control, 
-.form-select {
+.form-select,
+textarea.form-control {
     background-color: var(--bgCard);
     border: 1px solid var(--borderColor);
     color: var(--textPrimary);
@@ -87,16 +143,85 @@ body {
 }
 
 .form-control:focus, 
-.form-select:focus {
+.form-select:focus,
+textarea.form-control:focus {
     background-color: var(--bgCard);
     color: var(--textPrimary);
     border-color: var(--colorGreenPrimary);
     box-shadow: 0 0 0 0.25rem rgba(98, 129, 65, 0.15);
 }
 
-.form-control::placeholder {
+.form-control::placeholder,
+.form-select::placeholder {
     color: var(--textSecondary);
     opacity: 0.7;
+}
+
+/* Fix background putih pada form tambah penulis & publisher baru */
+#new_author_fields,
+#new_pub_fields {
+    background: var(--bgCard) !important;
+    border: 1px solid var(--borderColor);
+    border-radius: 12px;
+}
+
+#new_author_fields .form-control,
+#new_author_fields .form-select,
+#new_author_fields textarea,
+#new_pub_fields .form-control,
+#new_pub_fields .form-select,
+#new_pub_fields textarea {
+    background-color: var(--bgCard) !important;
+    border-color: var(--borderColor) !important;
+    color: var(--textPrimary) !important;
+}
+
+/* Override .text-dark agar adaptif di dark mode */
+.text-dark {
+    color: var(--textPrimary) !important;
+}
+
+[data-theme="dark"] .text-dark {
+    color: var(--textPrimary) !important;
+}
+
+/* Background adaptive lainnya */
+.bg-light-custom,
+.bg-light-tab {
+    background-color: var(--bgDetailContainer) !important;
+    border-radius: 12px;
+}
+
+.modal-adaptive, 
+.modal-body-adaptive {
+    background-color: var(--bgModal) !important;
+    color: var(--textPrimary) !important;
+}
+
+.card-adaptive {
+    background-color: var(--bgCard) !important;
+    color: var(--textPrimary);
+    border: 1px solid var(--borderColor);
+    transition: all 0.3s ease;
+}
+
+/* Alert Info lebih soft */
+.alert-info {
+    background-color: rgba(13, 110, 253, 0.15) !important;
+    border-color: rgba(13, 110, 253, 0.3) !important;
+    color: var(--textPrimary) !important;
+    border-radius: 12px;
+}
+
+[data-theme="dark"] .alert-info {
+    background-color: rgba(13, 110, 253, 0.25) !important;
+}
+
+/* Container Scan RFID */
+#unit-rfid-container {
+    background: var(--bgDetailContainer);
+    border: 1px dashed var(--borderColor);
+    border-radius: 12px;
 }
 
 /* ========================================
@@ -181,7 +306,6 @@ body {
     border-bottom: 1px solid var(--borderColor);
 }
 
-/* Main Row Hover Effect */
 .main-row { 
     cursor: pointer; 
     transition: all 0.2s ease;
@@ -193,7 +317,6 @@ body {
     border-left: 3px solid var(--colorGreenPrimary);
 }
 
-/* Rotate Icon Animation */
 .rotate-icon { 
     transition: transform 0.3s ease, color 0.3s ease;
     font-size: 0.8rem; 
@@ -206,7 +329,7 @@ body {
 }
 
 /* ========================================
-   DETAIL CONTAINER (Collapse System)
+   DETAIL CONTAINER
    ======================================== */
 .detail-bg-container {
     background-color: var(--bgDetailContainer);
@@ -223,7 +346,7 @@ body {
     color: var(--textSecondary);
 }
 
-.detail-bg-container table {
+.detail-bg-container .table {
     background-color: var(--bgCard);
     border-radius: 10px;
     overflow: hidden;
@@ -240,7 +363,7 @@ body {
 }
 
 /* ========================================
-   CODE STYLING (UID Display)
+   CODE STYLING
    ======================================== */
 code { 
     color: var(--colorGreenPrimary); 
@@ -253,7 +376,7 @@ code {
 }
 
 /* ========================================
-   RFID SCAN CARD (UC-4 & UC-5)
+   RFID SCAN CARD
    ======================================== */
 .rfid-scan-card {
     background-color: var(--bgCard);
@@ -276,57 +399,6 @@ code {
 }
 
 /* ========================================
-   TABS STYLING
-   ======================================== */
-.nav-tabs {
-    border-bottom: 2px solid var(--borderColor);
-}
-
-.nav-tabs .nav-link {
-    color: var(--textSecondary);
-    border: none;
-    border-bottom: 3px solid transparent;
-    transition: all 0.3s ease;
-    font-size: 0.9rem;
-    font-weight: 600;
-}
-
-.nav-tabs .nav-link:hover {
-    border-bottom-color: rgba(98, 129, 65, 0.3);
-    background-color: transparent;
-}
-
-.nav-tabs .nav-link.active {
-    background: transparent !important;
-    color: var(--colorGreenPrimary) !important;
-    border-bottom: 3px solid var(--colorGreenPrimary);
-}
-
-/* ========================================
-   ADAPTIVE BACKGROUNDS
-   ======================================== */
-.modal-adaptive, 
-.modal-body-adaptive {
-    background-color: var(--bgModal) !important;
-    color: var(--textPrimary) !important;
-}
-
-.card-adaptive {
-    background-color: var(--bgCard) !important;
-    color: var(--textPrimary);
-    border: 1px solid var(--borderColor);
-    transition: all 0.3s ease;
-}
-
-.bg-light-custom {
-    background-color: var(--bgDetailContainer) !important;
-}
-
-.bg-light-tab {
-    background-color: var(--bgDetailContainer) !important;
-}
-
-/* ========================================
    DARK MODE OVERRIDES
    ======================================== */
 [data-theme="dark"] .bg-light {
@@ -346,31 +418,8 @@ code {
     color: #808080 !important;
 }
 
-[data-theme="dark"] .alert-info {
-    background-color: #1a3a52 !important;
-    border-color: #2a5a72 !important;
-    color: #90caf9 !important;
-}
-
 [data-theme="dark"] .text-muted {
     color: #9e9e9e !important;
-}
-
-/* ========================================
-   ICON BOX (Statistics Cards)
-   ======================================== */
-.icon-box {
-    width: 56px;
-    height: 56px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border-radius: 12px;
-    transition: transform 0.3s ease;
-}
-
-.card-adaptive:hover .icon-box {
-    transform: scale(1.1) rotate(5deg);
 }
 
 [data-theme="dark"] .bg-primary-subtle {
@@ -386,7 +435,7 @@ code {
 }
 
 /* ========================================
-   ALERT STYLING
+   ALERT & BORDER DASHED
    ======================================== */
 .alert {
     border-radius: 12px;
@@ -394,9 +443,6 @@ code {
     box-shadow: 0 2px 8px var(--shadowColor);
 }
 
-/* ========================================
-   SCANNER BORDER DASHED
-   ======================================== */
 .border-dashed {
     border: 2px dashed var(--borderColor) !important;
     background-color: rgba(0,0,0,0.01) !important;
@@ -407,7 +453,7 @@ code {
 }
 
 /* ========================================
-   SCROLLBAR STYLING
+   SCROLLBAR
    ======================================== */
 ::-webkit-scrollbar {
     width: 8px;
@@ -438,16 +484,25 @@ code {
     }
     
     .modal-dialog {
-        margin: 0.5rem;
+        max-width: 95%;
+        margin: 1rem auto;
     }
     
-    .rfid-scan-card {
+    .tab-pane {
         padding: 1rem;
     }
     
     .nav-tabs .nav-link {
-        font-size: 0.8rem;
-        padding: 0.75rem 0.5rem;
+        padding: 0.75rem 0.75rem;
+        font-size: 0.9rem;
+    }
+    
+    .modal-header .modal-title {
+        font-size: 1.1rem;
+    }
+    
+    .rfid-scan-card {
+        padding: 1rem;
     }
 }
 
@@ -467,7 +522,7 @@ code {
 }
 
 /* ========================================
-   ANIMATION UTILITIES
+   ANIMATION
    ======================================== */
 @keyframes fadeIn {
     from {
@@ -485,7 +540,7 @@ code {
 }
 
 /* ========================================
-   PRINT STYLES
+    PRINT STYLES
    ======================================== */
 @media print {
     .btn, .modal, .nav-tabs {

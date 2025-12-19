@@ -12,6 +12,7 @@
  * 2. Query kode terakhir dengan prefix yang sama
  * 3. Increment nomor urut
  * 4. Return next code dengan format PREFIX-XXX (3 digit)
+ * 5. Support multi-kode dengan ?count=X (return array codes)
  */
 
 require_once '../../../includes/config.php';
@@ -23,6 +24,8 @@ try {
     // Get parameters
     $prefix = $_GET['prefix'] ?? '';
     $book_id = isset($_GET['book_id']) ? intval($_GET['book_id']) : 0;
+    $count = isset($_GET['count']) ? intval($_GET['count']) : 1; // Default 1, untuk multi
+    if ($count < 1) $count = 1;
     
     // Validasi prefix
     if (empty($prefix)) {
@@ -56,7 +59,7 @@ try {
         throw new Exception("Database query error: " . $conn->error);
     }
     
-    // UC-4: Calculate next number
+    // UC-4: Calculate starting number
     $next_number = 1; // Default start
     
     if ($row = $result->fetch_assoc()) {
@@ -69,19 +72,23 @@ try {
         }
     }
     
-    // UC-4: Format next code dengan 3 digit (001, 002, ..., 999)
-    $next_code = sprintf("%s-%03d", $prefix, $next_number);
+    // UC-4: Generate array of next codes
+    $next_codes = [];
+    for ($i = 0; $i < $count; $i++) {
+        $current_number = $next_number + $i;
+        $next_codes[] = sprintf("%s-%03d", $prefix, $current_number);
+    }
     
     // Success response
     echo json_encode([
         'success' => true,
         'prefix' => $prefix,
-        'next_number' => $next_number,
-        'next_code' => $next_code,
-        'message' => 'Next code generated successfully'
+        'next_codes' => $next_codes,
+        'count' => count($next_codes),
+        'message' => count($next_codes) > 1 ? 'Multiple next codes generated successfully' : 'Next code generated successfully'
     ], JSON_PRETTY_PRINT);
     
-    error_log("[NEXT CODE GENERATED] Prefix: {$prefix}, Next: {$next_code}");
+    error_log("[NEXT CODES GENERATED] Prefix: {$prefix}, Count: {$count}");
     
 } catch (Exception $e) {
     // Error response

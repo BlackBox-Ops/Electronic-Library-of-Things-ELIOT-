@@ -3,9 +3,9 @@
  * Path: web/apps/assets/js/inventory.js
  * 
  * FEATURES:
- * - UC-3: Fast & Responsive RFID Scanning with proper alert colors
- * - UC-4: Auto-generate unique codes (ROB-001, ROB-002, ...)
- * - UC-5: Condition input per book unit
+ * - UC-3: Fast & Responsive RFID Scanning with proper alert colors (Now Multi-UID Support)
+ * - UC-4: Auto-generate unique codes from backend (ROB-001, ROB-002, ...)
+ * - UC-5: Condition input per book unit + individual scan
  * - UC-6: Multi-author toggle with conditional role field
  * - Bug fixes: proper error handling, timeout management, duplicate prevention
  */
@@ -17,10 +17,10 @@ let scannedRFIDs = [];
 let isScanning = false; // Prevent double-click scanning
 
 /**
- * UC-3: TRIGGER RFID SCAN
+ * UC-3: TRIGGER RFID SCAN (Multi-UID Support)
  * Fast & Responsive dengan Alert Hijau/Merah
  */
-function triggerScan() {
+function triggerScan(isIndividual = false, index = null) {
     // Prevent multiple simultaneous scans
     if (isScanning) {
         console.warn('[SCAN BLOCKED] Already scanning...');
@@ -28,7 +28,7 @@ function triggerScan() {
     }
     
     const container = document.getElementById('unit-rfid-container');
-    const btnScan = document.getElementById('btnScanTrigger');
+    const btnScan = isIndividual ? document.getElementById(`btn-scan-individual-${index}`) : document.getElementById('btnScanTrigger');
     const btnSimpan = document.getElementById('btnSimpan');
     const inputStok = document.getElementById('input_stok');
     const inputJudul = document.getElementById('input_judul');
@@ -37,8 +37,9 @@ function triggerScan() {
 
     // UC-3: Validasi - Cek limit stok
     const jumlahStok = parseInt(inputStok?.value || 1);
+    const sisaScan = jumlahStok - scannedRFIDs.length;
     
-    if (scannedRFIDs.length >= jumlahStok) {
+    if (sisaScan <= 0 && !isIndividual) {
         Swal.fire({
             icon: 'warning',
             title: 'Limit Tercapai',
@@ -52,24 +53,31 @@ function triggerScan() {
     // Set scanning state
     isScanning = true;
     
-    // API Path
-    const apiPath = '../includes/api/check_latest_uid.php';
+    // API Path dengan limit untuk multi
+    let apiPath = '../includes/api/check_latest_uid.php';
+    if (!isIndividual) {
+        apiPath += `?limit=${sisaScan}`;
+    }
 
     // UC-3: UI Feedback - Loading State
     btnScan.disabled = true;
+    const originalHTML = btnScan.innerHTML;
     btnScan.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Scanning...';
     btnScan.classList.remove('btn-primary');
     btnScan.classList.add('btn-warning');
 
     // UC-3: API Call dengan Timeout Protection (5 detik)
+    // Tambahkan parameter unik untuk bypass cache
+    const uniqueApiPath = apiPath + (apiPath.includes('?') ? '&' : '?') + '_=' + Date.now();
+
+    // UC-3: API Call dengan Timeout Protection (5 detik)
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 5000);
 
-    fetch(apiPath, { 
+    fetch(uniqueApiPath, { 
         signal: controller.signal,
-        cache: 'no-cache',
         headers: {
-            'Cache-Control': 'no-cache'
+            'Accept': 'application/json'
         }
     })
     .then(res => {
@@ -81,64 +89,78 @@ function triggerScan() {
         
         return res.json();
     })
-    .then(data => {
+    .then(async data => {
         if (data.success) {
             // UC-3: SUCCESS SCENARIO
-            // ✅ UID BERHASIL DITEMUKAN - ALERT HIJAU
+            // UID BERHASIL DITEMUKAN - ALERT HIJAU
             
-            // Cek duplikasi
-            const isDuplicate = scannedRFIDs.some(item => item.uid_buffer_id === data.id);
+            let uids = isIndividual ? [data] : data.uids; // Single atau multi
             
-            if (isDuplicate) {
-                Swal.fire({
-                    icon: 'warning',
-                    title: 'UID Duplikat',
-                    text: `UID ${data.uid} sudah di-scan sebelumnya!`,
-                    confirmButtonColor: '#ffc107'
-                });
-                resetScanUI();
-                isScanning = false;
-                return;
+            for (let uidData of uids) {
+                // Cek duplikasi
+                const isDuplicate = scannedRFIDs.some(item => item.uid_buffer_id === uidData.id);
+                
+                if (isDuplicate) {
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'UID Duplikat',
+                        text: `UID ${uidData.uid} sudah di-scan sebelumnya!`,
+                        confirmButtonColor: '#ffc107'
+                    });
+                    continue;
+                }
+                
+                // UC-4: Generate Kode Eksemplar Unik dari Backend
+                const judul = inputJudul.value || 'BOOK';
+                const kodePrefix = judul
+                    .substring(0, 3)
+                    .toUpperCase()
+                    .replace(/[^A-Z0-9]/g, ''); // Remove special chars
+                
+                // Fetch next code dari backend (support multi, tapi disini per UID untuk fleksibel)
+                const codeRes = await fetch(`../includes/api/get_next_code.php?prefix=${kodePrefix}&count=1`);
+                const codeData = await codeRes.json();
+                
+                if (!codeData.success) {
+                    throw new Error(codeData.message);
+                }
+                
+                const kodeEksemplar = codeData.next_codes[0];
+                
+                // UC-5: Tambahkan data dengan kondisi default 'baik'
+                const rfidData = {
+                    uid_buffer_id: uidData.id,
+                    uid: uidData.uid,
+                    kode_eksemplar: kodeEksemplar,
+                    kondisi: 'baik' // Default condition
+                };
+                
+                if (isIndividual && index !== null) {
+                    // Replace existing di index
+                    scannedRFIDs[index] = rfidData;
+                } else {
+                    scannedRFIDs.push(rfidData);
+                }
             }
-            
-            // UC-4: Generate Kode Eksemplar Unik Otomatis
-            const judul = inputJudul.value || 'BOOK';
-            const kodePrefix = judul
-                .substring(0, 3)
-                .toUpperCase()
-                .replace(/[^A-Z0-9]/g, ''); // Remove special chars
-            
-            const unitNumber = String(scannedRFIDs.length + 1).padStart(3, '0');
-            const kodeEksemplar = `${kodePrefix}-${unitNumber}`;
-            
-            // UC-5: Tambahkan data dengan kondisi default 'baik'
-            const rfidData = {
-                uid_buffer_id: data.id,
-                uid: data.uid,
-                kode_eksemplar: kodeEksemplar,
-                kondisi: 'baik' // Default condition
-            };
-            
-            scannedRFIDs.push(rfidData);
             
             // Update UI Components
             renderScannedRFIDs();
             updateScanBadge();
             updateHiddenInput();
             
-            // Enable save button
-            if (btnSimpan && scannedRFIDs.length > 0) {
+            // Enable save button jika cukup
+            if (btnSimpan && scannedRFIDs.length === jumlahStok) {
                 btnSimpan.disabled = false;
             }
             
             // UC-3: ALERT HIJAU - Success Notification
+            const count = uids.length;
             Swal.fire({
                 icon: 'success',
-                title: '✓ UID Berhasil Ditemukan!',
+                title: `✓ ${count > 1 ? 'Multiple' : ''} UID Berhasil Ditemukan!`,
                 html: `
                     <div class="text-start">
-                        <p><strong>UID:</strong> <code style="background: #d4edda; padding: 2px 6px; border-radius: 4px;">${data.uid}</code></p>
-                        <p><strong>Kode Unit:</strong> <span class="badge bg-success">${kodeEksemplar}</span></p>
+                        <p><strong>Jumlah:</strong> ${count} UID</p>
                         <p class="text-muted small mb-0">Scan berhasil pada ${new Date().toLocaleTimeString('id-ID')}</p>
                     </div>
                 `,
@@ -148,7 +170,7 @@ function triggerScan() {
                 timerProgressBar: true
             });
             
-            console.log('[SCAN SUCCESS]', rfidData);
+            console.log('[SCAN SUCCESS]', scannedRFIDs);
             
         } else {
             // UC-3: FAILED SCENARIO
@@ -176,7 +198,7 @@ function triggerScan() {
             console.warn('[SCAN FAILED]', data.message);
         }
         
-        resetScanUI();
+        resetScanUI(btnScan, originalHTML, isIndividual);
         isScanning = false;
     })
     .catch(err => {
@@ -200,13 +222,25 @@ function triggerScan() {
         });
         
         console.error('[SCAN ERROR]', err);
-        resetScanUI();
+        resetScanUI(btnScan, originalHTML, isIndividual);
         isScanning = false;
     });
 }
 
 /**
- * UC-4 & UC-5: Render Scanned RFIDs dengan Kondisi
+ * Reset Scan UI to Normal State (Support Individual Button)
+ */
+function resetScanUI(btn, originalHTML, isIndividual = false) {
+    if (btn) {
+        btn.disabled = false;
+        btn.innerHTML = originalHTML;
+        btn.classList.remove('btn-warning');
+        btn.classList.add(isIndividual ? 'btn-mini btn-primary' : 'btn-primary');
+    }
+}
+
+/**
+ * UC-4 & UC-5: Render Scanned RFIDs dengan Kondisi (Tambah Tombol Scan Individu)
  */
 function renderScannedRFIDs() {
     const container = document.getElementById('unit-rfid-container');
@@ -215,10 +249,10 @@ function renderScannedRFIDs() {
     
     if (scannedRFIDs.length === 0) {
         container.innerHTML = `
-            <div class="text-center text-muted py-4">
-                <i class="fas fa-barcode fa-3x mb-3 d-block opacity-50"></i>
-                <p class="mb-0">Belum ada RFID yang di-scan.</p>
-                <small>Klik tombol "SCAN RFID BARU" untuk memulai.</small>
+            <div class="text-center text-muted py-5">
+                <i class="fas fa-barcode fa-4x mb-3 d-block opacity-50"></i>
+                <p class="mb-0 fw-bold">Belum ada RFID yang di-scan</p>
+                <small>Klik tombol di atas untuk mulai scan</small>
             </div>
         `;
         return;
@@ -277,72 +311,44 @@ function renderScannedRFIDs() {
                             </div>
                         </div>
                     </div>
-                    
-                    <!-- Delete Button -->
-                    <button type="button" 
-                            class="btn btn-sm btn-outline-danger ms-3" 
-                            onclick="removeRFID(${index})" 
-                            title="Hapus Unit">
-                        <i class="fas fa-trash"></i>
-                    </button>
+                    <div class="d-flex flex-column gap-2 ms-3">
+                        <button class="btn btn-mini btn-danger" onclick="removeScan(${index})">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                        <button id="btn-scan-individual-${index}" class="btn btn-mini btn-primary" onclick="triggerScan(true, ${index})">
+                            <i class="fas fa-qrcode"></i> Re-Scan
+                        </button>
+                    </div>
                 </div>
             </div>
         `;
     });
-    
     container.innerHTML = html;
 }
 
 /**
- * Update RFID Data di Array
+ * Update RFID Data
  */
 function updateRFIDData(index, field, value) {
     if (scannedRFIDs[index]) {
         scannedRFIDs[index][field] = value;
         updateHiddenInput();
-        console.log(`[DATA UPDATED] Index: ${index}, Field: ${field}, Value: ${value}`);
     }
 }
 
 /**
- * Hapus RFID dari Daftar
+ * Remove Single Scan
  */
-function removeRFID(index) {
-    const item = scannedRFIDs[index];
+function removeScan(index) {
+    scannedRFIDs.splice(index, 1);
+    renderScannedRFIDs();
+    updateScanBadge();
+    updateHiddenInput();
     
-    Swal.fire({
-        title: 'Hapus Unit RFID?',
-        html: `Apakah Anda yakin ingin menghapus:<br><strong>${item.kode_eksemplar}</strong> (${item.uid})?`,
-        icon: 'warning',
-        showCancelButton: true,
-        confirmButtonColor: '#dc3545',
-        cancelButtonColor: '#6c757d',
-        confirmButtonText: '<i class="fas fa-trash me-1"></i>Ya, Hapus',
-        cancelButtonText: 'Batal'
-    }).then((result) => {
-        if (result.isConfirmed) {
-            scannedRFIDs.splice(index, 1);
-            renderScannedRFIDs();
-            updateScanBadge();
-            updateHiddenInput();
-            
-            // Disable save button if no scans
-            const btnSimpan = document.getElementById('btnSimpan');
-            if (btnSimpan && scannedRFIDs.length === 0) {
-                btnSimpan.disabled = true;
-            }
-            
-            Swal.fire({
-                icon: 'success',
-                title: 'Terhapus!',
-                text: 'Unit RFID berhasil dihapus dari daftar.',
-                timer: 1500,
-                showConfirmButton: false
-            });
-            
-            console.log(`[RFID REMOVED] Index: ${index}`);
-        }
-    });
+    const btnSimpan = document.getElementById('btnSimpan');
+    if (btnSimpan) {
+        btnSimpan.disabled = scannedRFIDs.length !== parseInt(document.getElementById('input_stok')?.value || 1);
+    }
 }
 
 /**
@@ -425,19 +431,6 @@ function updateHiddenInput() {
 }
 
 /**
- * Reset Scan UI to Normal State
- */
-function resetScanUI() {
-    const btnScan = document.getElementById('btnScanTrigger');
-    if (btnScan) {
-        btnScan.disabled = false;
-        btnScan.innerHTML = '<i class="fas fa-qrcode me-2"></i>SCAN RFID BARU';
-        btnScan.classList.remove('btn-warning', 'btn-outline-success');
-        btnScan.classList.add('btn-primary');
-    }
-}
-
-/**
  * Switch Tab Helper
  */
 function switchTab(tabId) {
@@ -470,12 +463,13 @@ if (formRegistrasi) {
     formRegistrasi.addEventListener('submit', function(e) {
         e.preventDefault();
         
-        // Validasi: minimal 1 RFID
-        if (scannedRFIDs.length === 0) {
+        // Validasi: scannedRFIDs.length == jumlah_eksemplar
+        const jumlahStok = parseInt(document.getElementById('input_stok')?.value || 1);
+        if (scannedRFIDs.length !== jumlahStok) {
             Swal.fire({
                 icon: 'warning',
                 title: 'Scan RFID Required',
-                text: 'Anda harus scan minimal 1 RFID sebelum menyimpan!',
+                text: `Anda harus scan tepat ${jumlahStok} RFID sebelum menyimpan!`,
                 confirmButtonColor: '#ffc107'
             });
             switchTab('rfid-tab-btn');
