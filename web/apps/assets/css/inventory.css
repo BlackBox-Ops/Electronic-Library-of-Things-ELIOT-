@@ -551,3 +551,32 @@ code {
         display: table-row !important;
     }
 }
+
+.rfid-scan-card {
+    background-color: var(--bgCard);
+    border: 2px solid var(--colorGreenPrimary);
+    border-radius: 12px;
+    padding: 1.25rem;
+    margin-bottom: 1rem;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 8px var(--shadowColor);
+}
+
+.rfid-scan-card .row.g-2 {
+    flex-wrap: nowrap; /* Agar sejajar tidak wrap ke bawah */
+    align-items: center; /* Vertikal center */
+}
+
+.rfid-scan-card .col-md-6 {
+    flex: 1; /* Fleksibel lebar */
+}
+
+.rfid-scan-card .btn-mini {
+    white-space: nowrap; /* Tombol tidak wrap */
+    margin-left: 0.5rem; /* Spasi antar tombol */
+}
+
+[data-theme="dark"] .rfid-scan-card {
+    background-color: #2a2a2a;
+    border-color: #8BA76C;
+}

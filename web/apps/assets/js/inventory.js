@@ -10,6 +10,18 @@
  * - Bug fixes: proper error handling, timeout management, duplicate prevention
  */
 
+/**
+ * inventory.js - Enhanced & Optimized Version
+ * Path: web/apps/assets/js/inventory.js
+ * 
+ * FEATURES:
+ * - UC-3: Fast & Responsive RFID Scanning with proper alert colors (Now Multi-UID Support)
+ * - UC-4: Auto-generate unique codes from backend (ROB-001, ROB-002, ...)
+ * - UC-5: Condition input per book unit + individual scan
+ * - UC-6: Multi-author toggle with conditional role field
+ * - Bug fixes: proper error handling, timeout management, duplicate prevention
+ */
+
 // ========================================
 // GLOBAL STATE MANAGEMENT
 // ========================================
@@ -59,6 +71,9 @@ function triggerScan(isIndividual = false, index = null) {
         apiPath += `?limit=${sisaScan}`;
     }
 
+    // Tambahkan parameter unik untuk no-cache
+    const uniqueApiPath = apiPath + (apiPath.includes('?') ? '&' : '?') + '_=' + Date.now();
+
     // UC-3: UI Feedback - Loading State
     btnScan.disabled = true;
     const originalHTML = btnScan.innerHTML;
@@ -67,18 +82,11 @@ function triggerScan(isIndividual = false, index = null) {
     btnScan.classList.add('btn-warning');
 
     // UC-3: API Call dengan Timeout Protection (5 detik)
-    // Tambahkan parameter unik untuk bypass cache
-    const uniqueApiPath = apiPath + (apiPath.includes('?') ? '&' : '?') + '_=' + Date.now();
-
-    // UC-3: API Call dengan Timeout Protection (5 detik)
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 5000);
 
     fetch(uniqueApiPath, { 
-        signal: controller.signal,
-        headers: {
-            'Accept': 'application/json'
-        }
+        signal: controller.signal
     })
     .then(res => {
         clearTimeout(timeoutId);
@@ -92,12 +100,30 @@ function triggerScan(isIndividual = false, index = null) {
     .then(async data => {
         if (data.success) {
             // UC-3: SUCCESS SCENARIO
-            // UID BERHASIL DITEMUKAN - ALERT HIJAU
+            // ✅ UID BERHASIL DITEMUKAN - ALERT HIJAU
             
             let uids = isIndividual ? [data] : data.uids; // Single atau multi
             
-            for (let uidData of uids) {
-                // Cek duplikasi
+            // UC-4: Generate Kode Eksemplar Unik dari Backend (single call untuk array kode)
+            const judul = inputJudul.value || 'BOOK';
+            const kodePrefix = judul
+                .substring(0, 3)
+                .toUpperCase()
+                .replace(/[^A-Z0-9]/g, ''); // Remove special chars
+            
+            // Fetch array kode sekaligus dengan count = uids.length
+            const codeRes = await fetch(`../includes/api/get_next_code.php?prefix=${kodePrefix}&count=${uids.length}`);
+            const codeData = await codeRes.json();
+            
+            if (!codeData.success) {
+                throw new Error(codeData.message);
+            }
+            
+            const nextCodes = codeData.next_codes; // array kode GAD-001 dst
+            
+            for (let i = 0; i < uids.length; i++) {
+                const uidData = uids[i];
+                // Cek duplikat UID
                 const isDuplicate = scannedRFIDs.some(item => item.uid_buffer_id === uidData.id);
                 
                 if (isDuplicate) {
@@ -110,24 +136,8 @@ function triggerScan(isIndividual = false, index = null) {
                     continue;
                 }
                 
-                // UC-4: Generate Kode Eksemplar Unik dari Backend
-                const judul = inputJudul.value || 'BOOK';
-                const kodePrefix = judul
-                    .substring(0, 3)
-                    .toUpperCase()
-                    .replace(/[^A-Z0-9]/g, ''); // Remove special chars
+                const kodeEksemplar = nextCodes[i];  // assign kode dari array
                 
-                // Fetch next code dari backend (support multi, tapi disini per UID untuk fleksibel)
-                const codeRes = await fetch(`../includes/api/get_next_code.php?prefix=${kodePrefix}&count=1`);
-                const codeData = await codeRes.json();
-                
-                if (!codeData.success) {
-                    throw new Error(codeData.message);
-                }
-                
-                const kodeEksemplar = codeData.next_codes[0];
-                
-                // UC-5: Tambahkan data dengan kondisi default 'baik'
                 const rfidData = {
                     uid_buffer_id: uidData.id,
                     uid: uidData.uid,

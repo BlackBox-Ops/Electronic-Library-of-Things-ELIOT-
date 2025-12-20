@@ -281,11 +281,11 @@ include_once '../includes/header.php';
                             <div class="col-md-4">
                                 <label class="form-label fw-bold">Kategori</label>
                                 <select name="kategori" class="form-select">
-                                    <option value="buku">📖 Buku</option>
-                                    <option value="jurnal">📄 Jurnal</option>
-                                    <option value="prosiding">📑 Prosiding</option>
-                                    <option value="skripsi">🎓 Skripsi</option>
-                                    <option value="laporan_pkl">📊 Laporan PKL</option>
+                                    <option value="buku">Buku</option>
+                                    <option value="jurnal">Jurnal</option>
+                                    <option value="prosiding">Prosiding</option>
+                                    <option value="skripsi">Skripsi</option>
+                                    <option value="laporan_pkl">Laporan PKL</option>
                                 </select>
                             </div>
                             <div class="col-md-4">
@@ -346,7 +346,7 @@ include_once '../includes/header.php';
 
                                     <select name="author_id" id="author_select" class="form-select mb-3">
                                         <option value="">-- Pilih Penulis --</option>
-                                        <option value="new">➕ Tambah Penulis Baru</option>
+                                        <option value="new">Tambah Penulis Baru</option>
                                         <?php 
                                         $as = $conn->query("SELECT id, nama_pengarang FROM authors WHERE is_deleted = 0 ORDER BY nama_pengarang");
                                         while($a = $as->fetch_assoc()) {
@@ -376,10 +376,10 @@ include_once '../includes/header.php';
                                             <i class="fas fa-user-tag me-2"></i>Peran Penulis
                                         </label>
                                         <select name="peran_author" class="form-select">
-                                            <option value="penulis_utama">✍️ Penulis Utama</option>
-                                            <option value="co_author">🤝 Co-Author</option>
-                                            <option value="editor">✏️ Editor</option>
-                                            <option value="translator">🌐 Translator</option>
+                                            <option value="penulis_utama">Penulis Utama</option>
+                                            <option value="co_author">Co-Author</option>
+                                            <option value="editor">Editor</option>
+                                            <option value="translator">Translator</option>
                                         </select>
                                         <small class="text-muted">Aktif karena mode multi-penulis diaktifkan</small>
                                     </div>
@@ -394,7 +394,7 @@ include_once '../includes/header.php';
                                     </label>
                                     <select name="publisher_id" id="publisher_select" class="form-select mb-3">
                                         <option value="">-- Pilih Penerbit --</option>
-                                        <option value="new">➕ Tambah Penerbit Baru</option>
+                                        <option value="new">Tambah Penerbit Baru</option>
                                         <?php 
                                         $ps = $conn->query("SELECT id, nama_penerbit FROM publishers WHERE is_deleted = 0 ORDER BY nama_penerbit");
                                         while($p = $ps->fetch_assoc()) {
