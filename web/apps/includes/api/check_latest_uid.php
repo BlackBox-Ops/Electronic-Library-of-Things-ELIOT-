@@ -3,36 +3,32 @@
  * API: Check Latest UID from RFID Scanner
  * Path: web/apps/includes/api/check_latest_uid.php
  * 
- * UC-3: Scan RFID untuk UID Book (Now Supports Multi-UID)
- * Endpoint ini dipanggil oleh frontend untuk mengambil UID terbaru yang di-scan
+ * UC-3: Scan RFID untuk UID Book (Supports Multi-UID)
  * 
- * BUSINESS LOGIC:
- * 1. Ambil UID terbaru yang belum dilabel (is_labeled = 'no')
- * 2. Filter hanya yang jenis = 'pending' (baru di-scan dari hardware)
- * 3. Belum terdaftar di rt_book_uid (belum dipakai)
- * 4. Scan dalam 5 menit terakhir (untuk toleransi waktu)
- * 5. Support multi-UID dengan param ?limit=X (default: all)
- * 6. Saat ambil, reset timestamp untuk extend timeout
- * 7. Return JSON dengan success true/false, dan array uids jika multi
+ * PERBAIKAN:
+ * - Logging query lengkap & jumlah row
+ * - Debug info lebih detail untuk frontend
+ * - Sanitasi limit lebih ketat
+ * - Tambah CORS header (opsional)
+ * - Response lebih informatif
+ * - Suggestion index untuk performa
  */
 
 require_once '../../../includes/config.php'; 
 
-// Set header JSON
+// Tambah CORS jika diperlukan (bisa dihapus jika tidak cross-origin)
+header('Access-Control-Allow-Origin: *');
 header('Content-Type: application/json');
 header('Cache-Control: no-cache, must-revalidate');
 
 try {
-    // Get param limit (default null = all)
-    $limit = isset($_GET['limit']) ? intval($_GET['limit']) : null;
-    $limitSql = $limit ? "LIMIT $limit" : "";
+    // Sanitasi dan validasi limit
+    $limit = isset($_GET['limit']) ? max(1, min(50, intval($_GET['limit']))) : null; // Max 50 untuk cegah overload
+    $limitSql = $limit ? "LIMIT " . intval($limit) : "";
 
-    /**
-     * QUERY OPTIMIZATION:
-     * - Menggunakan LEFT JOIN untuk performance
-     * - Index pada is_labeled, jenis, is_deleted sudah ada di schema
-     * - ORDER DESC timestamp untuk ambil terbaru dulu
-     */
+    // Query utama - dengan index suggestion
+    // SUGGESTION: Tambah index di MySQL:
+    // CREATE INDEX idx_uid_buffer_pending ON uid_buffer(jenis, is_labeled, is_deleted, timestamp);
     $sql = "SELECT 
                 ub.id, 
                 ub.uid, 
@@ -45,14 +41,15 @@ try {
                 AND ub.jenis = 'pending'
                 AND rbu.id IS NULL
                 AND ub.timestamp >= NOW() - INTERVAL 5 MINUTE 
-            ORDER BY ub.timestamp DESC
+            ORDER BY ub.timestamp DESC 
             $limitSql";
+
+    error_log("[check_latest_uid] Executing query: " . $sql);
 
     $result = $conn->query($sql);
 
-    // UC-3: Success Scenario
     if (!$result) {
-        throw new Exception("Database query error: " . $conn->error);
+        throw new Exception("Database query error: " . $conn->error . " | Query: " . $sql);
     }
 
     $uids = [];
@@ -65,60 +62,75 @@ try {
         ];
     }
 
-    if (!empty($uids)) {
-        // ✓ UID DITEMUKAN - Reset timestamp untuk semua UID yang diambil
+    $found_count = count($uids);
+
+    if ($found_count > 0) {
+        // Reset timestamp untuk extend timeout (hanya jika ada data)
         $uidIds = array_column($uids, 'id');
-        $uidIdsStr = implode(',', $uidIds);
-        $updateSql = "UPDATE uid_buffer SET timestamp = NOW() WHERE id IN ($uidIdsStr)";
-        if (!$conn->query($updateSql)) {
-            throw new Exception("Failed to reset timestamp: " . $conn->error);
+        $uidIdsStr = implode(',', array_map('intval', $uidIds)); // Sanitasi
+
+        if (!empty($uidIdsStr)) {
+            $updateSql = "UPDATE uid_buffer SET timestamp = NOW() WHERE id IN ($uidIdsStr)";
+            if (!$conn->query($updateSql)) {
+                error_log("[check_latest_uid] Failed to reset timestamp: " . $conn->error);
+                // Tidak throw error, karena UID sudah terambil, hanya timeout extend gagal
+            } else {
+                error_log("[check_latest_uid] Timestamp reset untuk " . count($uidIds) . " UID");
+            }
         }
 
         echo json_encode([
             'success' => true, 
             'uids' => $uids,
-            'count' => count($uids),
-            'message' => count($uids) > 1 ? 'Multiple UID berhasil ditemukan' : 'UID berhasil ditemukan'
-        ], JSON_PRETTY_PRINT);
-        
-        // Log untuk debugging
-        error_log("[RFID SCAN SUCCESS] Fetched " . count($uids) . " UIDs");
-
-    } else {
-        // UC-3: Failed Scenario
-        // ✗ UID TIDAK DITEMUKAN
-        echo json_encode([
-            'success' => false, 
-            'message' => 'UID tidak ditemukan. Pastikan tag RFID sudah di-scan pada reader.',
-            'debug_info' => [
-                'reason' => 'No pending UID found in last 5 minutes',
-                'check_list' => [
-                    'RFID tag sudah di-scan?',
-                    'Hardware ESP32 terhubung?',
-                    'UID masuk ke uid_buffer dengan jenis=pending?',
-                    'UID belum pernah dipakai sebelumnya?'
-                ]
+            'count' => $found_count,
+            'message' => $found_count > 1 
+                ? "$found_count UID berhasil ditemukan dan siap digunakan" 
+                : "1 UID berhasil ditemukan dan siap digunakan",
+            'debug' => [
+                'query_executed' => $sql,
+                'uids_fetched' => $found_count,
+                'timestamp_reset' => !empty($uidIdsStr)
             ]
         ], JSON_PRETTY_PRINT);
         
-        error_log("[RFID SCAN FAILED] No available UID found");
+        error_log("[RFID SCAN SUCCESS] Fetched $found_count UIDs: " . implode(', ', array_column($uids, 'uid')));
+
+    } else {
+        // Gagal: Tidak ada UID valid
+        echo json_encode([
+            'success' => false, 
+            'message' => 'UID tidak ditemukan atau sudah expired.',
+            'debug_info' => [
+                'reason' => 'Tidak ada UID pending yang valid dalam 5 menit terakhir',
+                'query_executed' => $sql,
+                'suggestions' => [
+                    'Pastikan RFID tag sudah di-scan pada reader ESP32',
+                    'Cek apakah data masuk ke tabel uid_buffer (jenis=pending, is_labeled=no)',
+                    'Cronjob invalidate_old_uid.py sudah berjalan? (untuk bersihkan UID expired)',
+                    'UID belum pernah digunakan sebelumnya',
+                    'Waktu sistem server dan ESP32 sinkron?'
+                ],
+                'timestamp_now' => date('Y-m-d H:i:s'),
+                'time_limit_check' => 'timestamp >= NOW() - INTERVAL 5 MINUTE'
+            ]
+        ], JSON_PRETTY_PRINT);
+        
+        error_log("[RFID SCAN FAILED] No valid UID found | Query: " . substr($sql, 0, 200) . "...");
     }
     
 } catch (Exception $e) {
-    // UC-3: Alternative Flow - Bug Handling
-    // Handle semua error dengan response JSON yang konsisten
     $errorMessage = $e->getMessage();
-    
     echo json_encode([
         'success' => false, 
-        'message' => 'System error: ' . $errorMessage,
+        'message' => 'System error: Terjadi kesalahan pada server.',
+        'error_details' => $errorMessage,
         'error_type' => 'exception',
         'timestamp' => date('Y-m-d H:i:s')
     ], JSON_PRETTY_PRINT);
     
-    // Log error untuk debugging
     error_log("[RFID API ERROR] " . $errorMessage);
 }
 
 $conn->close();
 exit;
+?>

@@ -10,8 +10,8 @@
    COLOR VARIABLES
    ======================================== */
 :root {
-    --colorGreenPrimary: #628141;
-    --colorGreenHover: #506834;
+    --colorGreenPrimary: #41644A;
+    --colorGreenHover: #41644A;
     --bgBody: #f5f7f9;
     --bgCard: #ffffff;
     --bgModal: #ffffff;
@@ -33,7 +33,7 @@
     --textSecondary: #9e9e9e;
     --borderColor: #333333;
     --bgDetailContainer: #2d2d2d;
-    --colorGreenPrimary: #8BA76C;
+    --colorGreenPrimary: #41644A;
     --colorGreenHover: #9db87d;
     --badgeCategoryBg: #3d3d3d;
     --badgeCategoryText: #f8f9fa;
