@@ -270,8 +270,8 @@ try {
 
         // Update buffer
         $updateBuf = "UPDATE uid_buffer 
-                      SET jenis = 'book', is_labeled = 'yes', updated_at = NOW() 
-                      WHERE id = $uid_buffer_id";
+                    SET jenis = 'book', is_labeled = 'yes', updated_at = NOW() 
+                    WHERE id = $uid_buffer_id";
         if (!$conn->query($updateBuf)) {
             throw new Exception("Gagal update status UID: " . $conn->error);
         }

@@ -717,7 +717,7 @@ function resetExpiredUID() {
             <div class="text-start">
                 <p class="mb-2">Fungsi ini akan:</p>
                 <ul class="text-muted small">
-                    <li>Mereset timestamp UID yang sudah expired (> 5 menit)</li>
+                    <li>Mereset timestamp UID yang sudah expired</li>
                     <li>Menggunakan sistem FIFO (First In First Out)</li>
                     <li>UID yang paling lama akan di-reset terlebih dahulu</li>
                     <li>Status tetap <code>pending</code> dan <code>unlabeled</code></li>

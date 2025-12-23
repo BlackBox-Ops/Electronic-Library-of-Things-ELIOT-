@@ -76,9 +76,16 @@ try {
     }
 
     // ========================================
-    // 3. HANDLE PENGARANG BARU & RELASI (DIPERBAIKI)
+    // 3. HANDLE PENGARANG BARU & RELASI (WITH PERAN SUPPORT)
     // ========================================
     $author_id = null;
+    $peran_author = $conn->real_escape_string($_POST['peran_author'] ?? 'penulis_utama');
+    
+    // Validasi peran
+    $valid_peran = ['penulis_utama', 'co_author', 'editor', 'translator'];
+    if (!in_array($peran_author, $valid_peran)) {
+        $peran_author = 'penulis_utama'; // Default fallback
+    }
 
     if (!empty($_POST['author_id']) && $_POST['author_id'] !== 'new') {
         $author_id = intval($_POST['author_id']);
@@ -107,35 +114,39 @@ try {
         }
     }
 
-    // Update relasi pengarang: soft-delete semua lama, lalu aktifkan/insert yang baru
+    // Update relasi pengarang dengan PERAN
     if ($author_id) {
         // 1. Soft-delete semua relasi lama untuk buku ini
         $conn->query("UPDATE rt_book_author SET is_deleted = 1, updated_at = NOW() WHERE book_id = $book_id");
 
         // 2. Cek apakah relasi ini sudah pernah ada (meski di-soft-delete)
-        $checkRel = $conn->query("SELECT id, is_deleted FROM rt_book_author 
+        $checkRel = $conn->query("SELECT id, is_deleted, peran FROM rt_book_author 
                                 WHERE book_id = $book_id AND author_id = $author_id 
                                 LIMIT 1");
 
         if ($checkRel->num_rows > 0) {
             $rel = $checkRel->fetch_assoc();
-            if ($rel['is_deleted'] == 1) {
-                // Jika sebelumnya di-soft-delete, cukup aktifkan kembali
-                $conn->query("UPDATE rt_book_author SET is_deleted = 0, updated_at = NOW() 
-                            WHERE id = {$rel['id']}");
+            // Update: Aktifkan kembali + update peran
+            $updateRel = "UPDATE rt_book_author 
+                            SET is_deleted = 0, peran = '$peran_author', updated_at = NOW() 
+                            WHERE id = {$rel['id']}";
+            if (!$conn->query($updateRel)) {
+                throw new Exception("Gagal update relasi pengarang: " . $conn->error);
             }
-            // Jika sudah aktif, tidak perlu insert lagi (unique key terjaga)
+            error_log("[AUTHOR RELATION UPDATED] Book: $book_id, Author: $author_id, Peran: $peran_author");
         } else {
-            // Jika benar-benar baru, insert
+            // Insert baru dengan peran
             $insertRel = "INSERT INTO rt_book_author (book_id, author_id, peran) 
-                        VALUES ($book_id, $author_id, 'penulis_utama')";
+                        VALUES ($book_id, $author_id, '$peran_author')";
             if (!$conn->query($insertRel)) {
                 throw new Exception("Gagal insert relasi pengarang: " . $conn->error);
             }
+            error_log("[AUTHOR RELATION CREATED] Book: $book_id, Author: $author_id, Peran: $peran_author");
         }
     } else {
         // Jika tidak ada author dipilih, soft-delete semua relasi
         $conn->query("UPDATE rt_book_author SET is_deleted = 1, updated_at = NOW() WHERE book_id = $book_id");
+        error_log("[AUTHOR RELATION CLEARED] Book: $book_id - No author selected");
     }
 
     // ========================================
