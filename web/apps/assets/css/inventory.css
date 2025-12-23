@@ -4,14 +4,13 @@
  * Supporting UC-1 to UC-6 UI Components
  * Updated: Modal Minimalis, Modern, Full Dark Mode Support
  * Fix: Adaptive text & placeholder in dark mode (override .text-dark)
+ * REVISION: Modal diperbesar, Footer always visible, Mobile blocked
  */
 
 /* ========================================
    COLOR VARIABLES
    ======================================== */
 :root {
-    --colorGreenPrimary: #41644A;
-    --colorGreenHover: #41644A;
     --bgBody: #f5f7f9;
     --bgCard: #ffffff;
     --bgModal: #ffffff;
@@ -33,7 +32,7 @@
     --textSecondary: #9e9e9e;
     --borderColor: #333333;
     --bgDetailContainer: #2d2d2d;
-    --colorGreenPrimary: #41644A;
+    --colorGreenPrimary: #8BA76C;
     --colorGreenHover: #9db87d;
     --badgeCategoryBg: #3d3d3d;
     --badgeCategoryText: #f8f9fa;
@@ -51,35 +50,44 @@ body {
 
 /* ========================================
    MODAL MODERN & MINIMALIS REDESIGN
+   OPTIMIZED FOR MANY FIELDS
    ======================================== */
 .modal-dialog {
-    max-width: 720px; /* Lebih kecil & nyaman dari modal-xl */
-    margin: 1.75rem auto;
+    max-width: 1100px; /* Diperbesar untuk banyak field */
+    margin: 1.5rem auto;
+    width: 95%;
 }
 
 .modal-content { 
     background-color: var(--bgModal); 
     color: var(--textPrimary); 
-    border-radius: 20px;
+    border-radius: 16px;
     overflow: hidden;
     box-shadow: 0 20px 60px var(--shadowColor);
     border: none;
+    max-height: 90vh; /* Batasi tinggi modal */
+    display: flex;
+    flex-direction: column;
 }
 
 .modal-header { 
-    padding: 1.25rem 1.5rem;
+    padding: 1rem 1.25rem;
     background: var(--bgModal) !important;
     border-bottom: 1px solid var(--borderColor);
-    border-radius: 20px 20px 0 0;
+    border-radius: 16px 16px 0 0;
+    flex-shrink: 0; /* Tidak menyusut */
 }
 
 .modal-header .modal-title {
-    font-size: 1.25rem;
+    font-size: 1.1rem;
     font-weight: 700;
 }
 
 .modal-header .btn-close { 
-    filter: invert(var(--dark-invert, 0)); 
+    filter: invert(var(--dark-invert, 0));
+    padding: 0.5rem;
+    width: 1.5rem;
+    height: 1.5rem;
 }
 
 [data-theme="dark"] .modal-header .btn-close { 
@@ -87,25 +95,43 @@ body {
 }
 
 .modal-footer { 
-    padding: 1rem 1.5rem;
+    padding: 0.875rem 1.25rem;
     background: var(--bgModal);
-    border-top: 1px solid var(--borderColor);
+    border-top: 2px solid var(--borderColor);
+    flex-shrink: 0; /* Tidak menyusut */
+    position: sticky;
+    bottom: 0;
+    z-index: 1050;
+    box-shadow: 0 -4px 12px rgba(0,0,0,0.08);
 }
 
-/* Tab Navigation Modern */
+/* Ensure footer always visible */
+.modal-footer::before {
+    content: '';
+    position: absolute;
+    top: -10px;
+    left: 0;
+    right: 0;
+    height: 10px;
+    background: linear-gradient(to bottom, transparent, var(--bgModal));
+    pointer-events: none;
+}
+
+/* Tab Navigation Modern - Compact */
 .nav-tabs {
     background: var(--bgModal);
-    padding: 0.75rem 1.5rem 0;
+    padding: 0.5rem 1rem 0;
     border-bottom: none;
+    flex-shrink: 0;
 }
 
 .nav-tabs .nav-link {
     color: var(--textSecondary);
     border: none;
-    border-radius: 12px 12px 0 0;
-    padding: 0.75rem 1.25rem;
+    border-radius: 10px 10px 0 0;
+    padding: 0.625rem 1rem;
     margin-bottom: -1px;
-    font-size: 0.95rem;
+    font-size: 0.875rem;
     font-weight: 600;
     transition: all 0.3s ease;
 }
@@ -123,11 +149,16 @@ body {
 
 .modal-body-adaptive {
     padding: 0;
+    flex: 1;
+    overflow-y: auto;
+    overflow-x: hidden;
+    margin-bottom: 0; /* Remove margin */
 }
 
 .tab-pane {
-    padding: 1.5rem;
-    min-height: 500px;
+    padding: 1.25rem;
+    padding-bottom: 5rem; /* Extra padding bottom untuk button */
+    min-height: auto;
 }
 
 /* ========================================
@@ -155,6 +186,43 @@ textarea.form-control:focus {
 .form-select::placeholder {
     color: var(--textSecondary);
     opacity: 0.7;
+}
+
+/* Keterangan Field Animation */
+#keterangan_field_wrapper {
+    transition: all 0.3s ease;
+    opacity: 0.6;
+}
+
+#keterangan_field_wrapper.field-enabled {
+    opacity: 1;
+}
+
+#input_keterangan:disabled {
+    background-color: var(--bgDetailContainer) !important;
+    cursor: not-allowed;
+    opacity: 0.6;
+}
+
+#input_keterangan:not(:disabled) {
+    background-color: var(--bgCard) !important;
+    border-color: #0dcaf0 !important;
+    box-shadow: 0 0 0 0.15rem rgba(13, 202, 240, 0.15);
+}
+
+/* Form Switch Styling */
+.form-check-input {
+    cursor: pointer;
+}
+
+.form-check-input:checked {
+    background-color: var(--colorGreenPrimary);
+    border-color: var(--colorGreenPrimary);
+}
+
+.form-check-input:focus {
+    border-color: var(--colorGreenPrimary);
+    box-shadow: 0 0 0 0.25rem rgba(98, 129, 65, 0.25);
 }
 
 /* Fix background putih pada form tambah penulis & publisher baru */
@@ -225,7 +293,7 @@ textarea.form-control:focus {
 }
 
 /* ========================================
-   BUTTONS
+   BUTTONS - MINIMALIS & COMPACT
    ======================================== */
 .btn-green { 
     background-color: var(--colorGreenPrimary); 
@@ -233,6 +301,9 @@ textarea.form-control:focus {
     border: none; 
     transition: all 0.3s ease;
     font-weight: 600;
+    padding: 0.5rem 1.25rem;
+    font-size: 0.9rem;
+    border-radius: 8px;
 }
 
 .btn-green:hover { 
@@ -253,9 +324,21 @@ textarea.form-control:focus {
     transform: none;
 }
 
+/* Modal Footer Buttons - Extra Compact */
+.modal-footer .btn {
+    padding: 0.5rem 1rem;
+    font-size: 0.875rem;
+    border-radius: 8px;
+    font-weight: 600;
+}
+
+.modal-footer .btn i {
+    font-size: 0.875rem;
+}
+
 .btn-mini { 
-    padding: 0.35rem 0.75rem; 
-    font-size: 0.8rem; 
+    padding: 0.3rem 0.65rem; 
+    font-size: 0.75rem; 
     border-radius: 6px; 
     font-weight: 500;
     transition: all 0.2s ease;
@@ -263,6 +346,46 @@ textarea.form-control:focus {
 
 .btn-mini:hover {
     transform: translateY(-1px);
+}
+
+/* Button Icon Sizes */
+.btn i.fas,
+.btn i.far {
+    font-size: 0.875rem;
+}
+
+.btn-lg {
+    padding: 0.75rem 2rem;
+    font-size: 1rem;
+}
+
+/* Button Warning - Reset UID */
+.btn-warning {
+    background-color: #ffc107;
+    color: #212529;
+    border: none;
+    transition: all 0.3s ease;
+    font-weight: 600;
+}
+
+.btn-warning:hover {
+    background-color: #ffca2c;
+    color: #212529;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(255, 193, 7, 0.4);
+}
+
+.btn-warning:active {
+    transform: translateY(0);
+}
+
+[data-theme="dark"] .btn-warning {
+    background-color: #ffb300;
+    color: #1a1a1a;
+}
+
+[data-theme="dark"] .btn-warning:hover {
+    background-color: #ffc107;
 }
 
 /* ========================================
@@ -393,6 +516,20 @@ code {
     transform: translateY(-2px);
 }
 
+.rfid-scan-card .row.g-2 {
+    flex-wrap: nowrap; /* Agar sejajar tidak wrap ke bawah */
+    align-items: center; /* Vertikal center */
+}
+
+.rfid-scan-card .col-md-6 {
+    flex: 1; /* Fleksibel lebar */
+}
+
+.rfid-scan-card .btn-mini {
+    white-space: nowrap; /* Tombol tidak wrap */
+    margin-left: 0.5rem; /* Spasi antar tombol */
+}
+
 [data-theme="dark"] .rfid-scan-card {
     background-color: #2a2a2a;
     border-color: #8BA76C;
@@ -476,33 +613,103 @@ code {
 
 /* ========================================
    RESPONSIVE ADJUSTMENTS
+   TABLET & MOBILE OPTIMIZATION
    ======================================== */
-@media (max-width: 768px) {
-    .detail-bg-container {
-        margin: 15px 20px 20px 40px;
-        padding: 16px;
+
+/* Tablet (iPad & Galaxy Tab) - 768px to 1024px */
+@media (min-width: 768px) and (max-width: 1024px) {
+    .modal-dialog {
+        max-width: 90%;
+        margin: 1rem auto;
     }
     
-    .modal-dialog {
-        max-width: 95%;
-        margin: 1rem auto;
+    .modal-header .modal-title {
+        font-size: 1rem;
+    }
+    
+    .nav-tabs .nav-link {
+        padding: 0.5rem 0.75rem;
+        font-size: 0.8rem;
     }
     
     .tab-pane {
         padding: 1rem;
     }
     
-    .nav-tabs .nav-link {
-        padding: 0.75rem 0.75rem;
-        font-size: 0.9rem;
+    .modal-footer {
+        padding: 0.75rem 1rem;
     }
     
-    .modal-header .modal-title {
-        font-size: 1.1rem;
+    .modal-footer .btn {
+        padding: 0.45rem 0.875rem;
+        font-size: 0.8rem;
+    }
+    
+    .form-label {
+        font-size: 0.875rem;
+    }
+    
+    .form-control,
+    .form-select {
+        font-size: 0.875rem;
+        padding: 0.5rem 0.75rem;
+    }
+    
+    .detail-bg-container {
+        margin: 15px 20px 20px 40px;
+        padding: 16px;
     }
     
     .rfid-scan-card {
         padding: 1rem;
+    }
+}
+
+/* MOBILE BLOCK - Prevent access on phones */
+@media (max-width: 767px) {
+    /* Hide entire page content */
+    .container-fluid,
+    .modal {
+        display: none !important;
+    }
+    
+    /* Show warning overlay */
+    body::before {
+        content: '';
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        z-index: 999999;
+    }
+    
+    body::after {
+        content: '📱\A\AHalaman Inventory\ATidak Tersedia di Mobile\A\A\AGunakan Tablet atau Desktop\A(Min. 768px width)';
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        z-index: 1000000;
+        background: white;
+        padding: 2.5rem 2rem;
+        border-radius: 20px;
+        text-align: center;
+        white-space: pre-line;
+        font-size: 1.1rem;
+        font-weight: 700;
+        color: #333;
+        box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        max-width: 85%;
+        line-height: 1.6;
+    }
+}
+
+/* Desktop - Original styles maintained */
+@media (min-width: 1025px) {
+    .modal-dialog {
+        max-width: 1100px;
     }
 }
 
@@ -550,33 +757,4 @@ code {
     .detail-row {
         display: table-row !important;
     }
-}
-
-.rfid-scan-card {
-    background-color: var(--bgCard);
-    border: 2px solid var(--colorGreenPrimary);
-    border-radius: 12px;
-    padding: 1.25rem;
-    margin-bottom: 1rem;
-    transition: all 0.3s ease;
-    box-shadow: 0 2px 8px var(--shadowColor);
-}
-
-.rfid-scan-card .row.g-2 {
-    flex-wrap: nowrap; /* Agar sejajar tidak wrap ke bawah */
-    align-items: center; /* Vertikal center */
-}
-
-.rfid-scan-card .col-md-6 {
-    flex: 1; /* Fleksibel lebar */
-}
-
-.rfid-scan-card .btn-mini {
-    white-space: nowrap; /* Tombol tidak wrap */
-    margin-left: 0.5rem; /* Spasi antar tombol */
-}
-
-[data-theme="dark"] .rfid-scan-card {
-    background-color: #2a2a2a;
-    border-color: #8BA76C;
 }

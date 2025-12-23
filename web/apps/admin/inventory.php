@@ -110,6 +110,38 @@ include_once '../includes/header.php';
         </div>
     </div>
 
+    <!-- Filter dan Search Controls -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <label for="filterKategori" class="fw-bold mb-2">Filter Kategori</label>
+            <select id="filterKategori" class="form-select">
+                <option value="">Semua Kategori</option>
+                <?php
+                // Mengambil kategori unik dari database
+                $kategoriQuery = $conn->query("SELECT DISTINCT kategori FROM books WHERE is_deleted = 0");
+                while ($kat = $kategoriQuery->fetch_assoc()) {
+                    echo "<option value='{$kat['kategori']}'>{$kat['kategori']}</option>";
+                }
+                ?>
+            </select>
+        </div>
+        <div class="col-md-3">
+            <label for="searchAuthor" class="fw-bold mb-2">Cari Berdasarkan Author</label>
+            <input type="text" id="searchAuthor" class="form-control" placeholder="Masukkan nama author...">
+        </div>
+        <div class="col-md-3">
+            <label for="searchPublisher" class="fw-bold mb-2">Cari Berdasarkan Publisher</label>
+            <input type="text" id="searchPublisher" class="form-control" placeholder="Masukkan nama publisher...">
+        </div>
+        <div class="col-md-3">
+            <label class="fw-bold mb-2 d-block">Reset UID Expired</label>
+            <button type="button" id="btnResetUID" class="btn btn-warning w-100 shadow-sm" onclick="resetExpiredUID()">
+                <i class="fas fa-undo-alt me-2"></i>Reset UID Buffer
+            </button>
+            <small class="text-muted d-block mt-1">Reset UID pending > 5 menit</small>
+        </div>
+    </div>
+
     <!-- Main Table -->
     <div class="card border-0 shadow-sm overflow-hidden card-adaptive">
         <div class="table-responsive">
@@ -148,9 +180,9 @@ include_once '../includes/header.php';
                             <span class="text-muted"><?= $row['jumlah_eksemplar'] ?></span>
                         </td>
                         <td class="text-center pe-4">
-                            <button class="btn btn-mini btn-light border" onclick="event.stopPropagation()" title="Edit">
+                            <a href="edit_inventory.php?id=<?= $row['id'] ?>" class="btn btn-mini btn-light border" title="Edit">
                                 <i class="fas fa-edit"></i>
-                            </button>
+                            </a>
                         </td>
                     </tr>
                     <!-- DETAIL ROW -->
@@ -168,28 +200,29 @@ include_once '../includes/header.php';
                                             <th>Kondisi</th>
                                             <th>Tgl Registrasi</th>
                                             <th>Status</th>
+                                            <th>Keterangan</th>
                                         </tr>
                                     </thead>
                                     <tbody>
                                         <?php 
-                                        $uSql = "SELECT rbu.*, ub.uid, ub.jenis 
-                                                FROM rt_book_uid rbu
-                                                JOIN uid_buffer ub ON rbu.uid_buffer_id = ub.id
-                                                WHERE rbu.book_id = {$row['id']} 
-                                                AND rbu.is_deleted = 0
-                                                ORDER BY rbu.tanggal_registrasi DESC";
-                                        $uRes = $conn->query($uSql);
-                                        
-                                        if ($uRes && $uRes->num_rows > 0):
-                                            while($unit = $uRes->fetch_assoc()): 
-                                                $badgeKondisi = [
-                                                    'baik' => 'bg-success',
-                                                    'rusak_ringan' => 'bg-warning text-dark',
-                                                    'rusak_berat' => 'bg-danger',
-                                                    'hilang' => 'bg-dark'
-                                                ];
-                                                $badgeClass = $badgeKondisi[$unit['kondisi']] ?? 'bg-secondary';
-                                        ?>
+                                            $uSql = "SELECT rbu.*, ub.uid, ub.jenis 
+                                                    FROM rt_book_uid rbu
+                                                    JOIN uid_buffer ub ON rbu.uid_buffer_id = ub.id
+                                                    WHERE rbu.book_id = {$row['id']} 
+                                                    AND rbu.is_deleted = 0
+                                                    ORDER BY rbu.tanggal_registrasi DESC";
+                                            $uRes = $conn->query($uSql);
+                                            
+                                            if ($uRes && $uRes->num_rows > 0):
+                                                while($unit = $uRes->fetch_assoc()): 
+                                                    $badgeKondisi = [
+                                                        'baik' => 'bg-success',
+                                                        'rusak_ringan' => 'bg-warning text-dark',
+                                                        'rusak_berat' => 'bg-danger',
+                                                        'hilang' => 'bg-dark'
+                                                    ];
+                                                    $badgeClass = $badgeKondisi[$unit['kondisi']] ?? 'bg-secondary';
+                                            ?>
                                         <tr>
                                             <td><strong><?= htmlspecialchars($unit['kode_eksemplar']) ?></strong></td>
                                             <td><code><?= htmlspecialchars($unit['uid']) ?></code></td>
@@ -204,6 +237,7 @@ include_once '../includes/header.php';
                                                 </small>
                                             </td>
                                             <td><span class="badge bg-success">Tersedia</span></td>
+                                            <td><?= htmlspecialchars($unit['keterangan'] ?? '-') ?></td>
                                         </tr>
                                         <?php 
                                             endwhile;
@@ -278,6 +312,11 @@ include_once '../includes/header.php';
                                 <label class="form-label fw-bold">ISBN / Serial <span class="text-danger">*</span></label>
                                 <input type="text" name="identifier" class="form-control" required placeholder="978-xxx-xxx">
                             </div>
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold">Keterangan (Opsional)</label>
+                                <input type="text" name="keterangan" class="form-control" placeholder="Contoh: Edisi 2024, Mahasiswa John Doe">
+                                <small class="text-muted">Gunakan jika judul buku sama dengan yang sudah ada</small>
+                            </div>
                             <div class="col-md-4">
                                 <label class="form-label fw-bold">Kategori</label>
                                 <select name="kategori" class="form-select">
@@ -305,6 +344,45 @@ include_once '../includes/header.php';
                                 <input type="number" name="jumlah_eksemplar" id="input_stok" class="form-control" value="1" min="1" required>
                                 <small class="text-muted">Jumlah fisik buku yang akan di-scan</small>
                             </div>
+                            
+                            <!-- SWITCH ENABLE KETERANGAN -->
+                            <div class="col-12">
+                                <div class="border rounded p-3 bg-light-custom">
+                                    <div class="d-flex justify-content-between align-items-center mb-3">
+                                        <div>
+                                            <label class="form-label fw-bold text-info mb-0">
+                                                <i class="fas fa-info-circle me-2"></i>Keterangan Tambahan
+                                            </label>
+                                            <small class="d-block text-muted mt-1">
+                                                Aktifkan jika buku dengan judul sama namun beda edisi/cetakan/penulis
+                                            </small>
+                                        </div>
+                                        <div class="form-check form-switch">
+                                            <input class="form-check-input" type="checkbox" id="switchKeterangan" style="width: 3rem; height: 1.5rem; cursor: pointer;">
+                                            <label class="form-check-label ms-2 fw-bold text-muted" for="switchKeterangan" style="cursor: pointer;">
+                                                Aktifkan
+                                            </label>
+                                        </div>
+                                    </div>
+                                    
+                                    <div id="keterangan_field_wrapper">
+                                        <label class="form-label fw-bold text-dark">Detail Keterangan</label>
+                                        <input 
+                                            type="text" 
+                                            name="keterangan" 
+                                            id="input_keterangan" 
+                                            class="form-control" 
+                                            placeholder="Contoh: Edisi 2024, Revisi oleh Dr. Ahmad" 
+                                            disabled
+                                        >
+                                        <small class="text-muted d-block mt-1">
+                                            <i class="fas fa-lightbulb me-1"></i>
+                                            <strong>Contoh:</strong> "Edisi ke-5 (2024)", "Revisi oleh Prof. John Doe", "Cetakan Mahasiswa"
+                                        </small>
+                                    </div>
+                                </div>
+                            </div>
+                            
                             <div class="col-12">
                                 <label class="form-label fw-bold">
                                     <i class="fas fa-image me-2 text-primary"></i>Cover Image (Opsional)
@@ -319,7 +397,7 @@ include_once '../includes/header.php';
                                 <label class="form-label fw-bold">Deskripsi</label>
                                 <textarea name="deskripsi" class="form-control" rows="3" placeholder="Deskripsi singkat tentang buku ini..."></textarea>
                             </div>
-                            <div class="col-12 text-end mt-4">
+                            <div class="col-12 text-end mt-4 mb-3">
                                 <button type="button" class="btn btn-primary px-4" onclick="switchTab('auth-tab-btn')">
                                     Lanjut <i class="fas fa-arrow-right ms-2"></i>
                                 </button>
@@ -482,7 +560,7 @@ include_once '../includes/header.php';
                     </div>
                 </div>
 
-                <div class="modal-footer border-top">
+                <div class="modal-footer" style="padding: 1.25rem 1.5rem; border-top: none;">
                     <button type="button" class="btn btn-light border" data-bs-dismiss="modal">
                         <i class="fas fa-times me-2"></i>Batal
                     </button>

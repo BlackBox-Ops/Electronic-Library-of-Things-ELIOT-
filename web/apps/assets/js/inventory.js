@@ -313,10 +313,10 @@ function renderScannedRFIDs() {
                                 <label class="form-label small mb-1 fw-bold">Kondisi Buku</label>
                                 <select class="form-select form-select-sm" 
                                         onchange="updateRFIDData(${index}, 'kondisi', this.value); renderScannedRFIDs();">
-                                    <option value="baik" ${item.kondisi === 'baik' ? 'selected' : ''}>✓ Baik</option>
-                                    <option value="rusak_ringan" ${item.kondisi === 'rusak_ringan' ? 'selected' : ''}>⚠ Rusak Ringan</option>
-                                    <option value="rusak_berat" ${item.kondisi === 'rusak_berat' ? 'selected' : ''}>✗ Rusak Berat</option>
-                                    <option value="hilang" ${item.kondisi === 'hilang' ? 'selected' : ''}>? Hilang</option>
+                                    <option value="baik" ${item.kondisi === 'baik' ? 'selected' : ''}> Baik</option>
+                                    <option value="rusak_ringan" ${item.kondisi === 'rusak_ringan' ? 'selected' : ''}> Rusak Ringan</option>
+                                    <option value="rusak_berat" ${item.kondisi === 'rusak_berat' ? 'selected' : ''}> Rusak Berat</option>
+                                    <option value="hilang" ${item.kondisi === 'hilang' ? 'selected' : ''}> Hilang</option>
                                 </select>
                             </div>
                         </div>
@@ -690,5 +690,197 @@ if (modalTambah) {
         console.log('[MODAL RESET] All data cleared');
     });
 }
+
+// Filter Kategori Table
+const filterKategori = document.getElementById('filterKategori');
+if (filterKategori) {
+    filterKategori.addEventListener('change', function() {
+        const val = this.value.toLowerCase();
+        const rows = document.querySelectorAll('.table tbody tr');
+        rows.forEach(row => {
+            const kategori = row.querySelector('td:nth-child(3)')?.textContent.toLowerCase(); // Kolom Kategori
+            row.style.display = (val === '' || kategori.includes(val)) ? '' : 'none';
+        });
+    });
+}
+
+/**
+ * Function: Reset Expired UID
+ * Dipanggil dari button Reset UID di inventory.php
+ * Menggunakan SweetAlert2 untuk konfirmasi & notifikasi
+ */
+
+function resetExpiredUID() {
+    Swal.fire({
+        title: 'Reset UID Expired?',
+        html: `
+            <div class="text-start">
+                <p class="mb-2">Fungsi ini akan:</p>
+                <ul class="text-muted small">
+                    <li>Mereset timestamp UID yang sudah expired (> 5 menit)</li>
+                    <li>Menggunakan sistem FIFO (First In First Out)</li>
+                    <li>UID yang paling lama akan di-reset terlebih dahulu</li>
+                    <li>Status tetap <code>pending</code> dan <code>unlabeled</code></li>
+                </ul>
+            </div>
+        `,
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#ffc107',
+        cancelButtonColor: '#6c757d',
+        confirmButtonText: '<i class="fas fa-undo-alt me-2"></i>Ya, Reset Sekarang',
+        cancelButtonText: '<i class="fas fa-times me-2"></i>Batal',
+        showLoaderOnConfirm: true,
+        allowOutsideClick: () => !Swal.isLoading(),
+        preConfirm: () => {
+            return fetch('../includes/api/reset_expired_uid.php', {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Network response error');
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (!data.success) {
+                    throw new Error(data.message || 'Reset gagal');
+                }
+                return data;
+            })
+            .catch(error => {
+                Swal.showValidationMessage(
+                    `Request failed: ${error.message}`
+                );
+            });
+        }
+    }).then((result) => {
+        if (result.isConfirmed && result.value) {
+            const data = result.value;
+            
+            // Format detail UID yang di-reset
+            let detailHTML = '';
+            if (data.details && data.details.length > 0) {
+                detailHTML = '<div class="mt-3 text-start"><strong>Detail UID:</strong><ul class="small text-muted mt-2">';
+                data.details.forEach(uid => {
+                    detailHTML += `<li><code>${uid.uid}</code> - Expired ${uid.minutes_old} menit lalu</li>`;
+                });
+                detailHTML += '</ul></div>';
+            }
+            
+            Swal.fire({
+                icon: 'success',
+                title: 'Reset Berhasil!',
+                html: `
+                    <div class="text-center">
+                        <h4 class="text-success mb-3">
+                            <i class="fas fa-check-circle me-2"></i>
+                            ${data.reset_count} UID Berhasil Di-reset
+                        </h4>
+                        <p class="text-muted mb-2">Timestamp telah diperbarui</p>
+                        ${detailHTML}
+                        <div class="alert alert-info mt-3 text-start">
+                            <small>
+                                <strong>Catatan:</strong><br>
+                                UID yang di-reset dapat langsung digunakan untuk scan baru dalam interval 5 menit ke depan.
+                            </small>
+                        </div>
+                    </div>
+                `,
+                confirmButtonColor: '#28a745',
+                confirmButtonText: '<i class="fas fa-check me-2"></i>OK'
+            });
+            
+            // Log ke console
+            console.log('[RESET UID SUCCESS]', data);
+            
+            // Optional: Refresh statistik jika ada
+            if (typeof updateStatistics === 'function') {
+                updateStatistics();
+            }
+        }
+    });
+}
+
+/**
+ * Alternative: Reset dengan limit tertentu
+ * Usage: resetExpiredUID(10) -> reset 10 UID tertua
+ */
+function resetExpiredUIDWithLimit(limit = 10) {
+    fetch(`../includes/api/reset_expired_uid.php?limit=${limit}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Reset Berhasil',
+                    text: `${data.reset_count} UID berhasil di-reset`,
+                    timer: 3000,
+                    showConfirmButton: false
+                });
+                console.log('[RESET UID LIMITED]', data);
+            } else {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Reset Gagal',
+                    text: data.message
+                });
+            }
+        })
+        .catch(error => {
+            console.error('[RESET UID ERROR]', error);
+            Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: 'Terjadi kesalahan saat reset UID'
+            });
+        });
+}
+
+/**
+ * ========================================
+ * SWITCH HANDLER: Enable/Disable Keterangan Field
+ * ========================================
+ */
+document.addEventListener('DOMContentLoaded', function() {
+    const switchKeterangan = document.getElementById('switchKeterangan');
+    const inputKeterangan = document.getElementById('input_keterangan');
+    const wrapperField = document.getElementById('keterangan_field_wrapper');
+    
+    if (switchKeterangan && inputKeterangan) {
+        // Initial state: disabled
+        inputKeterangan.disabled = true;
+        inputKeterangan.value = '';
+        
+        // Toggle handler
+        switchKeterangan.addEventListener('change', function() {
+            if (this.checked) {
+                // Enable field
+                inputKeterangan.disabled = false;
+                inputKeterangan.focus();
+                wrapperField.classList.add('field-enabled');
+                
+                // Animation
+                inputKeterangan.style.transition = 'all 0.3s ease';
+                inputKeterangan.style.opacity = '1';
+                
+                console.log('[KETERANGAN] Field enabled');
+            } else {
+                // Disable field
+                inputKeterangan.disabled = true;
+                inputKeterangan.value = '';
+                wrapperField.classList.remove('field-enabled');
+                
+                // Animation
+                inputKeterangan.style.opacity = '0.6';
+                
+                console.log('[KETERANGAN] Field disabled & cleared');
+            }
+        });
+    }
+});
 
 console.log('[INVENTORY JS] Version 2.0 - Enhanced & Optimized');

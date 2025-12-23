@@ -31,6 +31,7 @@ $identifier    = $conn->real_escape_string($_POST['identifier'] ?? '');
 $kategori      = $conn->real_escape_string($_POST['kategori'] ?? 'buku');
 $lokasi        = $conn->real_escape_string($_POST['lokasi'] ?? '');
 $jumlah_eksemplar = intval($_POST['jumlah_eksemplar'] ?? 1);
+$keterangan = $conn->real_escape_string($_POST['keterangan'] ?? '');
 
 if (empty($judul) || empty($identifier)) {
     echo json_encode([
@@ -194,11 +195,13 @@ try {
     // ========================================
     // 10. INSERT BOOK UTAMA
     // ========================================
-    $sqlBook = "INSERT INTO books 
-                (judul_buku, isbn, kategori, lokasi_rak, publisher_id, tahun_terbit, jumlah_halaman, deskripsi, cover_image, jumlah_eksemplar) 
-                VALUES 
-                ('$judul', '$identifier', '$kategori', '$lokasi', " . ($publisher_id ?? 'NULL') . ", " . ($tahun_terbit ?? 'NULL') . ", $jumlah_halaman, '$deskripsi', " . ($cover_image ? "'$cover_image'" : 'NULL') . ", $jumlah_eksemplar)";
+    $keterangan_sql = $keterangan ? "'$keterangan'" : "NULL";
 
+    $sqlBook = "INSERT INTO books 
+                (judul_buku, isbn, kategori, lokasi_rak, publisher_id, tahun_terbit, jumlah_halaman, deskripsi, cover_image, jumlah_eksemplar, keterangan) 
+                VALUES 
+                ('$judul', '$identifier', '$kategori', '$lokasi', " . ($publisher_id ?? 'NULL') . ", " . ($tahun_terbit ?? 'NULL') . ", $jumlah_halaman, '$deskripsi', " . ($cover_image ? "'$cover_image'" : 'NULL') . ", $jumlah_eksemplar, $keterangan_sql)";
+                
     if (!$conn->query($sqlBook)) {
         throw new Exception("Gagal simpan buku: " . $conn->error);
     }
