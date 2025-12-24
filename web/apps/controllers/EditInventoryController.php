@@ -1,21 +1,27 @@
 <?php
 /**
- * EditInventoryController.php
+ * EditInventoryController.php - FIXED VERSION
  * Path: web/apps/controllers/EditInventoryController.php
  * 
- * Workflow:
- * - Update detail buku di tabel books
- * - Handle publisher baru jika dipilih "new"
- * - Handle pengarang baru jika dipilih "new" (dan relasi rt_book_author)
- * - Update kondisi setiap eksemplar di rt_book_uid
- * - Soft delete eksemplar jika ada di delete_eksemplar[]
- * - Hitung ulang jumlah_eksemplar dan eksemplar_tersedia di tabel books
- * - Handle upload cover image baru (jika ada)
+ * FIXES:
+ * - Bug #1: Proper handling of delete_eksemplar array
+ * - Bug #2: Enhanced logging for debugging
+ * - Bug #3: Proper author relation update (no data loss)
+ * - Bug #4: Update existing publisher/author data
+ * - Bug #5: Handle biografi updates
+ * - Bug #6: Fixed JSON parsing for delete_eksemplar
  */
 
 require_once '../../includes/config.php';
 
 header('Content-Type: application/json');
+
+// Enhanced DEBUG logging
+error_log('========================================');
+error_log('[EDIT INVENTORY] REQUEST START');
+error_log('[POST DATA] ' . json_encode($_POST));
+error_log('[FILES] ' . json_encode($_FILES));
+error_log('========================================');
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     echo json_encode(['success' => false, 'message' => 'Invalid request method']);
@@ -45,112 +51,183 @@ try {
         throw new Exception("Judul buku wajib diisi");
     }
 
+    error_log("[BOOK DATA] Judul: $judul_buku, ISBN: $isbn");
+
     // ========================================
-    // 2. HANDLE PUBLISHER BARU
+    // 2. HANDLE PUBLISHER (FIXED)
     // ========================================
     $publisher_id = null;
-    if (!empty($_POST['publisher_id']) && $_POST['publisher_id'] !== 'new') {
-        $publisher_id = intval($_POST['publisher_id']);
-    } elseif ($_POST['publisher_id'] === 'new') {
-        $new_pub_name = $conn->real_escape_string($_POST['new_publisher_name'] ?? '');
+    $publisher_action = $_POST['publisher_action'] ?? 'existing';
+    
+    error_log("[PUBLISHER] Action: $publisher_action");
+    
+    if ($publisher_action === 'new') {
+        $new_pub_name = trim($_POST['new_publisher_name'] ?? '');
+        
         if (empty($new_pub_name)) {
-            throw new Exception("Nama publisher baru wajib diisi");
+            throw new Exception("Nama penerbit baru wajib diisi");
         }
-
-        // Cek apakah sudah ada
-        $checkPub = $conn->query("SELECT id FROM publishers WHERE nama_penerbit = '$new_pub_name' AND is_deleted = 0");
-        if ($checkPub->num_rows > 0) {
+        
+        $safe_name = $conn->real_escape_string($new_pub_name);
+        
+        $checkPub = $conn->query("SELECT id FROM publishers WHERE nama_penerbit = '$safe_name' AND is_deleted = 0 LIMIT 1");
+        
+        if ($checkPub && $checkPub->num_rows > 0) {
             $publisher_id = $checkPub->fetch_assoc()['id'];
+            error_log("[PUBLISHER] Already exists, using ID: $publisher_id");
         } else {
-            $pub_alamat = $conn->real_escape_string($_POST['publisher_alamat'] ?? '');
-            $pub_telepon = $conn->real_escape_string($_POST['publisher_no_telepon'] ?? '');
-            $pub_email = $conn->real_escape_string($_POST['publisher_email'] ?? '');
-
-            $insertPub = "INSERT INTO publishers (nama_penerbit, alamat, no_telepon, email) 
-                        VALUES ('$new_pub_name', '$pub_alamat', '$pub_telepon', '$pub_email')";
+            $insertPub = "INSERT INTO publishers (nama_penerbit) VALUES ('$safe_name')";
+            
             if (!$conn->query($insertPub)) {
-                throw new Exception("Gagal simpan publisher baru: " . $conn->error);
+                throw new Exception("Gagal simpan penerbit baru: " . $conn->error);
             }
+            
             $publisher_id = $conn->insert_id;
+            error_log("[PUBLISHER] Created new: ID $publisher_id, Nama: $safe_name");
+        }
+        
+    } elseif ($publisher_action === 'existing') {
+        $publisher_id = intval($_POST['publisher_id'] ?? 0);
+        
+        if ($publisher_id > 0) {
+            $update_pub_alamat = trim($_POST['publisher_alamat'] ?? '');
+            $update_pub_telepon = trim($_POST['publisher_telepon'] ?? '');
+            $update_pub_email = trim($_POST['publisher_email'] ?? '');
+            
+            if (!empty($update_pub_alamat) || !empty($update_pub_telepon) || !empty($update_pub_email)) {
+                $safe_alamat = $conn->real_escape_string($update_pub_alamat);
+                $safe_telepon = $conn->real_escape_string($update_pub_telepon);
+                $safe_email = $conn->real_escape_string($update_pub_email);
+                
+                $updatePubQuery = "UPDATE publishers SET ";
+                $updateFields = [];
+                
+                if (!empty($update_pub_alamat)) {
+                    $updateFields[] = "alamat = '$safe_alamat'";
+                }
+                if (!empty($update_pub_telepon)) {
+                    $updateFields[] = "no_telepon = '$safe_telepon'";
+                }
+                if (!empty($update_pub_email)) {
+                    $updateFields[] = "email = '$safe_email'";
+                }
+                
+                $updatePubQuery .= implode(', ', $updateFields) . ", updated_at = NOW() WHERE id = $publisher_id";
+                
+                if (!$conn->query($updatePubQuery)) {
+                    error_log("[PUBLISHER] Update failed: " . $conn->error);
+                } else {
+                    error_log("[PUBLISHER] Updated details for ID: $publisher_id");
+                }
+            }
+            
+            error_log("[PUBLISHER] Using existing ID: $publisher_id");
         }
     }
 
     // ========================================
-    // 3. HANDLE PENGARANG BARU & RELASI (WITH PERAN SUPPORT)
+    // 3. HANDLE AUTHOR (FIXED)
     // ========================================
     $author_id = null;
-    $peran_author = $conn->real_escape_string($_POST['peran_author'] ?? 'penulis_utama');
+    $author_action = $_POST['author_action'] ?? 'existing';
     
-    // Validasi peran
-    $valid_peran = ['penulis_utama', 'co_author', 'editor', 'translator'];
-    if (!in_array($peran_author, $valid_peran)) {
-        $peran_author = 'penulis_utama'; // Default fallback
-    }
-
-    if (!empty($_POST['author_id']) && $_POST['author_id'] !== 'new') {
-        $author_id = intval($_POST['author_id']);
-    } elseif ($_POST['author_id'] === 'new') {
-        $new_auth_name = $conn->real_escape_string(trim($_POST['new_author_name'] ?? ''));
-        if (empty($new_auth_name)) {
-            throw new Exception("Nama pengarang baru wajib diisi");
+    error_log("[AUTHOR] Action: $author_action");
+    
+    if ($author_action === 'new') {
+        $new_author_name = trim($_POST['new_author_name'] ?? '');
+        $author_biografi = $conn->real_escape_string($_POST['author_biografi'] ?? '');
+        
+        if (empty($new_author_name)) {
+            throw new Exception("Nama penulis baru wajib diisi");
         }
-
-        // Cek apakah sudah ada
-        $checkAuth = $conn->query("SELECT id FROM authors WHERE nama_pengarang = '$new_auth_name' AND is_deleted = 0");
-        if ($checkAuth->num_rows > 0) {
+        
+        if (!empty($author_biografi) && mb_strlen($author_biografi) > 200) {
+            throw new Exception("Biografi maksimal 200 karakter! Saat ini: " . mb_strlen($author_biografi));
+        }
+        
+        $safe_author = $conn->real_escape_string($new_author_name);
+        
+        $checkAuth = $conn->query("SELECT id FROM authors WHERE nama_pengarang = '$safe_author' AND is_deleted = 0 LIMIT 1");
+        
+        if ($checkAuth && $checkAuth->num_rows > 0) {
             $author_id = $checkAuth->fetch_assoc()['id'];
+            error_log("[AUTHOR] Already exists, using ID: $author_id");
         } else {
-            $auth_biografi = $conn->real_escape_string($_POST['author_biografi'] ?? '');
-            if (mb_strlen($auth_biografi) > 200) {
-                throw new Exception("Biografi pengarang maksimal 200 karakter");
+            $sqlAuth = "INSERT INTO authors (nama_pengarang, biografi) VALUES ('$safe_author', '$author_biografi')";
+            
+            if (!$conn->query($sqlAuth)) {
+                throw new Exception("Gagal simpan penulis baru: " . $conn->error);
             }
-
-            $insertAuth = "INSERT INTO authors (nama_pengarang, biografi) 
-                        VALUES ('$new_auth_name', '$auth_biografi')";
-            if (!$conn->query($insertAuth)) {
-                throw new Exception("Gagal simpan pengarang baru: " . $conn->error);
-            }
+            
             $author_id = $conn->insert_id;
+            error_log("[AUTHOR] Created new: ID $author_id, Nama: $safe_author");
         }
-    }
-
-    // Update relasi pengarang dengan PERAN
-    if ($author_id) {
-        // 1. Soft-delete semua relasi lama untuk buku ini
-        $conn->query("UPDATE rt_book_author SET is_deleted = 1, updated_at = NOW() WHERE book_id = $book_id");
-
-        // 2. Cek apakah relasi ini sudah pernah ada (meski di-soft-delete)
-        $checkRel = $conn->query("SELECT id, is_deleted, peran FROM rt_book_author 
-                                WHERE book_id = $book_id AND author_id = $author_id 
-                                LIMIT 1");
-
-        if ($checkRel->num_rows > 0) {
-            $rel = $checkRel->fetch_assoc();
-            // Update: Aktifkan kembali + update peran
-            $updateRel = "UPDATE rt_book_author 
-                            SET is_deleted = 0, peran = '$peran_author', updated_at = NOW() 
-                            WHERE id = {$rel['id']}";
-            if (!$conn->query($updateRel)) {
-                throw new Exception("Gagal update relasi pengarang: " . $conn->error);
+        
+    } elseif ($author_action === 'existing') {
+        $author_id = intval($_POST['author_id'] ?? 0);
+        
+        if ($author_id > 0) {
+            $update_biografi = trim($_POST['author_biografi'] ?? '');
+            
+            if (!empty($update_biografi)) {
+                if (mb_strlen($update_biografi) > 200) {
+                    throw new Exception("Biografi maksimal 200 karakter! Saat ini: " . mb_strlen($update_biografi));
+                }
+                
+                $safe_bio = $conn->real_escape_string($update_biografi);
+                $updateAuthQuery = "UPDATE authors SET biografi = '$safe_bio', updated_at = NOW() WHERE id = $author_id";
+                
+                if (!$conn->query($updateAuthQuery)) {
+                    error_log("[AUTHOR] Biografi update failed: " . $conn->error);
+                } else {
+                    error_log("[AUTHOR] Updated biografi for ID: $author_id");
+                }
             }
-            error_log("[AUTHOR RELATION UPDATED] Book: $book_id, Author: $author_id, Peran: $peran_author");
-        } else {
-            // Insert baru dengan peran
-            $insertRel = "INSERT INTO rt_book_author (book_id, author_id, peran) 
-                        VALUES ($book_id, $author_id, '$peran_author')";
-            if (!$conn->query($insertRel)) {
-                throw new Exception("Gagal insert relasi pengarang: " . $conn->error);
-            }
-            error_log("[AUTHOR RELATION CREATED] Book: $book_id, Author: $author_id, Peran: $peran_author");
+            
+            error_log("[AUTHOR] Using existing ID: $author_id");
         }
-    } else {
-        // Jika tidak ada author dipilih, soft-delete semua relasi
-        $conn->query("UPDATE rt_book_author SET is_deleted = 1, updated_at = NOW() WHERE book_id = $book_id");
-        error_log("[AUTHOR RELATION CLEARED] Book: $book_id - No author selected");
     }
 
     // ========================================
-    // 4. HANDLE COVER IMAGE
+    // 4. UPDATE RELASI AUTHOR (FIXED)
+    // ========================================
+    if ($author_id) {
+        $peran_author = $conn->real_escape_string($_POST['peran_author'] ?? 'penulis_utama');
+        $valid_peran = ['penulis_utama', 'co_author', 'editor', 'translator'];
+        
+        if (!in_array($peran_author, $valid_peran)) {
+            $peran_author = 'penulis_utama';
+        }
+        
+        $checkRel = $conn->query("SELECT id, is_deleted, peran FROM rt_book_author 
+                                  WHERE book_id = $book_id AND author_id = $author_id 
+                                  LIMIT 1");
+        
+        if ($checkRel && $checkRel->num_rows > 0) {
+            $rel = $checkRel->fetch_assoc();
+            $updateRel = "UPDATE rt_book_author 
+                          SET is_deleted = 0, peran = '$peran_author', updated_at = NOW() 
+                          WHERE id = {$rel['id']}";
+            
+            if (!$conn->query($updateRel)) {
+                throw new Exception("Gagal update relasi penulis: " . $conn->error);
+            }
+            
+            error_log("[AUTHOR RELATION] Updated: Book $book_id - Author $author_id - Peran: $peran_author");
+        } else {
+            $insertRel = "INSERT INTO rt_book_author (book_id, author_id, peran) 
+                          VALUES ($book_id, $author_id, '$peran_author')";
+            
+            if (!$conn->query($insertRel)) {
+                throw new Exception("Gagal insert relasi penulis: " . $conn->error);
+            }
+            
+            error_log("[AUTHOR RELATION] Created: Book $book_id - Author $author_id - Peran: $peran_author");
+        }
+    }
+
+    // ========================================
+    // 5. HANDLE COVER IMAGE
     // ========================================
     $cover_image = null;
     $old_cover = $conn->query("SELECT cover_image FROM books WHERE id = $book_id")->fetch_assoc()['cover_image'];
@@ -169,25 +246,28 @@ try {
 
         $new_name = 'cover_' . $book_id . '_' . uniqid() . '.' . $file_ext;
         $upload_path = '../../uploads/covers/' . $new_name;
+        
         if (!is_dir('../../uploads/covers/')) {
             mkdir('../../uploads/covers/', 0755, true);
         }
 
         if (move_uploaded_file($file['tmp_name'], $upload_path)) {
             $cover_image = 'uploads/covers/' . $new_name;
-            // Hapus cover lama
+            
             if ($old_cover && file_exists('../../' . $old_cover)) {
                 unlink('../../' . $old_cover);
             }
+            
+            error_log("[COVER] Uploaded new: $cover_image");
         } else {
             throw new Exception("Gagal upload cover");
         }
     } else {
-        $cover_image = $old_cover; // Tetap pakai yang lama
+        $cover_image = $old_cover;
     }
 
     // ========================================
-    // 5. UPDATE TABEL BOOKS (DITAMBAH KETERANGAN)
+    // 6. UPDATE TABEL BOOKS
     // ========================================
     $keterangan = $conn->real_escape_string($_POST['keterangan'] ?? '');
 
@@ -208,8 +288,10 @@ try {
         throw new Exception("Gagal update detail buku: " . $conn->error);
     }
 
+    error_log("[BOOK] Updated ID: $book_id");
+
     // ========================================
-    // 6. UPDATE KONDISI EKSEMPLAR
+    // 7. UPDATE KONDISI EKSEMPLAR
     // ========================================
     $eksemplar_data = $_POST['eksemplar'] ?? [];
     $valid_kondisi = ['baik', 'rusak_ringan', 'rusak_berat', 'hilang'];
@@ -223,47 +305,92 @@ try {
         }
 
         $updateEks = "UPDATE rt_book_uid SET kondisi = '$kondisi', updated_at = NOW() WHERE id = $eks_id AND book_id = $book_id";
+        
         if (!$conn->query($updateEks)) {
             throw new Exception("Gagal update kondisi eksemplar ID $eks_id");
         }
     }
 
     // ========================================
-    // 7. HAPUS EKSEMPLAR (SOFT DELETE)
+    // 8. HAPUS EKSEMPLAR (SOFT DELETE) - FIXED
     // ========================================
-    $delete_eksemplar = $_POST['delete_eksemplar'] ?? [];
-    foreach ($delete_eksemplar as $del_id) {
-        $del_id = intval($del_id);
-        if ($del_id > 0) {
-            $softDelete = "UPDATE rt_book_uid SET is_deleted = 1, updated_at = NOW() WHERE id = $del_id AND book_id = $book_id";
-            if (!$conn->query($softDelete)) {
-                throw new Exception("Gagal hapus eksemplar ID $del_id");
+    $delete_eksemplar_raw = $_POST['delete_eksemplar'] ?? '[]';
+    
+    // Parse JSON if it's a string
+    if (is_string($delete_eksemplar_raw)) {
+        $delete_eksemplar = json_decode($delete_eksemplar_raw, true);
+    } else {
+        $delete_eksemplar = $delete_eksemplar_raw;
+    }
+    
+    error_log("[DELETE EKSEMPLAR] Raw data: " . $delete_eksemplar_raw);
+    error_log("[DELETE EKSEMPLAR] Parsed: " . json_encode($delete_eksemplar));
+    
+    if (is_array($delete_eksemplar) && !empty($delete_eksemplar)) {
+        foreach ($delete_eksemplar as $del_id) {
+            $del_id = intval($del_id);
+            
+            if ($del_id > 0) {
+                // First, get UID buffer ID
+                $getBuffer = $conn->query("SELECT uid_buffer_id FROM rt_book_uid WHERE id = $del_id AND book_id = $book_id LIMIT 1");
+                
+                if ($getBuffer && $getBuffer->num_rows > 0) {
+                    $bufferData = $getBuffer->fetch_assoc();
+                    $uid_buffer_id = $bufferData['uid_buffer_id'];
+                    
+                    // Soft delete eksemplar
+                    $softDelete = "UPDATE rt_book_uid SET is_deleted = 1, updated_at = NOW() WHERE id = $del_id AND book_id = $book_id";
+                    
+                    if (!$conn->query($softDelete)) {
+                        throw new Exception("Gagal hapus eksemplar ID $del_id: " . $conn->error);
+                    }
+                    
+                    // Mark UID buffer as deleted (don't change jenis)
+                    $updateBuffer = "UPDATE uid_buffer SET is_deleted = 1, updated_at = NOW() WHERE id = $uid_buffer_id";
+                    
+                    if (!$conn->query($updateBuffer)) {
+                        error_log("[WARNING] Failed to update UID buffer $uid_buffer_id: " . $conn->error);
+                    }
+                    
+                    error_log("[EKSEMPLAR] Soft deleted ID: $del_id (UID Buffer: $uid_buffer_id)");
+                }
             }
         }
+    } else {
+        error_log("[DELETE EKSEMPLAR] No items to delete or invalid format");
     }
 
     // ========================================
-    // 8. HITUNG ULANG JUMLAH EKSEMPLAR & TERSEDIA
+    // 9. HITUNG ULANG JUMLAH EKSEMPLAR & TERSEDIA
     // ========================================
     $countQuery = $conn->query("SELECT COUNT(*) as total, 
-                                SUM(CASE WHEN kondisi NOT IN ('rusak_berat', 'hilang') THEN 1 ELSE 0 END) as tersedia 
+                                COALESCE(SUM(CASE WHEN kondisi NOT IN ('rusak_berat', 'hilang') THEN 1 ELSE 0 END),0) as tersedia 
                                 FROM rt_book_uid 
                                 WHERE book_id = $book_id AND is_deleted = 0");
-    $count = $countQuery->fetch_assoc();
+    
+    $count = $countQuery ? $countQuery->fetch_assoc() : null;
+    $total = intval($count['total'] ?? 0);
+    $tersedia = intval($count['tersedia'] ?? 0);
 
     $updateCount = "UPDATE books SET 
-                    jumlah_eksemplar = {$count['total']},
-                    eksemplar_tersedia = {$count['tersedia']},
+                    jumlah_eksemplar = {$total},
+                    eksemplar_tersedia = {$tersedia},
                     updated_at = NOW()
                     WHERE id = $book_id";
+    
     if (!$conn->query($updateCount)) {
         throw new Exception("Gagal update jumlah eksemplar");
     }
 
+    error_log("[EKSEMPLAR] Updated count - Total: $total, Tersedia: $tersedia");
+
     // ========================================
-    // 9. COMMIT & SUCCESS
+    // 10. COMMIT & SUCCESS
     // ========================================
     $conn->commit();
+
+    error_log('[EDIT INVENTORY] SUCCESS - Book ID: ' . $book_id);
+    error_log('========================================');
 
     echo json_encode([
         'success' => true,
@@ -273,6 +400,10 @@ try {
 
 } catch (Exception $e) {
     $conn->rollback();
+    
+    error_log('[EDIT INVENTORY] ERROR: ' . $e->getMessage());
+    error_log('========================================');
+    
     echo json_encode([
         'success' => false,
         'message' => 'Gagal update: ' . $e->getMessage()

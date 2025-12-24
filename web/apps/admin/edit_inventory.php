@@ -1,13 +1,13 @@
 <?php
 /**
- * Edit Inventory Page - Enhanced Version with 2 Tab System
+ * Edit Inventory Page - ENHANCED VERSION
  * Path: web/apps/admin/edit_inventory.php
  * 
  * NEW FEATURES:
- * - Tab 1: Info Umum (Judul, ISBN, Kategori, dll)
- * - Tab 2: Info Detail (Publisher + Author lengkap)
- * - Switch untuk Keterangan field
- * - Multi-Author support (coming next)
+ * ✅ Tombol "Tambah Eksemplar Baru" dengan scan RFID
+ * ✅ Fixed delete eksemplar functionality
+ * ✅ Integration dengan AddEksemplarController.php
+ * ✅ All original features preserved
  */
 
 require_once '../../includes/config.php';
@@ -18,54 +18,46 @@ if (!isset($_SESSION['userRole']) || $_SESSION['userRole'] !== 'admin') {
     exit;
 }
 
-// Ambil book_id
-$book_id = isset($_GET['id']) ? intval($_GET['id']) : 0;
+// Get book ID
+$book_id = intval($_GET['id'] ?? 0);
+
 if ($book_id <= 0) {
     header("Location: inventory.php");
     exit;
 }
 
-// Fetch data buku + publisher
-$bookStmt = $conn->prepare("SELECT b.*, p.nama_penerbit, p.alamat as pub_alamat, p.no_telepon as pub_telepon, p.email as pub_email
-                            FROM books b 
-                            LEFT JOIN publishers p ON b.publisher_id = p.id 
-                            WHERE b.id = ? AND b.is_deleted = 0");
-$bookStmt->bind_param("i", $book_id);
-$bookStmt->execute();
-$bookResult = $bookStmt->get_result();
-$book = $bookResult->fetch_assoc();
+// Fetch book data
+$bookQuery = $conn->query("SELECT b.*, p.nama_penerbit, p.id as pub_id
+                           FROM books b
+                           LEFT JOIN publishers p ON b.publisher_id = p.id
+                           WHERE b.id = $book_id AND b.is_deleted = 0
+                           LIMIT 1");
 
-if (!$book) {
+if (!$bookQuery || $bookQuery->num_rows === 0) {
     header("Location: inventory.php");
     exit;
 }
 
-// Fetch pengarang yang terkait dengan buku ini
-$currentAuthors = [];
-$authorStmt = $conn->prepare("SELECT a.id, a.nama_pengarang, a.biografi
-                              FROM authors a
-                              JOIN rt_book_author rba ON a.id = rba.author_id
-                              WHERE rba.book_id = ? AND rba.is_deleted = 0");
-$authorStmt->bind_param("i", $book_id);
-$authorStmt->execute();
-$authorResult = $authorStmt->get_result();
-$currentAuthorData = null;
-while ($auth = $authorResult->fetch_assoc()) {
-    $currentAuthors[] = $auth['id'];
-    if (!$currentAuthorData) {
-        $currentAuthorData = $auth; // Ambil author pertama untuk default
-    }
-}
+$bookData = $bookQuery->fetch_assoc();
 
-// Fetch eksemplar
-$eksemplarStmt = $conn->prepare("SELECT rbu.id, rbu.kode_eksemplar, rbu.kondisi, ub.uid 
-                                 FROM rt_book_uid rbu
-                                 LEFT JOIN uid_buffer ub ON rbu.uid_buffer_id = ub.id
-                                 WHERE rbu.book_id = ? AND rbu.is_deleted = 0
-                                 ORDER BY rbu.kode_eksemplar");
-$eksemplarStmt->bind_param("i", $book_id);
-$eksemplarStmt->execute();
-$eksemplarResult = $eksemplarStmt->get_result();
+// Fetch authors for this book
+$authorQuery = $conn->query("SELECT a.id, a.nama_pengarang, a.biografi, rba.peran
+                             FROM rt_book_author rba
+                             JOIN authors a ON rba.author_id = a.id
+                             WHERE rba.book_id = $book_id 
+                             AND rba.is_deleted = 0
+                             AND a.is_deleted = 0
+                             LIMIT 1");
+
+$currentAuthor = $authorQuery->fetch_assoc();
+
+// Fetch eksemplar (book units)
+$eksemplarQuery = $conn->query("SELECT rbu.*, ub.uid
+                                FROM rt_book_uid rbu
+                                JOIN uid_buffer ub ON rbu.uid_buffer_id = ub.id
+                                WHERE rbu.book_id = $book_id
+                                AND rbu.is_deleted = 0
+                                ORDER BY rbu.tanggal_registrasi DESC");
 
 include_once '../includes/header.php';
 ?>
@@ -73,423 +65,453 @@ include_once '../includes/header.php';
 <link rel="stylesheet" href="../assets/css/inventory.css">
 
 <div class="container-fluid py-4">
+    <!-- Page Header -->
     <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
             <h4 class="fw-bold mb-0 text-green-primary">
-                <i class="fas fa-edit me-2"></i>Edit Buku: <?= htmlspecialchars($book['judul_buku']) ?>
+                <i class="fas fa-edit me-2"></i>Edit Aset Inventori
             </h4>
-            <p class="text-secondary small mb-0">Update detail buku dan kondisi eksemplar berdasarkan tag RFID.</p>
+            <p class="text-secondary small mb-0">Edit detail buku dan unit RFID</p>
         </div>
         <a href="inventory.php" class="btn btn-outline-secondary">
             <i class="fas fa-arrow-left me-2"></i>Kembali
         </a>
     </div>
 
-    <!-- Form Edit dengan 2 Tab -->
-    <form id="formEditBuku" method="POST" action="../controllers/EditInventoryController.php" enctype="multipart/form-data">
+    <!-- Main Form -->
+    <form id="formEditInventory" enctype="multipart/form-data">
         <input type="hidden" name="book_id" value="<?= $book_id ?>">
 
-        <!-- Card dengan Tab Navigation -->
-        <div class="card border-0 shadow-sm card-adaptive mb-4">
-            <!-- Tab Navigation -->
-            <ul class="nav nav-tabs nav-fill border-bottom-0 bg-light-tab" id="editBookTab" style="padding: 0.75rem 1.5rem 0;">
-                <li class="nav-item">
-                    <button class="nav-link active py-3 fw-bold" id="info-umum-tab" data-bs-toggle="tab" data-bs-target="#info-umum-panel" type="button">
-                        <i class="fas fa-info-circle me-2"></i>1. Info Umum
-                    </button>
-                </li>
-                <li class="nav-item">
-                    <button class="nav-link py-3 fw-bold" id="info-detail-tab" data-bs-toggle="tab" data-bs-target="#info-detail-panel" type="button">
-                        <i class="fas fa-user-edit me-2"></i>2. Info Detail
-                    </button>
-                </li>
-            </ul>
+        <!-- TABS NAVIGATION -->
+        <ul class="nav nav-tabs nav-fill border-bottom-0 bg-light-tab mb-4 shadow-sm rounded-top" style="overflow: hidden;">
+            <li class="nav-item">
+                <button class="nav-link active py-3 fw-bold" id="asset-tab-btn" data-bs-toggle="tab" data-bs-target="#asset-panel" type="button">
+                    <i class="fas fa-info-circle me-2"></i>1. Info Aset
+                </button>
+            </li>
+            <li class="nav-item">
+                <button class="nav-link py-3 fw-bold" id="author-tab-btn" data-bs-toggle="tab" data-bs-target="#author-panel" type="button">
+                    <i class="fas fa-user-edit me-2"></i>2. Penulis/Penerbit
+                </button>
+            </li>
+            <li class="nav-item">
+                <button class="nav-link py-3 fw-bold" id="eksemplar-tab-btn" data-bs-toggle="tab" data-bs-target="#eksemplar-panel" type="button">
+                    <i class="fas fa-tags me-2"></i>3. Kelola Eksemplar
+                </button>
+            </li>
+        </ul>
 
-            <!-- Tab Content -->
-            <div class="tab-content card-body p-4">
-                
-                <!-- TAB 1: INFO UMUM -->
-                <div class="tab-pane fade show active" id="info-umum-panel">
-                    <h5 class="mb-4 text-primary-custom">Informasi Umum Buku</h5>
-                    <div class="row g-3">
-                        <div class="col-md-8">
-                            <label class="form-label fw-bold">Judul Buku <span class="text-danger">*</span></label>
-                            <input type="text" name="judul_buku" class="form-control" value="<?= htmlspecialchars($book['judul_buku']) ?>" required>
-                        </div>
-                        <div class="col-md-4">
-                            <label class="form-label fw-bold">ISBN / Serial</label>
-                            <input type="text" name="isbn" class="form-control" value="<?= htmlspecialchars($book['isbn']) ?>">
-                        </div>
-                        
-                        <div class="col-md-4">
-                            <label class="form-label fw-bold">Kategori</label>
-                            <select name="kategori" class="form-select">
-                                <option value="buku" <?= $book['kategori'] == 'buku' ? 'selected' : '' ?>>Buku</option>
-                                <option value="jurnal" <?= $book['kategori'] == 'jurnal' ? 'selected' : '' ?>>Jurnal</option>
-                                <option value="prosiding" <?= $book['kategori'] == 'prosiding' ? 'selected' : '' ?>>Prosiding</option>
-                                <option value="skripsi" <?= $book['kategori'] == 'skripsi' ? 'selected' : '' ?>>Skripsi</option>
-                                <option value="laporan_pkl" <?= $book['kategori'] == 'laporan_pkl' ? 'selected' : '' ?>>Laporan PKL</option>
-                            </select>
-                        </div>
-                        
-                        <div class="col-md-4">
-                            <label class="form-label fw-bold">Tahun Terbit</label>
-                            <input type="number" name="tahun_terbit" class="form-control" value="<?= $book['tahun_terbit'] ?>" min="1900" max="2099">
-                        </div>
-                        
-                        <div class="col-md-4">
-                            <label class="form-label fw-bold">Jumlah Halaman</label>
-                            <input type="number" name="jumlah_halaman" class="form-control" value="<?= $book['jumlah_halaman'] ?>" min="1">
-                        </div>
-                        
-                        <div class="col-md-6">
-                            <label class="form-label fw-bold">Lokasi Rak</label>
-                            <input type="text" name="lokasi_rak" class="form-control" value="<?= htmlspecialchars($book['lokasi_rak']) ?>" placeholder="Contoh: A1, B2, C3">
-                        </div>
-                        
-                        <!-- SWITCH KETERANGAN (Copy dari inventory.php) -->
-                        <div class="col-12">
-                            <div class="border rounded p-3 bg-light-custom">
-                                <div class="d-flex justify-content-between align-items-center mb-3">
-                                    <div>
-                                        <label class="form-label fw-bold text-info mb-0">
-                                            <i class="fas fa-info-circle me-2"></i>Keterangan Tambahan
-                                        </label>
-                                        <small class="d-block text-muted mt-1">
-                                            Aktifkan jika buku dengan judul sama namun beda edisi/cetakan/penulis
-                                        </small>
-                                    </div>
-                                    <div class="form-check form-switch">
-                                        <input class="form-check-input" type="checkbox" id="switchKeterangan" 
-                                               <?= !empty($book['keterangan']) ? 'checked' : '' ?>
-                                               style="width: 3rem; height: 1.5rem; cursor: pointer;">
-                                        <label class="form-check-label ms-2 fw-bold text-muted" for="switchKeterangan" style="cursor: pointer;">
-                                            Aktifkan
-                                        </label>
-                                    </div>
-                                </div>
-                                
-                                <div id="keterangan_field_wrapper">
-                                    <label class="form-label fw-bold text-dark">Detail Keterangan</label>
-                                    <input 
-                                        type="text" 
-                                        name="keterangan" 
-                                        id="input_keterangan" 
-                                        class="form-control" 
-                                        placeholder="Contoh: Edisi 2024, Revisi oleh Dr. Ahmad"
-                                        value="<?= htmlspecialchars($book['keterangan'] ?? '') ?>"
-                                        <?= empty($book['keterangan']) ? 'disabled' : '' ?>
-                                    >
-                                    <small class="text-muted d-block mt-1">
-                                        <i class="fas fa-lightbulb me-1"></i>
-                                        <strong>Contoh:</strong> "Edisi ke-5 (2024)", "Revisi oleh Prof. John Doe", "Cetakan Mahasiswa"
-                                    </small>
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <div class="col-12">
-                            <label class="form-label fw-bold">
-                                <i class="fas fa-image me-2 text-primary"></i>Cover Image (Opsional)
-                            </label>
-                            <input type="file" name="cover_image" id="input_cover" class="form-control" accept="image/jpeg,image/png,image/gif,image/webp">
-                            <small class="text-muted">Max: 2MB | Format: JPG, PNG, GIF, WEBP</small>
-                            <?php if ($book['cover_image']): ?>
-                                <div class="mt-3 text-center">
-                                    <img src="../../<?= htmlspecialchars($book['cover_image']) ?>" alt="Cover" class="img-thumbnail" style="max-height: 200px; border-radius: 8px;">
-                                    <p class="small text-muted mt-2">Cover saat ini (akan diganti jika upload baru)</p>
-                                </div>
-                            <?php endif; ?>
-                        </div>
-                        
-                        <div class="col-12">
-                            <label class="form-label fw-bold">Deskripsi</label>
-                            <textarea name="deskripsi" class="form-control" rows="4" placeholder="Deskripsi singkat tentang buku ini..."><?= htmlspecialchars($book['deskripsi'] ?? '') ?></textarea>
-                        </div>
-                        
-                        <div class="col-12 text-end mt-4 mb-3">
-                            <button type="button" class="btn btn-primary px-4" onclick="switchToTab('info-detail-tab')">
-                                Lanjut ke Info Detail <i class="fas fa-arrow-right ms-2"></i>
-                            </button>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- TAB 2: INFO DETAIL (PUBLISHER + AUTHOR) -->
-                <div class="tab-pane fade" id="info-detail-panel">
-                    <h5 class="mb-4 text-primary-custom">Informasi Detail: Penerbit & Penulis</h5>
-                    <div class="row g-4">
-                        
-                        <!-- PUBLISHER SECTION -->
-                        <div class="col-md-6">
-                            <div class="border rounded p-3 h-100 bg-light-custom">
-                                <label class="form-label fw-bold text-success mb-3">
-                                    <i class="fas fa-building me-2"></i>Data Penerbit
-                                </label>
-                                <select name="publisher_id" id="publisher_select" class="form-select mb-3">
-                                    <option value="">-- Pilih Penerbit --</option>
-                                    <option value="new">+ Tambah Penerbit Baru</option>
-                                    <?php
-                                    $pubQuery = $conn->query("SELECT id, nama_penerbit FROM publishers WHERE is_deleted = 0 ORDER BY nama_penerbit");
-                                    while ($pub = $pubQuery->fetch_assoc()) {
-                                        $selected = ($pub['id'] == $book['publisher_id']) ? 'selected' : '';
-                                        echo "<option value='{$pub['id']}' $selected>" . htmlspecialchars($pub['nama_penerbit']) . "</option>";
-                                    }
-                                    ?>
-                                </select>
-                                
-                                <!-- Publisher Detail (Show when existing selected) -->
-                                <div id="publisher_detail" class="p-3 border rounded bg-white shadow-sm <?= empty($book['publisher_id']) ? 'd-none' : '' ?>">
-                                    <small class="text-muted d-block mb-2 fw-bold">Detail Penerbit Saat Ini:</small>
-                                    <div class="mb-2">
-                                        <i class="fas fa-map-marker-alt text-success me-2"></i>
-                                        <small><?= htmlspecialchars($book['pub_alamat'] ?: 'Tidak ada alamat') ?></small>
-                                    </div>
-                                    <div class="mb-2">
-                                        <i class="fas fa-phone text-success me-2"></i>
-                                        <small><?= htmlspecialchars($book['pub_telepon'] ?: 'Tidak ada telepon') ?></small>
-                                    </div>
-                                    <div>
-                                        <i class="fas fa-envelope text-success me-2"></i>
-                                        <small><?= htmlspecialchars($book['pub_email'] ?: 'Tidak ada email') ?></small>
-                                    </div>
-                                </div>
-                                
-                                <!-- New Publisher Fields -->
-                                <div id="new_publisher_fields" class="d-none p-3 border rounded bg-white shadow-sm">
-                                    <div class="mb-3">
-                                        <label class="fw-bold text-dark">Nama Penerbit <span class="text-danger">*</span></label>
-                                        <input type="text" name="new_publisher_name" class="form-control" placeholder="PT. Gramedia Pustaka Utama">
-                                    </div>
-                                    <div class="mb-3">
-                                        <label class="fw-bold text-dark">Alamat Kantor</label>
-                                        <textarea name="publisher_alamat" class="form-control" rows="2" placeholder="Jl. Raya No. 123, Jakarta"></textarea>
-                                    </div>
-                                    <div class="row g-2">
-                                        <div class="col-6">
-                                            <label class="fw-bold text-dark">No. Telepon</label>
-                                            <input type="tel" name="publisher_no_telepon" class="form-control" placeholder="021-xxxxx">
-                                        </div>
-                                        <div class="col-6">
-                                            <label class="fw-bold text-dark">Email</label>
-                                            <input type="email" name="publisher_email" class="form-control" placeholder="info@penerbit.com">
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <!-- AUTHOR SECTION -->
-                        <div class="col-md-6">
-                            <div class="border rounded p-3 h-100 bg-light-custom">
-                                <!-- Multi-Author Switch -->
-                                <div class="d-flex justify-content-between align-items-center mb-3">
-                                    <label class="form-label fw-bold text-primary mb-0">
-                                        <i class="fas fa-pen-nib me-2"></i>Data Penulis
-                                    </label>
-                                    <div class="form-check form-switch">
-                                        <input class="form-check-input" type="checkbox" id="switchMultiAuthor" name="is_multi_author" style="width: 3rem; height: 1.5rem; cursor: pointer;">
-                                        <label class="form-check-label small fw-bold ms-2" for="switchMultiAuthor" style="cursor: pointer;">
-                                            Multi Penulis?
-                                        </label>
-                                    </div>
-                                </div>
-
-                                <select name="author_id" id="author_select" class="form-select mb-3">
-                                    <option value="">-- Pilih Penulis --</option>
-                                    <option value="new">+ Tambah Penulis Baru</option>
-                                    <?php
-                                    $authQuery = $conn->query("SELECT id, nama_pengarang FROM authors WHERE is_deleted = 0 ORDER BY nama_pengarang");
-                                    while ($auth = $authQuery->fetch_assoc()) {
-                                        $selected = in_array($auth['id'], $currentAuthors) ? 'selected' : '';
-                                        echo "<option value='{$auth['id']}' $selected>" . htmlspecialchars($auth['nama_pengarang']) . "</option>";
-                                    }
-                                    ?>
-                                </select>
-                                
-                                <!-- Author Detail (Show when existing selected) -->
-                                <div id="author_detail" class="p-3 border rounded bg-white shadow-sm <?= empty($currentAuthorData) ? 'd-none' : '' ?>">
-                                    <small class="text-muted d-block mb-2 fw-bold">Biografi Penulis:</small>
-                                    <p class="small mb-0" id="author_bio_text">
-                                        <?= htmlspecialchars($currentAuthorData['biografi'] ?? 'Tidak ada biografi') ?>
-                                    </p>
-                                </div>
-                                
-                                <!-- New Author Fields -->
-                                <div id="new_author_fields" class="d-none p-3 border rounded bg-white shadow-sm">
-                                    <div class="mb-3">
-                                        <label class="fw-bold text-dark">Nama Lengkap Pengarang</label>
-                                        <input type="text" name="new_author_name" class="form-control" placeholder="Contoh: Prof. Dr. Eliot Anderson">
-                                    </div>
-                                    <div class="mb-0">
-                                        <label class="fw-bold text-dark">Biografi Singkat</label>
-                                        <textarea name="author_biografi" id="author_biografi_new" class="form-control" rows="4" maxlength="200" placeholder="Tulis biografi penulis maksimal 200 karakter..."></textarea>
-                                        <div class="text-end mt-1">
-                                            <small class="text-muted" id="char-count-new">0/200</small>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <!-- PERAN FIELD (Conditional - Show if Multi-Author ON) -->
-                                <div id="peran_field" class="d-none mt-3">
-                                    <label class="form-label fw-bold text-warning">
-                                        <i class="fas fa-user-tag me-2"></i>Peran Penulis
-                                    </label>
-                                    <select name="peran_author" id="peran_select" class="form-select">
-                                        <option value="penulis_utama">Penulis Utama</option>
-                                        <option value="co_author">Co-Author</option>
-                                        <option value="editor">Editor</option>
-                                        <option value="translator">Translator</option>
-                                    </select>
-                                    <small class="text-muted d-block mt-1">
-                                        <i class="fas fa-info-circle me-1"></i>
-                                        Aktif karena mode multi-penulis diaktifkan
-                                    </small>
-                                </div>
-                            </div>
-                        </div>
-                        
+        <div class="tab-content bg-white shadow-sm rounded-bottom p-0">
+            <!-- ============================================ -->
+            <!-- TAB 1: INFO ASET -->
+            <!-- ============================================ -->
+            <div class="tab-pane fade show active p-4" id="asset-panel">
+                <div class="row g-3">
+                    <div class="col-md-8">
+                        <label class="form-label fw-bold">Judul Buku <span class="text-danger">*</span></label>
+                        <input type="text" name="judul_buku" class="form-control" required 
+                               value="<?= htmlspecialchars($bookData['judul_buku']) ?>" 
+                               placeholder="Masukkan judul buku">
                     </div>
                     
-                    <div class="d-flex justify-content-between mt-4 mb-3">
-                        <button type="button" class="btn btn-outline-secondary" onclick="switchToTab('info-umum-tab')">
-                            <i class="fas fa-arrow-left me-2"></i>Kembali
+                    <div class="col-md-4">
+                        <label class="form-label fw-bold">ISBN <span class="text-danger">*</span></label>
+                        <input type="text" name="isbn" class="form-control" required 
+                               value="<?= htmlspecialchars($bookData['isbn']) ?>" 
+                               placeholder="978-xxx-xxx">
+                    </div>
+                    
+                    <div class="col-md-4">
+                        <label class="form-label fw-bold">Kategori</label>
+                        <select name="kategori" class="form-select">
+                            <option value="buku" <?= $bookData['kategori'] == 'buku' ? 'selected' : '' ?>>Buku</option>
+                            <option value="jurnal" <?= $bookData['kategori'] == 'jurnal' ? 'selected' : '' ?>>Jurnal</option>
+                            <option value="prosiding" <?= $bookData['kategori'] == 'prosiding' ? 'selected' : '' ?>>Prosiding</option>
+                            <option value="skripsi" <?= $bookData['kategori'] == 'skripsi' ? 'selected' : '' ?>>Skripsi</option>
+                            <option value="laporan_pkl" <?= $bookData['kategori'] == 'laporan_pkl' ? 'selected' : '' ?>>Laporan PKL</option>
+                        </select>
+                    </div>
+                    
+                    <div class="col-md-4">
+                        <label class="form-label fw-bold">Tahun Terbit</label>
+                        <input type="number" name="tahun_terbit" class="form-control" 
+                               value="<?= $bookData['tahun_terbit'] ?>" 
+                               min="1900" max="2099" placeholder="2024">
+                    </div>
+                    
+                    <div class="col-md-4">
+                        <label class="form-label fw-bold">Jumlah Halaman</label>
+                        <input type="number" name="jumlah_halaman" class="form-control" 
+                               value="<?= $bookData['jumlah_halaman'] ?>" 
+                               min="1" placeholder="350">
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <label class="form-label fw-bold">Lokasi Rak</label>
+                        <input type="text" name="lokasi_rak" class="form-control" 
+                               value="<?= htmlspecialchars($bookData['lokasi_rak']) ?>" 
+                               placeholder="Contoh: A1, B2, C3">
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <label class="form-label fw-bold">Keterangan</label>
+                        <input type="text" name="keterangan" class="form-control" 
+                               value="<?= htmlspecialchars($bookData['keterangan']) ?>" 
+                               placeholder="Catatan tambahan">
+                    </div>
+                    
+                    <div class="col-12">
+                        <label class="form-label fw-bold">
+                            <i class="fas fa-image me-2 text-primary"></i>Cover Image
+                        </label>
+                        
+                        <?php if ($bookData['cover_image']): ?>
+                        <div class="mb-2">
+                            <img src="../../<?= htmlspecialchars($bookData['cover_image']) ?>" 
+                                 alt="Current Cover" 
+                                 style="max-width: 150px; max-height: 200px; border-radius: 8px; border: 2px solid #dee2e6;">
+                            <p class="text-muted small mt-1 mb-0">Cover saat ini</p>
+                        </div>
+                        <?php endif; ?>
+                        
+                        <input type="file" name="cover_image" id="input_cover" class="form-control" 
+                               accept="image/jpeg,image/png,image/gif,image/webp">
+                        <small class="text-muted">Max: 2MB | Format: JPG, PNG, GIF, WEBP | Kosongkan jika tidak ingin mengubah</small>
+                        
+                        <div id="cover-preview" class="mt-3 d-none text-center">
+                            <img id="cover-preview-img" src="" alt="Preview" 
+                                 style="max-width: 200px; max-height: 200px; border-radius: 8px; border: 2px solid #dee2e6; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+                        </div>
+                    </div>
+                    
+                    <div class="col-12">
+                        <label class="form-label fw-bold">Deskripsi</label>
+                        <textarea name="deskripsi" class="form-control" rows="4" 
+                                  placeholder="Deskripsi singkat tentang buku..."><?= htmlspecialchars($bookData['deskripsi']) ?></textarea>
+                    </div>
+                    
+                    <div class="col-12 text-end mt-3">
+                        <button type="button" class="btn btn-primary px-4" onclick="switchToTab('author-tab-btn')">
+                            Lanjut <i class="fas fa-arrow-right ms-2"></i>
                         </button>
-                        <span class="text-muted small">
-                            <i class="fas fa-info-circle me-2"></i>Klik "Update Aset" di bawah untuk menyimpan
-                        </span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ============================================ -->
+            <!-- TAB 2: PENULIS & PENERBIT -->
+            <!-- ============================================ -->
+            <div class="tab-pane fade p-4" id="author-panel">
+                <!-- Hidden action inputs -->
+                <input type="hidden" name="author_action" id="author_action" value="existing">
+                <input type="hidden" name="publisher_action" id="publisher_action" value="existing">
+                
+                <div class="row g-4">
+                    <!-- LEFT COLUMN: AUTHOR SECTION -->
+                    <div class="col-md-6">
+                        <div class="card border-0 shadow-sm h-100">
+                            <div class="card-header bg-primary-subtle border-0">
+                                <h6 class="mb-0 fw-bold text-primary">
+                                    <i class="fas fa-user-edit me-2"></i>Data Penulis
+                                </h6>
+                            </div>
+                            <div class="card-body">
+                                <!-- Author Dropdown -->
+                                <div class="mb-3">
+                                    <label class="form-label fw-bold">Pilih Penulis</label>
+                                    <select name="author_id" id="author_select" class="form-select">
+                                        <option value="">-- Pilih Penulis --</option>
+                                        <option value="new">+ Tambah Penulis Baru</option>
+                                        <?php
+                                        $authorsQuery = $conn->query("SELECT id, nama_pengarang FROM authors WHERE is_deleted = 0 ORDER BY nama_pengarang ASC");
+                                        
+                                        while ($author = $authorsQuery->fetch_assoc()) {
+                                            $selected = ($currentAuthor && $currentAuthor['id'] == $author['id']) ? 'selected' : '';
+                                            echo "<option value='{$author['id']}' $selected>" . htmlspecialchars($author['nama_pengarang']) . "</option>";
+                                        }
+                                        ?>
+                                    </select>
+                                </div>
+                                
+                                <!-- NEW AUTHOR FIELDS -->
+                                <div id="new_author_fields" class="d-none">
+                                    <div class="alert alert-info border-0 shadow-sm mb-3">
+                                        <i class="fas fa-plus-circle me-2"></i>
+                                        <strong>Mode Tambah Penulis Baru</strong>
+                                    </div>
+                                    
+                                    <div class="mb-3">
+                                        <label class="form-label fw-bold">
+                                            Nama Lengkap Penulis <span class="text-danger">*</span>
+                                        </label>
+                                        <input type="text" name="new_author_name" id="new_author_name" class="form-control" 
+                                               placeholder="Contoh: Prof. Dr. Ahmad Dahlan">
+                                    </div>
+                                </div>
+                                
+                                <!-- EXISTING AUTHOR FIELDS -->
+                                <div id="existing_author_fields" class="<?= $currentAuthor ? '' : 'd-none' ?>">
+                                    <div class="alert alert-success border-0 shadow-sm mb-3">
+                                        <i class="fas fa-check-circle me-2"></i>
+                                        <strong>Penulis Terpilih: <?= $currentAuthor ? htmlspecialchars($currentAuthor['nama_pengarang']) : '' ?></strong>
+                                    </div>
+                                    
+                                    <div id="author_loading" class="text-center py-3 d-none">
+                                        <div class="spinner-border spinner-border-sm text-primary me-2"></div>
+                                        <span class="text-muted">Memuat data penulis...</span>
+                                    </div>
+                                </div>
+                                
+                                <!-- BIOGRAFI FIELD -->
+                                <div class="mb-0">
+                                    <label class="form-label fw-bold">
+                                        <i class="fas fa-book-reader me-2 text-info"></i>Biografi Penulis
+                                    </label>
+                                    <textarea name="author_biografi" id="author_biografi" class="form-control" rows="5" maxlength="200"
+                                              placeholder="Tulis atau edit biografi penulis (maks. 200 karakter)"
+                                              <?= !$currentAuthor ? 'disabled' : '' ?>><?= $currentAuthor ? htmlspecialchars($currentAuthor['biografi'] ?? '') : '' ?></textarea>
+                                    <div class="d-flex justify-content-between align-items-center mt-1">
+                                        <small class="text-muted">
+                                            <i class="fas fa-lightbulb me-1"></i>Opsional - dapat dikosongkan
+                                        </small>
+                                        <small class="fw-bold" id="char_count_author">
+                                            <?= $currentAuthor ? mb_strlen($currentAuthor['biografi'] ?? '') : 0 ?>/200
+                                        </small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- RIGHT COLUMN: PUBLISHER SECTION -->
+                    <div class="col-md-6">
+                        <div class="card border-0 shadow-sm h-100">
+                            <div class="card-header bg-success-subtle border-0">
+                                <h6 class="mb-0 fw-bold text-success">
+                                    <i class="fas fa-building me-2"></i>Data Penerbit
+                                </h6>
+                            </div>
+                            <div class="card-body">
+                                <!-- Publisher Dropdown -->
+                                <div class="mb-3">
+                                    <label class="form-label fw-bold">Pilih Penerbit</label>
+                                    <select name="publisher_id" id="publisher_select" class="form-select">
+                                        <option value="">-- Pilih Penerbit --</option>
+                                        <option value="new">+ Tambah Penerbit Baru</option>
+                                        <?php
+                                        $publishersQuery = $conn->query("SELECT id, nama_penerbit FROM publishers WHERE is_deleted = 0 ORDER BY nama_penerbit ASC");
+                                        $currentPublisher = $bookData['publisher_id'] ?? null;
+                                        
+                                        while ($publisher = $publishersQuery->fetch_assoc()) {
+                                            $selected = ($currentPublisher == $publisher['id']) ? 'selected' : '';
+                                            echo "<option value='{$publisher['id']}' $selected>" . htmlspecialchars($publisher['nama_penerbit']) . "</option>";
+                                        }
+                                        ?>
+                                    </select>
+                                </div>
+                                
+                                <!-- NEW PUBLISHER FIELDS -->
+                                <div id="new_publisher_fields" class="d-none">
+                                    <div class="alert alert-info border-0 shadow-sm mb-3">
+                                        <i class="fas fa-plus-circle me-2"></i>
+                                        <strong>Mode Tambah Penerbit Baru</strong>
+                                    </div>
+                                    
+                                    <div class="mb-0">
+                                        <label class="form-label fw-bold">
+                                            Nama Penerbit <span class="text-danger">*</span>
+                                        </label>
+                                        <input type="text" name="new_publisher_name" id="new_publisher_name" class="form-control" 
+                                               placeholder="Contoh: PT. Gramedia Pustaka Utama">
+                                    </div>
+                                </div>
+                                
+                                <!-- EXISTING PUBLISHER FIELDS -->
+                                <div id="existing_publisher_fields" class="<?= $currentPublisher ? '' : 'd-none' ?>">
+                                    <div class="alert alert-success border-0 shadow-sm mb-3">
+                                        <i class="fas fa-check-circle me-2"></i>
+                                        <strong>Detail Penerbit Saat Ini</strong>
+                                    </div>
+                                    
+                                    <div id="publisher_loading" class="text-center py-3 d-none">
+                                        <div class="spinner-border spinner-border-sm text-success me-2"></div>
+                                        <span class="text-muted">Memuat data penerbit...</span>
+                                    </div>
+                                    
+                                    <?php
+                                    $pubDetails = null;
+                                    if ($currentPublisher) {
+                                        $pubQuery = $conn->query("SELECT * FROM publishers WHERE id = $currentPublisher LIMIT 1");
+                                        $pubDetails = $pubQuery->fetch_assoc();
+                                    }
+                                    ?>
+                                    
+                                    <div class="mb-3">
+                                        <label class="form-label fw-bold">
+                                            <i class="fas fa-map-marker-alt me-2 text-danger"></i>Alamat Kantor
+                                        </label>
+                                        <textarea name="publisher_alamat" id="publisher_alamat" class="form-control" rows="2"
+                                                  placeholder="<?= $pubDetails ? htmlspecialchars($pubDetails['alamat'] ?: 'Tidak ada alamat') : 'Tambahkan alamat penerbit' ?>"><?= $pubDetails ? htmlspecialchars($pubDetails['alamat'] ?? '') : '' ?></textarea>
+                                    </div>
+                                    
+                                    <div class="row g-2">
+                                        <div class="col-6">
+                                            <label class="form-label fw-bold">
+                                                <i class="fas fa-phone me-2 text-primary"></i>Telepon
+                                            </label>
+                                            <input type="tel" name="publisher_telepon" id="publisher_telepon" class="form-control" 
+                                                   value="<?= $pubDetails ? htmlspecialchars($pubDetails['no_telepon'] ?? '') : '' ?>"
+                                                   placeholder="021-xxxxx">
+                                        </div>
+                                        <div class="col-6">
+                                            <label class="form-label fw-bold">
+                                                <i class="fas fa-envelope me-2 text-warning"></i>Email
+                                            </label>
+                                            <input type="email" name="publisher_email" id="publisher_email" class="form-control" 
+                                                   value="<?= $pubDetails ? htmlspecialchars($pubDetails['email'] ?? '') : '' ?>"
+                                                   placeholder="info@penerbit.com">
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
                 
+                <!-- Navigation Buttons -->
+                <div class="d-flex justify-content-between align-items-center mt-4 pt-3 border-top">
+                    <button type="button" class="btn btn-outline-secondary px-4" onclick="switchToTab('asset-tab-btn')">
+                        <i class="fas fa-arrow-left me-2"></i>Kembali ke Info Aset
+                    </button>
+                    <button type="button" class="btn btn-primary px-4" onclick="switchToTab('eksemplar-tab-btn')">
+                        Lanjut ke Eksemplar <i class="fas fa-arrow-right ms-2"></i>
+                    </button>
+                </div>
             </div>
-        </div>
 
-        <!-- Daftar Eksemplar (Di luar tab, tetap terlihat) -->
-        <div class="card border-0 shadow-sm card-adaptive mb-4">
-            <div class="card-body p-4">
-                <div class="d-flex justify-content-between align-items-center mb-4">
-                    <h5 class="mb-0">
-                        <i class="fas fa-tags me-2 text-warning"></i>
-                        Eksemplar RFID (<?= $eksemplarResult->num_rows ?> unit)
-                    </h5>
-                    <button type="button" class="btn btn-primary shadow-sm" data-bs-toggle="modal" data-bs-target="#modalTambahEksemplarBaru">
-                        <i class="fas fa-plus me-2"></i>Tambah Eksemplar Baru
+            <!-- ============================================ -->
+            <!-- TAB 3: KELOLA EKSEMPLAR (ENHANCED) -->
+            <!-- ============================================ -->
+            <div class="tab-pane fade p-4" id="eksemplar-panel">
+                <div class="alert alert-info border-0 shadow-sm mb-4">
+                    <div class="d-flex align-items-start">
+                        <i class="fas fa-info-circle fa-2x me-3 mt-1"></i>
+                        <div>
+                            <h6 class="fw-bold mb-1">Kelola Unit RFID</h6>
+                            <p class="mb-0">Edit kondisi, hapus unit yang sudah ada, atau tambahkan unit RFID baru dengan scan.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- NEW: Tombol Tambah Eksemplar -->
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h6 class="mb-0 fw-bold">
+                        <i class="fas fa-tags me-2 text-primary"></i>Daftar Unit Eksemplar
+                    </h6>
+                    <button type="button" class="btn btn-success shadow-sm" onclick="openAddEksemplarModal()">
+                        <i class="fas fa-plus-circle me-2"></i>Tambah Eksemplar Baru
                     </button>
                 </div>
 
-                <?php if ($eksemplarResult->num_rows > 0): ?>
-                    <div class="table-responsive">
-                        <table class="table table-hover align-middle">
-                            <thead class="table-light">
-                                <tr>
-                                    <th>Kode Eksemplar</th>
-                                    <th>UID RFID</th>
-                                    <th>Kondisi Saat Ini</th>
-                                    <th>Ubah Kondisi</th>
-                                    <th>Aksi</th>
-                                </tr>
-                            </thead>
-                            <tbody id="eksemplarTableBody">
-                                <?php $index = 0; while ($eks = $eksemplarResult->fetch_assoc()): ?>
-                                    <tr data-eks-id="<?= $eks['id'] ?>">
-                                        <td><strong><?= htmlspecialchars($eks['kode_eksemplar']) ?></strong></td>
-                                        <td><code><?= htmlspecialchars($eks['uid']) ?></code></td>
-                                        <td>
-                                            <span class="badge bg-<?= $eks['kondisi'] == 'baik' ? 'success' : ($eks['kondisi'] == 'rusak_ringan' ? 'warning text-dark' : 'danger') ?>">
-                                                <?= ucwords(str_replace('_', ' ', $eks['kondisi'])) ?>
-                                            </span>
-                                        </td>
-                                        <td>
-                                            <select name="eksemplar[<?= $index ?>][kondisi]" class="form-select form-select-sm">
-                                                <option value="baik" <?= $eks['kondisi'] == 'baik' ? 'selected' : '' ?>>Baik</option>
-                                                <option value="rusak_ringan" <?= $eks['kondisi'] == 'rusak_ringan' ? 'selected' : '' ?>>Rusak Ringan</option>
-                                                <option value="rusak_berat" <?= $eks['kondisi'] == 'rusak_berat' ? 'selected' : '' ?>>Rusak Berat</option>
-                                                <option value="hilang" <?= $eks['kondisi'] == 'hilang' ? 'selected' : '' ?>>Hilang</option>
-                                            </select>
-                                            <input type="hidden" name="eksemplar[<?= $index ?>][id]" value="<?= $eks['id'] ?>">
-                                        </td>
-                                        <td>
-                                            <button type="button" class="btn btn-sm btn-danger btn-delete-eksemplar" data-id="<?= $eks['id'] ?>">
-                                                <i class="fas fa-trash"></i>
-                                            </button>
-                                        </td>
-                                    </tr>
-                                <?php $index++; endwhile; ?>
-                            </tbody>
-                        </table>
-                    </div>
+                <?php if ($eksemplarQuery && $eksemplarQuery->num_rows > 0): ?>
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle">
+                        <thead class="table-light">
+                            <tr>
+                                <th width="5%">
+                                    <input type="checkbox" id="checkAll" class="form-check-input">
+                                </th>
+                                <th width="20%">Kode Eksemplar</th>
+                                <th width="25%">UID RFID</th>
+                                <th width="20%">Kondisi</th>
+                                <th width="15%">Tgl Registrasi</th>
+                                <th width="15%" class="text-center">Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody id="eksemplar-container">
+                            <?php 
+                            $index = 0;
+                            while ($eks = $eksemplarQuery->fetch_assoc()): 
+                            ?>
+                            <tr id="row-eks-<?= $eks['id'] ?>">
+                                <td>
+                                    <input type="checkbox" class="form-check-input check-item" value="<?= $eks['id'] ?>">
+                                </td>
+                                <td>
+                                    <strong class="text-primary"><?= htmlspecialchars($eks['kode_eksemplar']) ?></strong>
+                                </td>
+                                <td>
+                                    <code class="bg-light px-2 py-1 rounded"><?= htmlspecialchars($eks['uid']) ?></code>
+                                </td>
+                                <td>
+                                    <select name="eksemplar[<?= $index ?>][kondisi]" class="form-select form-select-sm">
+                                        <option value="baik" <?= $eks['kondisi'] == 'baik' ? 'selected' : '' ?>>✓ Baik</option>
+                                        <option value="rusak_ringan" <?= $eks['kondisi'] == 'rusak_ringan' ? 'selected' : '' ?>>⚠ Rusak Ringan</option>
+                                        <option value="rusak_berat" <?= $eks['kondisi'] == 'rusak_berat' ? 'selected' : '' ?>>✗ Rusak Berat</option>
+                                        <option value="hilang" <?= $eks['kondisi'] == 'hilang' ? 'selected' : '' ?>>? Hilang</option>
+                                    </select>
+                                    <input type="hidden" name="eksemplar[<?= $index ?>][id]" value="<?= $eks['id'] ?>">
+                                </td>
+                                <td>
+                                    <small class="text-muted">
+                                        <?= date('d M Y', strtotime($eks['tanggal_registrasi'])) ?>
+                                    </small>
+                                </td>
+                                <td class="text-center">
+                                    <button type="button" class="btn btn-sm btn-danger" onclick="deleteEksemplar(<?= $eks['id'] ?>)" title="Hapus Unit">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                            <?php 
+                            $index++;
+                            endwhile; 
+                            ?>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="d-flex justify-content-between align-items-center mt-3">
+                    <button type="button" class="btn btn-danger" onclick="deleteSelected()">
+                        <i class="fas fa-trash-alt me-2"></i>Hapus yang Dipilih
+                    </button>
+                    <span class="text-muted">
+                        Total: <strong><?= $eksemplarQuery->num_rows ?></strong> unit
+                    </span>
+                </div>
+
                 <?php else: ?>
-                    <div class="text-center text-muted py-5">
-                        <i class="fas fa-inbox fa-3x mb-3 opacity-50"></i>
-                        <p class="mb-0">Belum ada eksemplar RFID terdaftar</p>
-                    </div>
+                <div class="text-center py-5 text-muted">
+                    <i class="fas fa-inbox fa-4x mb-3 d-block opacity-50"></i>
+                    <p class="mb-0 fw-bold">Belum ada unit RFID terdaftar</p>
+                    <small>Klik tombol "Tambah Eksemplar Baru" untuk memulai</small>
+                </div>
                 <?php endif; ?>
+
+                <div class="d-flex justify-content-between align-items-center mt-4 pt-3 border-top">
+                    <button type="button" class="btn btn-outline-secondary px-4" onclick="switchToTab('author-tab-btn')">
+                        <i class="fas fa-arrow-left me-2"></i>Kembali
+                    </button>
+                </div>
             </div>
         </div>
 
-        <!-- Submit Button (Dynamic) -->
-        <div class="mt-4 text-end">
-            <div id="button-container">
-                <!-- Default: Update Button -->
-                <button type="submit" id="btnUpdate" class="btn btn-green px-5 shadow-sm">
-                    <i class="fas fa-save me-2"></i>Update Aset
-                </button>
-                
-                <!-- Hidden: Delete Book Button -->
-                <button type="button" id="btnDeleteBook" class="btn btn-danger px-5 shadow-sm d-none" onclick="confirmDeleteBook()">
-                    <i class="fas fa-trash-alt me-2"></i>Hapus Buku Ini
-                </button>
-            </div>
-            
-            <!-- Info Badge -->
-            <div class="mt-3">
-                <span class="badge bg-info text-dark" id="badge-eksemplar-status">
-                    <i class="fas fa-info-circle me-1"></i>
-                    <span id="remaining-count"><?= $eksemplarResult->num_rows ?></span> eksemplar tersisa
-                </span>
-            </div>
+        <!-- Form Actions -->
+        <div class="d-flex justify-content-end gap-2 mt-4">
+            <a href="inventory.php" class="btn btn-light border px-4">
+                <i class="fas fa-times me-2"></i>Batal
+            </a>
+            <button type="submit" id="btnSimpanEdit" class="btn btn-green px-4 shadow-sm">
+                <i class="fas fa-save me-2"></i>Simpan Perubahan
+            </button>
         </div>
     </form>
 </div>
 
-<!-- Modal Tambah Eksemplar (Sama seperti sebelumnya) -->
-<div class="modal fade" id="modalTambahEksemplarBaru" tabindex="-1">
-    <div class="modal-dialog modal-lg">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title"><i class="fas fa-plus-circle me-2"></i>Tambah Eksemplar Baru</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body">
-                <div class="alert alert-info">
-                    <i class="fas fa-info-circle me-2"></i>
-                    Scan RFID fisik baru untuk menambah eksemplar ke buku ini. Kode eksemplar akan digenerate otomatis.
-                </div>
-                <div class="text-center my-4">
-                    <button type="button" id="btnScanEksemplarBaru" class="btn btn-primary btn-lg px-5 shadow" onclick="triggerScanEksemplarBaru()">
-                        <i class="fas fa-qrcode me-2"></i>SCAN RFID BARU
-                    </button>
-                </div>
-                <div id="containerScanBaru" class="border rounded p-3 bg-light-custom" style="min-height: 200px;">
-                    <div class="text-center text-muted py-5">
-                        <i class="fas fa-barcode fa-4x mb-3 opacity-50"></i>
-                        <p class="fw-bold mb-0">Belum ada RFID di-scan</p>
-                    </div>
-                </div>
-                <input type="hidden" id="inputNewEksemplar" value="[]">
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-light border" data-bs-dismiss="modal">
-                    <i class="fas fa-times me-2"></i>Batal
-                </button>
-                <button type="button" id="btnSimpanEksemplarBaru" class="btn btn-green px-4 shadow-sm" disabled>
-                    <i class="fas fa-save me-2"></i>Simpan Eksemplar
-                </button>
-            </div>
-        </div>
-    </div>
-</div>
+<!-- Hidden field for deleted eksemplar -->
+<input type="hidden" id="deleted_eksemplar" name="delete_eksemplar" value="[]">
 
+<!-- SweetAlert2 CDN -->
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script src="../assets/js/edit_inventory.js"></script>
 

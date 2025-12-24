@@ -72,3 +72,17 @@
 [2025-12-22 05:43:09] Berhasil invalidate 0 UID
 [2025-12-22 05:43:09] Koneksi DB ditutup
 [2025-12-22 05:43:09] Script selesai
+[2025-12-23 07:23:16] Memulai script invalidate_old_uid.py
+[2025-12-23 07:23:16] Mode: Normal (update DB)
+[2025-12-23 07:23:16] Query yang akan dijalankan: 
+    UPDATE uid_buffer 
+    SET jenis = 'invalid', 
+        updated_at = NOW() 
+    WHERE jenis = 'pending' 
+        AND is_labeled = 'no' 
+        AND timestamp < NOW() - INTERVAL 5 MINUTE
+
+[2025-12-23 07:23:16] Koneksi DB berhasil
+[2025-12-23 07:23:16] Berhasil invalidate 0 UID
+[2025-12-23 07:23:16] Koneksi DB ditutup
+[2025-12-23 07:23:16] Script selesai
