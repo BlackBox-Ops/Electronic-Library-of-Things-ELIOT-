@@ -180,9 +180,14 @@ include_once '../includes/header.php';
                             <span class="text-muted"><?= $row['jumlah_eksemplar'] ?></span>
                         </td>
                         <td class="text-center pe-4">
-                            <a href="edit_inventory.php?id=<?= $row['id'] ?>" class="btn btn-mini btn-light border" title="Edit">
-                                <i class="fas fa-edit"></i>
-                            </a>
+                            <div class="d-inline-flex gap-2">
+                                <a href="edit_inventory.php?id=<?= $row['id'] ?>" class="btn btn-mini btn-light border" title="Edit">
+                                    <i class="fas fa-edit"></i>
+                                </a>
+                                <a href="preview.php?id=<?= $row['id'] ?>" target="_blank" class="btn btn-mini btn-outline-primary border" title="Preview">
+                                    <i class="fas fa-eye"></i>
+                                </a>
+                            </div>
                         </td>
                     </tr>
                     <!-- DETAIL ROW -->

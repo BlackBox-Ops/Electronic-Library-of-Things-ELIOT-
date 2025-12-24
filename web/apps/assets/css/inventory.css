@@ -818,3 +818,145 @@ code {
         display: table-row !important;
     }
 }
+
+/* ========================================
+   DARK MODE FIX: force dark styles for tab panels (author & eksemplar)
+   ======================================== */
+[data-theme="dark"] .tab-pane,
+[data-theme="dark"] #author-panel,
+[data-theme="dark"] #eksemplar-panel {
+    background-color: var(--bgModal) !important;
+    color: var(--textPrimary) !important;
+}
+
+/* Cards, alerts, list groups inside tabs */
+[data-theme="dark"] .tab-pane .card,
+[data-theme="dark"] .tab-pane .card-body,
+[data-theme="dark"] .tab-pane .alert,
+[data-theme="dark"] .tab-pane .list-group-item,
+[data-theme="dark"] .tab-pane .rfid-scan-card {
+    background-color: var(--bgCard) !important;
+    color: var(--textPrimary) !important;
+    border-color: var(--borderColor) !important;
+}
+
+/* Form controls inside tabs */
+[data-theme="dark"] .tab-pane .form-control,
+[data-theme="dark"] .tab-pane .form-select,
+[data-theme="dark"] .tab-pane textarea {
+    background-color: #1a1a1a !important;
+    border-color: #404040 !important;
+    color: var(--textPrimary) !important;
+}
+
+/* Ensure select option colors readable in dark */
+[data-theme="dark"] .tab-pane select option {
+    background-color: #1a1a1a !important;
+    color: var(--textPrimary) !important;
+}
+
+/* Tables inside tabs */
+[data-theme="dark"] .tab-pane .table,
+[data-theme="dark"] .tab-pane .table thead th,
+[data-theme="dark"] .tab-pane .table tbody tr {
+    background-color: transparent;
+    color: var(--textPrimary) !important;
+    border-color: var(--borderColor) !important;
+}
+
+/* Specific panel blocks (existing/new author & publisher sections) */
+[data-theme="dark"] #existing_author_fields,
+[data-theme="dark"] #existing_publisher_fields,
+[data-theme="dark"] #new_author_fields,
+[data-theme="dark"] #new_publisher_fields {
+    background-color: var(--bgCard) !important;
+    color: var(--textPrimary) !important;
+    border: 1px solid var(--borderColor) !important;
+}
+
+/* Badges / code snippets inside tab */
+[data-theme="dark"] .tab-pane code {
+    background: rgba(98,129,65,0.12) !important;
+    color: var(--badgeCategoryText) !important;
+}
+
+[data-theme="dark"] .tab-pane .badge {
+    background-color: var(--badgeCategoryBg) !important;
+    color: var(--badgeCategoryText) !important;
+}
+
+/* ========================================
+   DARK MODE: ensure Tab 1 (detail/info) uses same dark styles
+   Applies to common selectors used in Tab 1: tables, labels, detail panels
+   ======================================== */
+[data-theme="dark"] .tab-pane:first-child,
+[data-theme="dark"] .tab-pane#detail-panel,
+[data-theme="dark"] .tab-pane#info-panel,
+[data-theme="dark"] #tab1,
+[data-theme="dark"] .book-info-panel,
+[data-theme="dark"] .metadata-panel {
+    background-color: var(--bgModal) !important;
+    color: var(--textPrimary) !important;
+}
+
+[data-theme="dark"] .detail-bg-container,
+[data-theme="dark"] .card-adaptive,
+[data-theme="dark"] .book-info-panel,
+[data-theme="dark"] .metadata-panel {
+    background-color: var(--bgCard) !important;
+    color: var(--textPrimary) !important;
+    border: 1px solid var(--borderColor) !important;
+}
+
+/* Headings, labels, small text */
+[data-theme="dark"] .tab-pane h1,
+[data-theme="dark"] .tab-pane h2,
+[data-theme="dark"] .tab-pane h3,
+[data-theme="dark"] .tab-pane h4,
+[data-theme="dark"] .tab-pane h5,
+[data-theme="dark"] .tab-pane h6,
+[data-theme="dark"] .tab-pane .form-label,
+[data-theme="dark"] .tab-pane .small {
+    color: var(--textPrimary) !important;
+}
+
+/* Tables & rows inside tab1 */
+[data-theme="dark"] .tab-pane .table,
+[data-theme="dark"] .tab-pane .table tbody tr,
+[data-theme="dark"] .tab-pane .table td,
+[data-theme="dark"] .tab-pane .table th {
+    color: var(--textPrimary) !important;
+    border-color: var(--borderColor) !important;
+    background-color: transparent;
+}
+
+/* Form controls / selects / textarea in tab1 */
+[data-theme="dark"] .tab-pane .form-control,
+[data-theme="dark"] .tab-pane .form-select,
+[data-theme="dark"] .tab-pane textarea {
+    background-color: #1a1a1a !important;
+    border-color: #404040 !important;
+    color: var(--textPrimary) !important;
+}
+
+/* Buttons, badges, code in tab1 */
+[data-theme="dark"] .tab-pane .btn,
+[data-theme="dark"] .tab-pane .btn-green {
+    color: #fff !important;
+}
+
+[data-theme="dark"] .tab-pane .badge,
+[data-theme="dark"] .tab-pane code {
+    color: var(--badgeCategoryText) !important;
+    background: var(--badgeCategoryBg) !important;
+}
+
+/* Ensure labels & inline meta items visible */
+[data-theme="dark"] .tab-pane .text-muted {
+    color: var(--textSecondary) !important;
+}
+
+/* Fallback: force text color in Tab panels if still bright */
+[data-theme="dark"] .tab-pane * {
+    color: inherit;
+}

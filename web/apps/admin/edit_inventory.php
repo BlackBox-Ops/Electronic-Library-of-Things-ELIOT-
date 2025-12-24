@@ -408,7 +408,7 @@ include_once '../includes/header.php';
                     <h6 class="mb-0 fw-bold">
                         <i class="fas fa-tags me-2 text-primary"></i>Daftar Unit Eksemplar
                     </h6>
-                    <button type="button" class="btn btn-success shadow-sm" onclick="openAddEksemplarModal()">
+                    <button type="button" class="btn btn-success shadow-sm" onclick="openAddEksemplarModal(true)">
                         <i class="fas fa-plus-circle me-2"></i>Tambah Eksemplar Baru
                     </button>
                 </div>
@@ -445,10 +445,10 @@ include_once '../includes/header.php';
                                 </td>
                                 <td>
                                     <select name="eksemplar[<?= $index ?>][kondisi]" class="form-select form-select-sm">
-                                        <option value="baik" <?= $eks['kondisi'] == 'baik' ? 'selected' : '' ?>>✓ Baik</option>
-                                        <option value="rusak_ringan" <?= $eks['kondisi'] == 'rusak_ringan' ? 'selected' : '' ?>>⚠ Rusak Ringan</option>
-                                        <option value="rusak_berat" <?= $eks['kondisi'] == 'rusak_berat' ? 'selected' : '' ?>>✗ Rusak Berat</option>
-                                        <option value="hilang" <?= $eks['kondisi'] == 'hilang' ? 'selected' : '' ?>>? Hilang</option>
+                                        <option value="baik" <?= $eks['kondisi'] == 'baik' ? 'selected' : '' ?>>Baik</option>
+                                        <option value="rusak_ringan" <?= $eks['kondisi'] == 'rusak_ringan' ? 'selected' : '' ?>>Rusak Ringan</option>
+                                        <option value="rusak_berat" <?= $eks['kondisi'] == 'rusak_berat' ? 'selected' : '' ?>>Rusak Berat</option>
+                                        <option value="hilang" <?= $eks['kondisi'] == 'hilang' ? 'selected' : '' ?>>Hilang</option>
                                     </select>
                                     <input type="hidden" name="eksemplar[<?= $index ?>][id]" value="<?= $eks['id'] ?>">
                                 </td>

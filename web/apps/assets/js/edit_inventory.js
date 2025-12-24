@@ -184,8 +184,11 @@ document.addEventListener('DOMContentLoaded', function() {
 /**
  * Open Modal to Add New Eksemplar with RFID Scan
  */
-function openAddEksemplarModal() {
+function openAddEksemplarModal(reset = true) {
     const bookId = document.querySelector('input[name="book_id"]').value;
+    
+    // reset only when requested (initial open)
+    if (reset) scannedNewUIDs = [];
     
     Swal.fire({
         title: '<i class="fas fa-plus-circle me-2"></i>Tambah Eksemplar Baru',
@@ -227,9 +230,10 @@ function openAddEksemplarModal() {
         confirmButtonColor: '#28a745',
         cancelButtonColor: '#6c757d',
         showLoaderOnConfirm: true,
+        // removed resetting scannedNewUIDs from didOpen
         didOpen: () => {
-            // Reset scanned UIDs
-            scannedNewUIDs = [];
+            // keep existing scannedNewUIDs if re-opening after scan
+            updateScanResultsUI();
         },
         preConfirm: () => {
             return submitNewEksemplar(bookId);
@@ -283,7 +287,7 @@ function startScanNewEksemplar() {
                         text: 'UID ini sudah ada dalam daftar',
                         confirmButtonColor: '#ffc107'
                     }).then(() => {
-                        openAddEksemplarModal();
+                        openAddEksemplarModal(false);
                     });
                     return;
                 }
@@ -301,7 +305,7 @@ function startScanNewEksemplar() {
                     timer: 1500,
                     showConfirmButton: false
                 }).then(() => {
-                    openAddEksemplarModal();
+                    openAddEksemplarModal(false);
                 });
                 
             } else {
@@ -311,7 +315,7 @@ function startScanNewEksemplar() {
                     text: data.message || 'Tidak ada UID terdeteksi',
                     confirmButtonColor: '#dc3545'
                 }).then(() => {
-                    openAddEksemplarModal();
+                    openAddEksemplarModal(false);
                 });
             }
         })
@@ -325,7 +329,7 @@ function startScanNewEksemplar() {
                 text: 'Gagal menghubungi server scanner',
                 confirmButtonColor: '#dc3545'
             }).then(() => {
-                openAddEksemplarModal();
+                openAddEksemplarModal(false);
             });
         });
 }
