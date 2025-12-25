@@ -190,6 +190,7 @@ function openAddEksemplarModal(reset = true) {
     // reset only when requested (initial open)
     if (reset) scannedNewUIDs = [];
     
+    const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
     Swal.fire({
         title: '<i class="fas fa-plus-circle me-2"></i>Tambah Eksemplar Baru',
         html: `
@@ -227,8 +228,6 @@ function openAddEksemplarModal(reset = true) {
         showCancelButton: true,
         confirmButtonText: '<i class="fas fa-save me-2"></i>Simpan Unit Baru',
         cancelButtonText: '<i class="fas fa-times me-2"></i>Batal',
-        confirmButtonColor: '#28a745',
-        cancelButtonColor: '#6c757d',
         showLoaderOnConfirm: true,
         // removed resetting scannedNewUIDs from didOpen
         didOpen: () => {
@@ -238,7 +237,8 @@ function openAddEksemplarModal(reset = true) {
         preConfirm: () => {
             return submitNewEksemplar(bookId);
         },
-        allowOutsideClick: () => !Swal.isLoading()
+        allowOutsideClick: () => !Swal.isLoading(),
+        customClass: isDark ? { popup: 'swal-dark' } : {}
     });
 }
 
@@ -340,9 +340,38 @@ function startScanNewEksemplar() {
 function updateScanResultsUI() {
     const container = document.getElementById('scan_results_container');
     const badge = document.getElementById('scan_count_badge');
-    
     if (!container) return;
-    
+
+    // determine prefix: prefer explicit kode_buku, else derive from judul (first 3 alnum uppercase)
+    let prefix = '';
+    const kodeInput = document.querySelector('input[name="kode_buku"]');
+    const judulEl = document.querySelector('input[name="judul"]') || document.querySelector('.book-title');
+    if (kodeInput && kodeInput.value.trim() !== '') {
+        prefix = kodeInput.value.trim().toUpperCase();
+    } else if (judulEl) {
+        const t = (judulEl.value || judulEl.textContent || '').toUpperCase();
+        const m = (t.match(/[A-Z0-9]/g) || []).slice(0,3).join('');
+        prefix = m || 'EKS';
+    } else {
+        prefix = 'EKS';
+    }
+
+    // calculate provisional max number from DOM (existing eksemplar) but limited to same prefix
+    const existingRows = document.querySelectorAll('#eksemplar-container tr[id^="row-eks-"]');
+    let maxNumber = 0;
+    existingRows.forEach(row => {
+        const kodeCell = row.querySelector('td:nth-child(2) strong');
+        if (kodeCell) {
+            const match = kodeCell.textContent.match(new RegExp(`^${prefix}-(\\d+)`));
+            if (match) maxNumber = Math.max(maxNumber, parseInt(match[1],10));
+            else {
+                // also accept older EKS- prefixed rows for continuity if no prefix-match found
+                const m2 = kodeCell.textContent.match(/-(\d+)$/);
+                if (m2) maxNumber = Math.max(maxNumber, parseInt(m2[1],10));
+            }
+        }
+    });
+
     if (scannedNewUIDs.length === 0) {
         container.innerHTML = `
             <div class="text-center text-muted py-4">
@@ -352,25 +381,50 @@ function updateScanResultsUI() {
         `;
     } else {
         let html = '<div class="list-group">';
-        
         scannedNewUIDs.forEach((uid, index) => {
+            const newNumber = maxNumber + index + 1;
+            const kodeEksemplar = `${prefix}-${String(newNumber).padStart(4, '0')}`;
+
             html += `
-                <div class="list-group-item d-flex justify-content-between align-items-center">
-                    <div>
-                        <strong>#${index + 1}</strong>
-                        <code class="ms-2">${uid.uid}</code>
+                <div class="list-group-item d-flex justify-content-between align-items-start gap-3">
+                    <div class="flex-grow-1">
+                        <div class="d-flex align-items-center mb-1">
+                            <strong class="me-2">#${index + 1}</strong>
+                            <code class="me-3">${uid.uid}</code>
+                            <small class="text-muted">UID-buffer-id: ${uid.id}</small>
+                        </div>
+
+                        <div class="row g-2 align-items-center">
+                            <div class="col-auto" style="min-width:160px;">
+                                <label class="form-label small mb-1">Kode Eksemplar</label>
+                                <input type="text" class="form-control form-control-sm kode-input" data-uid-index="${index}" value="${kodeEksemplar}">
+                            </div>
+                            <div class="col-auto" style="min-width:140px;">
+                                <label class="form-label small mb-1">Kondisi</label>
+                                <select class="form-select form-select-sm kondisi-select" data-uid-index="${index}">
+                                    <option value="baik" selected>Baik</option>
+                                    <option value="rusak_ringan">Rusak Ringan</option>
+                                    <option value="rusak_berat">Rusak Berat</option>
+                                    <option value="hilang">Hilang</option>
+                                </select>
+                            </div>
+                            <div class="col-auto ms-auto">
+                                <label class="form-label small mb-1">&nbsp;</label>
+                                <div>
+                                    <button type="button" class="btn btn-sm btn-danger ms-1" onclick="removeScannedUID(${index})" title="Hapus UID">
+                                        <i class="fas fa-times"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
                     </div>
-                    <button type="button" class="btn btn-sm btn-danger" onclick="removeScannedUID(${index})">
-                        <i class="fas fa-times"></i>
-                    </button>
                 </div>
             `;
         });
-        
         html += '</div>';
         container.innerHTML = html;
     }
-    
+
     if (badge) {
         badge.textContent = `${scannedNewUIDs.length} UID Terscan`;
         badge.className = scannedNewUIDs.length > 0 ? 'badge bg-success' : 'badge bg-info';
@@ -388,68 +442,128 @@ function removeScannedUID(index) {
 /**
  * Submit New Eksemplar to Server
  */
-function submitNewEksemplar(bookId) {
+async function submitNewEksemplar(bookId) {
     if (scannedNewUIDs.length === 0) {
         Swal.showValidationMessage('Belum ada UID yang di-scan!');
         return false;
     }
-    
-    // Get current max kode_eksemplar
-    const existingRows = document.querySelectorAll('#eksemplar-container tr[id^="row-eks-"]');
-    let maxNumber = 0;
-    
-    existingRows.forEach(row => {
-        const kodeCell = row.querySelector('td:nth-child(2) strong');
-        if (kodeCell) {
-            const match = kodeCell.textContent.match(/EKS-(\d+)/);
-            if (match) {
-                maxNumber = Math.max(maxNumber, parseInt(match[1]));
-            }
-        }
-    });
-    
-    // Generate kode eksemplar for new units
-    const newEksemplar = scannedNewUIDs.map((uid, idx) => {
-        const newNumber = maxNumber + idx + 1;
-        const kodeEksemplar = `EKS-${String(newNumber).padStart(4, '0')}`;
-        
+
+    // collect user-edited kode and kondisi from modal inputs
+    const kodeInputs = Array.from(document.querySelectorAll('.kode-input'));
+    const kondisiSelects = Array.from(document.querySelectorAll('.kondisi-select'));
+
+    const prepared = scannedNewUIDs.map((uid, idx) => {
+        const kodeEl = kodeInputs.find(i => parseInt(i.dataset.uidIndex) === idx);
+        const kondisiEl = kondisiSelects.find(s => parseInt(s.dataset.uidIndex) === idx);
         return {
             uid_buffer_id: uid.id,
-            kode_eksemplar: kodeEksemplar,
-            kondisi: 'baik'
+            uid_raw: uid.uid,
+            kode_eksemplar: (kodeEl ? kodeEl.value.trim() : (`EKS-${String(idx+1).padStart(4,'0')}`)),
+            kondisi: (kondisiEl ? kondisiEl.value : 'baik')
         };
     });
-    
-    // Send to server
-    return fetch('../controllers/AddEksemplarController.php', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-            book_id: parseInt(bookId),
-            new_eksemplar: newEksemplar
-        })
-    })
-    .then(res => res.json())
-    .then(data => {
+
+    // Client-side duplicate check via API (quick feedback)
+    for (const item of prepared) {
+        try {
+            const res = await fetch(`../includes/api/check_duplicate_uid.php?uid=${encodeURIComponent(item.uid_raw)}&book_id=${parseInt(bookId)}`);
+            const json = await res.json();
+            if (!json.success) {
+                Swal.showValidationMessage(json.message || 'Gagal cek UID');
+                return false;
+            }
+            if (json.isDuplicate) {
+                const used = json.usedIn || {};
+                Swal.showValidationMessage(`UID ${item.uid_raw} sudah terdaftar pada buku: ${used.book_title || 'N/A'} (kode ${used.kode_eksemplar || '-'})`);
+                return false;
+            }
+        } catch (err) {
+            console.error('[DUP CHECK ERROR]', err);
+            Swal.showValidationMessage('Gagal menghubungi server untuk validasi UID');
+            return false;
+        }
+    }
+
+    // Ready to send to server
+    const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+    try {
+        const res = await fetch('../controllers/AddEksemplarController.php', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                book_id: parseInt(bookId),
+                new_eksemplar: prepared
+            })
+        });
+        const data = await res.json();
+
         if (data.success) {
-            // Reload page to show new eksemplar
             Swal.fire({
                 icon: 'success',
                 title: 'Berhasil!',
-                text: data.message,
-                confirmButtonColor: '#28a745'
-            }).then(() => {
-                location.reload();
-            });
+                text: data.message || 'Eksemplar berhasil ditambahkan',
+                confirmButtonColor: '#28a745',
+                customClass: isDark ? { popup: 'swal-dark' } : {}
+            }).then(()=> location.reload());
         } else {
-            Swal.showValidationMessage(data.message);
+            Swal.showValidationMessage(data.message || 'Gagal menambahkan eksemplar');
+            return false;
         }
-    })
-    .catch(err => {
+    } catch (err) {
         console.error('[SUBMIT ERROR]', err);
-        Swal.showValidationMessage('Gagal menambahkan eksemplar');
+        Swal.showValidationMessage('Gagal menambahkan eksemplar (server error)');
+        return false;
+    }
+}
+
+// ensure modal uses dark class when open
+function openAddEksemplarModal(reset = true) {
+    const bookId = document.querySelector('input[name="book_id"]').value;
+    if (reset) scannedNewUIDs = [];
+
+    const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+    Swal.fire({
+        title: '<i class="fas fa-plus-circle me-2"></i>Tambah Eksemplar Baru',
+        html: `
+            <div class="text-start">
+                <div class="alert alert-info border-0 mb-3">
+                    <i class="fas fa-info-circle me-2"></i>
+                    <strong>Panduan:</strong> Scan RFID untuk unit baru yang akan ditambahkan
+                </div>
+                
+                <div class="mb-3">
+                    <label class="form-label fw-bold">Jumlah Unit Baru</label>
+                    <input type="number" id="swal_jumlah_unit" class="form-control" value="1" min="1" max="50">
+                    <small class="text-muted">Maksimal 50 unit per sekali tambah</small>
+                </div>
+                
+                <div class="text-center mb-3">
+                    <button type="button" class="btn btn-primary btn-lg px-4" onclick="startScanNewEksemplar()">
+                        <i class="fas fa-qrcode me-2"></i>MULAI SCAN RFID
+                    </button>
+                </div>
+                
+                <div id="scan_results_container" class="border rounded p-3 bg-light" style="max-height: 300px; overflow-y: auto; min-height: 100px;">
+                    <div class="text-center text-muted py-4">
+                        <i class="fas fa-barcode fa-3x opacity-50 mb-2"></i>
+                        <p class="mb-0">Belum ada scan</p>
+                    </div>
+                </div>
+                
+                <div class="mt-3">
+                    <span class="badge bg-info" id="scan_count_badge">0 UID Terscan</span>
+                </div>
+            </div>
+        `,
+        width: 700,
+        showCancelButton: true,
+        confirmButtonText: '<i class="fas fa-save me-2"></i>Simpan Unit Baru',
+        cancelButtonText: '<i class="fas fa-times me-2"></i>Batal',
+        showLoaderOnConfirm: true,
+        didOpen: () => updateScanResultsUI(),
+        preConfirm: () => submitNewEksemplar(bookId),
+        allowOutsideClick: () => !Swal.isLoading(),
+        customClass: isDark ? { popup: 'swal-dark' } : {}
     });
 }
 

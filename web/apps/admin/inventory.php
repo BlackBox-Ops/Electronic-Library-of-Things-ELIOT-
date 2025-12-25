@@ -300,6 +300,13 @@ include_once '../includes/header.php';
     </div>
 </div>
 
+<!-- PAGINATION CONTROLS -->
+<div class="d-flex justify-content-end mt-3">
+    <nav aria-label="Inventory pagination">
+        <ul class="pagination mb-0" id="inventoryPagination"></ul>
+    </nav>
+</div>
+
 <!-- SweetAlert2 CDN -->
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
@@ -387,6 +394,109 @@ include_once '../includes/header.php';
             });
         });
     });
+</script>
+
+<!-- PAGINATION SCRIPT (5 rows per page) -->
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const rowsPerPage = 5;
+    const mainRows = Array.from(document.querySelectorAll('tr.main-row'));
+    const paginationEl = document.getElementById('inventoryPagination');
+    if (!paginationEl) return;
+
+    const totalItems = mainRows.length;
+    const totalPages = Math.max(1, Math.ceil(totalItems / rowsPerPage));
+
+    function showPage(page) {
+        const start = (page - 1) * rowsPerPage;
+        const end = start + rowsPerPage;
+
+        mainRows.forEach((tr, idx) => {
+            const detail = tr.nextElementSibling && tr.nextElementSibling.classList.contains('detail-row')
+                ? tr.nextElementSibling
+                : null;
+
+            if (idx >= start && idx < end) {
+                tr.classList.remove('d-none');
+                // restore detail visibility only if previously expanded
+                if (detail) {
+                    if (detail.dataset.expanded === '1') detail.classList.remove('d-none'); else detail.classList.add('d-none');
+                }
+            } else {
+                tr.classList.add('d-none');
+                if (detail) detail.classList.add('d-none');
+            }
+        });
+
+        // update active page button
+        Array.from(paginationEl.querySelectorAll('li.page-item')).forEach(li => li.classList.remove('active'));
+        const activeBtn = paginationEl.querySelector(`li[data-page="${page}"]`);
+        if (activeBtn) activeBtn.classList.add('active');
+    }
+
+    function buildPagination() {
+        paginationEl.innerHTML = '';
+
+        // Prev
+        const prevLi = document.createElement('li');
+        prevLi.className = 'page-item';
+        prevLi.innerHTML = `<a class="page-link" href="#" aria-label="Previous">&laquo;</a>`;
+        prevLi.addEventListener('click', (e) => { e.preventDefault(); const cur = getCurrentPage(); if (cur > 1) goToPage(cur - 1); });
+        paginationEl.appendChild(prevLi);
+
+        // Pages
+        for (let p = 1; p <= totalPages; p++) {
+            const li = document.createElement('li');
+            li.className = 'page-item';
+            li.dataset.page = p;
+            li.innerHTML = `<a class="page-link" href="#">${p}</a>`;
+            li.addEventListener('click', function (e) {
+                e.preventDefault();
+                goToPage(p);
+            });
+            paginationEl.appendChild(li);
+        }
+
+        // Next
+        const nextLi = document.createElement('li');
+        nextLi.className = 'page-item';
+        nextLi.innerHTML = `<a class="page-link" href="#" aria-label="Next">&raquo;</a>`;
+        nextLi.addEventListener('click', (e) => { e.preventDefault(); const cur = getCurrentPage(); if (cur < totalPages) goToPage(cur + 1); });
+        paginationEl.appendChild(nextLi);
+    }
+
+    function getCurrentPage() {
+        const active = paginationEl.querySelector('li.page-item.active');
+        return active ? parseInt(active.dataset.page) : 1;
+    }
+
+    function goToPage(p) {
+        if (p < 1) p = 1;
+        if (p > totalPages) p = totalPages;
+        showPage(p);
+    }
+
+    // Expose toggleRow to keep expand/collapse behavior and mark detail state
+    window.toggleRow = function(rowId) {
+        const detail = document.getElementById(rowId);
+        const icon = document.getElementById('icon-' + rowId.split('-').pop()) || null;
+        if (!detail) return;
+        const isHidden = detail.classList.contains('d-none');
+        if (isHidden) {
+            detail.classList.remove('d-none');
+            detail.dataset.expanded = '1';
+            if (icon) icon.classList.add('rotated');
+        } else {
+            detail.classList.add('d-none');
+            detail.dataset.expanded = '0';
+            if (icon) icon.classList.remove('rotated');
+        }
+    };
+
+    // Initialize
+    buildPagination();
+    goToPage(1);
+});
 </script>
 
 <?php include_once '../includes/footer.php'; ?>
