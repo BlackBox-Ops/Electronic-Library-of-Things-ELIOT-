@@ -960,3 +960,177 @@ code {
 [data-theme="dark"] .tab-pane * {
     color: inherit;
 }
+
+/* ========================================
+   SWEETALERT2 DARK MODE + Reset UID button styling
+   ======================================== */
+.swal-dark.swal2-popup,
+.swal-dark {
+    background: var(--bgModal) !important;
+    color: var(--textPrimary) !important;
+    border: 1px solid var(--borderColor) !important;
+}
+
+.swal-dark .swal2-title,
+.swal-dark .swal2-content {
+    color: var(--textPrimary) !important;
+}
+
+.swal-dark .swal2-styled[aria-label="Confirm"] {
+    background: #41644A !important;
+    color: #fff !important;
+}
+
+/* Small reset button compact style */
+#btnResetUID {
+    min-width: 36px;
+    height: 36px;
+    padding: 0.35rem 0.5rem;
+    border-radius: 6px;
+}
+
+/* ensure button visibility in dark mode */
+[data-theme="dark"] #btnResetUID {
+    background: transparent;
+    color: var(--textPrimary);
+    border-color: rgba(255,255,255,0.08);
+}
+[data-theme="dark"] #btnResetUID .fas { color: var(--textPrimary); }
+
+/* ========================================
+   LAYOUT FIXES: stabilkan tombol preferensi & kartu statistik
+   - keep pref buttons fixed-size / no-wrap
+   - prevent UID card content reflow saat sidebar toggle
+   ======================================== */
+
+ /* Container khusus untuk tombol preferensi (safety selector) */
+.col-md-4.text-end > .d-inline-flex.gap-2,
+.d-inline-flex.gap-2.pref-actions {
+    display: inline-flex;
+    align-items: center;
+    gap: .5rem;
+    flex-wrap: nowrap; /* Jangan wrap saat ruang sempit */
+}
+
+/* Pastikan tombol preferensi tidak membesar ketika sidebar muncul */
+#btnSavePrefs,
+#btnLoadPrefs,
+#btnApplyFilters,
+#btnClearFilters {
+    white-space: nowrap;
+    flex: 0 0 auto;           /* tidak tumbuh atau menyusut */
+    min-width: 44px;          /* ukuran minimum konsisten */
+    height: 36px;
+    padding: 0.35rem 0.6rem;
+    border-radius: 6px;
+}
+
+/* Tombol kecil (ikon saja) jangan mengubah ukuran baris */
+.btn.btn-mini,
+.btn.btn-sm {
+    white-space: nowrap;
+    flex: 0 0 auto;
+}
+
+/* UID card: atur flex so child tidak meng-collapse atau mendorong angka */
+.card-adaptive .icon-box {
+    flex: 0 0 56px;
+    width: 56px;
+    height: 56px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Value area di kartu stats (agar tidak bergeser) */
+.card-adaptive .flex-grow-1 {
+    flex: 1 1 auto;
+    min-width: 0; /* penting agar text overflow tidak memecah layout */
+}
+
+/* Spesifik: angka UID agar tetap ukuran/posisi */
+#stats_uid_available {
+    display: inline-block;
+    min-width: 72px;
+    text-align: right;
+    font-variant-numeric: tabular-nums; /* agar angka tidak geser saat berubah */
+}
+
+/* Area tombol reset di dalam kartu statistik: fixed width */
+#btnResetUID {
+    flex: 0 0 auto;
+    min-width: 36px;
+    height: 36px;
+    padding: 0.35rem 0.5rem;
+    border-radius: 6px;
+}
+
+/* Pastikan kartu statistik tidak memaksa line-break pada tombol ketika sidebar toggle */
+@media (min-width: 768px) {
+    .row.g-3 .card-adaptive { align-items: center; }
+}
+
+/* Dark-mode compatibility */
+[data-theme="dark"] .col-md-4.text-end > .d-inline-flex.gap-2 button,
+[data-theme="dark"] #btnResetUID {
+    border-color: rgba(255,255,255,0.06);
+    color: var(--textPrimary);
+}
+
+/* Safety: prevent buttons container from expanding full width when sidebar shown */
+.col-md-4.text-end > .d-inline-flex.gap-2 {
+    max-width: 100%;
+}
+
+/* Small visual tweak so number doesn't wrap under label */
+.card-adaptive small.text-muted.d-block.fw-bold {
+    display: block;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* Compact filter UI (when screen narrow or sidebar overlaps)
+   - only show title input + icon buttons (Apply / Clear)
+   - keep visual parity with reset UID button (icon-only)
+*/
+#filtersBlock.compact-filters .col-md-3:not(:nth-child(2)),
+#filtersBlock.compact-filters .col-md-8,
+#filtersBlock.compact-filters .col-md-4 {
+    display: none !important;
+}
+
+#filtersBlock.compact-filters .col-md-3:nth-child(2) {
+    flex: 0 0 100%;
+    max-width: 100%;
+}
+
+#filtersBlock.compact-filters .form-control {
+    height: 38px;
+}
+
+/* Icon-only buttons style (match reset button look) */
+#filtersBlock .btn {
+    min-width: 44px;
+    height: 36px;
+    padding: 0.35rem 0.6rem;
+    border-radius: 6px;
+    white-space: nowrap;
+}
+
+#filtersBlock.compact-filters .btn.btn-primary {
+    padding: 0.35rem 0.45rem;
+}
+
+#filtersBlock.compact-filters .btn i {
+    margin: 0;
+}
+
+/* Ensure stats card doesn't shift when sidebar toggled */
+.card-adaptive .icon-box { flex: 0 0 56px; width:56px; height:56px; }
+.card-adaptive .flex-grow-1 { flex:1 1 auto; min-width:0; }
+#stats_uid_available { display:inline-block; min-width:72px; text-align:right; font-variant-numeric:tabular-nums; }
+
+/* SweetAlert dark popup class (already used) */
+.swal-dark.swal2-popup,
+.swal-dark { background: var(--bgModal) !important; color: var(--textPrimary) !important; border:1px solid var(--borderColor) !important; }
