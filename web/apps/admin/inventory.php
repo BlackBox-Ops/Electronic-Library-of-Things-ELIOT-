@@ -121,9 +121,9 @@ include_once '../includes/header.php';
 
     <!-- Filter dan Search Controls -->
     <div id="filtersBlock" class="row mb-4">
-         <div class="col-md-3">
-             <label for="filterKategori" class="fw-bold mb-2">Filter Kategori</label>
-             <select id="filterKategori" class="form-select">
+        <div class="col-md-3">
+            <label for="filterKategori" class="fw-bold mb-2">Filter Kategori</label>
+            <select id="filterKategori" class="form-select">
                 <option value="">Semua Kategori</option>
                 <?php
                 // Mengambil kategori unik dari database
@@ -132,23 +132,23 @@ include_once '../includes/header.php';
                     echo "<option value='{$kat['kategori']}'>{$kat['kategori']}</option>";
                 }
                 ?>
-             </select>
-         </div>
+            </select>
+        </div>
 
-         <div class="col-md-3">
-             <label for="searchTitle" class="fw-bold mb-2">Cari Berdasarkan Judul</label>
-             <input type="text" id="searchTitle" class="form-control" placeholder="Masukkan judul buku...">
-         </div>
+        <div class="col-md-3">
+            <label for="searchTitle" class="fw-bold mb-2">Cari Berdasarkan Judul</label>
+            <input type="text" id="searchTitle" class="form-control" placeholder="Masukkan judul buku...">
+        </div>
 
-         <div class="col-md-3">
-             <label for="searchAuthor" class="fw-bold mb-2">Cari Berdasarkan Author</label>
-             <input type="text" id="searchAuthor" class="form-control" placeholder="Masukkan nama author...">
-         </div>
+        <div class="col-md-3">
+            <label for="searchAuthor" class="fw-bold mb-2">Cari Berdasarkan Author</label>
+            <input type="text" id="searchAuthor" class="form-control" placeholder="Masukkan nama author...">
+        </div>
 
-         <div class="col-md-3">
-             <label for="searchPublisher" class="fw-bold mb-2">Cari Berdasarkan Publisher</label>
-             <input type="text" id="searchPublisher" class="form-control" placeholder="Masukkan nama publisher...">
-         </div>
+        <div class="col-md-3">
+            <label for="searchPublisher" class="fw-bold mb-2">Cari Berdasarkan Publisher</label>
+            <input type="text" id="searchPublisher" class="form-control" placeholder="Masukkan nama publisher...">
+        </div>
     </div>
 
     <div class="row mb-3">
@@ -160,12 +160,6 @@ include_once '../includes/header.php';
                 <button id="btnClearFilters" class="btn btn-outline-secondary">
                     <i class="fas fa-eraser me-2"></i>Hapus Filter
                 </button>
-            </div>
-        </div>
-
-        <div class="col-md-4 text-end">
-            <div class="d-inline-flex gap-2">
-                <!-- Preference buttons removed (kept layout container for alignment) -->
             </div>
         </div>
     </div>
@@ -249,9 +243,9 @@ include_once '../includes/header.php';
                                                 while($unit = $uRes->fetch_assoc()): 
                                                     $badgeKondisi = [
                                                         'baik' => 'bg-success',
-                                                        'rusak_ringan' => 'bg-warning text-dark',
-                                                        'rusak_berat' => 'bg-danger',
-                                                        'hilang' => 'bg-dark'
+                                                        'rusak_ringan' => 'bg-dark',
+                                                        'rusak_berat' => 'bg-secondary',
+                                                        'hilang' => 'bg-danger'
                                                     ];
                                                     $badgeClass = $badgeKondisi[$unit['kondisi']] ?? 'bg-secondary';
                                             ?>
@@ -298,14 +292,15 @@ include_once '../includes/header.php';
             </table>
         </div>
     </div>
+
+        <!-- PAGINATION CONTROLS -->
+    <div class="d-flex justify-content-end mt-3">
+        <nav aria-label="Inventory pagination">
+            <ul class="pagination mb-0" id="inventoryPagination"></ul>
+        </nav>
+    </div>
 </div>
 
-<!-- PAGINATION CONTROLS -->
-<div class="d-flex justify-content-end mt-3">
-    <nav aria-label="Inventory pagination">
-        <ul class="pagination mb-0" id="inventoryPagination"></ul>
-    </nav>
-</div>
 
 <!-- SweetAlert2 CDN -->
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
@@ -315,188 +310,5 @@ include_once '../includes/header.php';
 
 <!-- client-side filter (external) -->
 <script src="../assets/js/filter_inventory.js"></script>
-
-<!-- RESET UID SCRIPT -->
-<script>
-    document.addEventListener('DOMContentLoaded', function(){
-        const btn = document.getElementById('btnResetUID');
-        const statsEl = document.getElementById('stats_uid_available');
-        if (!btn) return;
-
-        btn.addEventListener('click', function(e){
-            e.preventDefault();
-
-            const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
-            Swal.fire({
-                title: 'Reset expired UID?',
-                text: 'UID yang "expired" (pending > 5 menit) akan di-reset timestamp-nya. Lanjutkan?',
-                icon: 'warning',
-                showCancelButton: true,
-                confirmButtonText: 'Ya, Reset',
-                cancelButtonText: 'Batal',
-                confirmButtonColor: '#dc3545',
-                customClass: isDark ? { popup: 'swal-dark' } : {}
-            }).then((result) => {
-                if (!result.isConfirmed) return;
-
-                btn.disabled = true;
-                btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Resetting...';
-
-                fetch('../includes/api/reset_expired_uid.php?limit=50', {
-                    method: 'GET',
-                    cache: 'no-store'
-                })
-                .then(res => res.json())
-                .then(data => {
-                    btn.disabled = false;
-                    btn.innerHTML = '<i class="fas fa-undo"></i>';
-
-                    if (data && data.success) {
-                        // update stats if provided
-                        if (statsEl && typeof data.summary !== 'undefined') {
-                            // optimistic: subtract reset_count from displayed available if makes sense
-                            // if API returns reset_count, decrement; otherwise attempt to use debug value
-                            const resetCount = parseInt(data.reset_count || 0);
-                            const current = parseInt(statsEl.textContent.replace(/,/g,'')) || 0;
-                            statsEl.textContent = Intl.NumberFormat().format(Math.max(0, current - resetCount));
-                        }
-
-                        Swal.fire({
-                            icon: 'success',
-                            title: 'Selesai',
-                            text: data.message || 'UID expired berhasil di-reset',
-                            confirmButtonColor: '#41644A',
-                            customClass: isDark ? { popup: 'swal-dark' } : {}
-                        });
-                    } else {
-                        Swal.fire({
-                            icon: 'error',
-                            title: 'Gagal',
-                            text: data.message || 'Reset UID gagal',
-                            confirmButtonColor: '#dc3545',
-                            customClass: isDark ? { popup: 'swal-dark' } : {}
-                        });
-                    }
-                })
-                .catch(err => {
-                    console.error('[RESET UID ERROR]', err);
-                    btn.disabled = false;
-                    btn.innerHTML = '<i class="fas fa-undo"></i>';
-                    const isDarkInner = document.documentElement.getAttribute('data-theme') === 'dark';
-                    Swal.fire({
-                        icon: 'error',
-                        title: 'Error',
-                        text: 'Terjadi masalah saat menghubungi server',
-                        confirmButtonColor: '#dc3545',
-                        customClass: isDarkInner ? { popup: 'swal-dark' } : {}
-                    });
-                });
-            });
-        });
-    });
-</script>
-
-<!-- PAGINATION SCRIPT (5 rows per page) -->
-<script>
-document.addEventListener('DOMContentLoaded', function () {
-    const rowsPerPage = 5;
-    const mainRows = Array.from(document.querySelectorAll('tr.main-row'));
-    const paginationEl = document.getElementById('inventoryPagination');
-    if (!paginationEl) return;
-
-    const totalItems = mainRows.length;
-    const totalPages = Math.max(1, Math.ceil(totalItems / rowsPerPage));
-
-    function showPage(page) {
-        const start = (page - 1) * rowsPerPage;
-        const end = start + rowsPerPage;
-
-        mainRows.forEach((tr, idx) => {
-            const detail = tr.nextElementSibling && tr.nextElementSibling.classList.contains('detail-row')
-                ? tr.nextElementSibling
-                : null;
-
-            if (idx >= start && idx < end) {
-                tr.classList.remove('d-none');
-                // restore detail visibility only if previously expanded
-                if (detail) {
-                    if (detail.dataset.expanded === '1') detail.classList.remove('d-none'); else detail.classList.add('d-none');
-                }
-            } else {
-                tr.classList.add('d-none');
-                if (detail) detail.classList.add('d-none');
-            }
-        });
-
-        // update active page button
-        Array.from(paginationEl.querySelectorAll('li.page-item')).forEach(li => li.classList.remove('active'));
-        const activeBtn = paginationEl.querySelector(`li[data-page="${page}"]`);
-        if (activeBtn) activeBtn.classList.add('active');
-    }
-
-    function buildPagination() {
-        paginationEl.innerHTML = '';
-
-        // Prev
-        const prevLi = document.createElement('li');
-        prevLi.className = 'page-item';
-        prevLi.innerHTML = `<a class="page-link" href="#" aria-label="Previous">&laquo;</a>`;
-        prevLi.addEventListener('click', (e) => { e.preventDefault(); const cur = getCurrentPage(); if (cur > 1) goToPage(cur - 1); });
-        paginationEl.appendChild(prevLi);
-
-        // Pages
-        for (let p = 1; p <= totalPages; p++) {
-            const li = document.createElement('li');
-            li.className = 'page-item';
-            li.dataset.page = p;
-            li.innerHTML = `<a class="page-link" href="#">${p}</a>`;
-            li.addEventListener('click', function (e) {
-                e.preventDefault();
-                goToPage(p);
-            });
-            paginationEl.appendChild(li);
-        }
-
-        // Next
-        const nextLi = document.createElement('li');
-        nextLi.className = 'page-item';
-        nextLi.innerHTML = `<a class="page-link" href="#" aria-label="Next">&raquo;</a>`;
-        nextLi.addEventListener('click', (e) => { e.preventDefault(); const cur = getCurrentPage(); if (cur < totalPages) goToPage(cur + 1); });
-        paginationEl.appendChild(nextLi);
-    }
-
-    function getCurrentPage() {
-        const active = paginationEl.querySelector('li.page-item.active');
-        return active ? parseInt(active.dataset.page) : 1;
-    }
-
-    function goToPage(p) {
-        if (p < 1) p = 1;
-        if (p > totalPages) p = totalPages;
-        showPage(p);
-    }
-
-    // Expose toggleRow to keep expand/collapse behavior and mark detail state
-    window.toggleRow = function(rowId) {
-        const detail = document.getElementById(rowId);
-        const icon = document.getElementById('icon-' + rowId.split('-').pop()) || null;
-        if (!detail) return;
-        const isHidden = detail.classList.contains('d-none');
-        if (isHidden) {
-            detail.classList.remove('d-none');
-            detail.dataset.expanded = '1';
-            if (icon) icon.classList.add('rotated');
-        } else {
-            detail.classList.add('d-none');
-            detail.dataset.expanded = '0';
-            if (icon) icon.classList.remove('rotated');
-        }
-    };
-
-    // Initialize
-    buildPagination();
-    goToPage(1);
-});
-</script>
 
 <?php include_once '../includes/footer.php'; ?>

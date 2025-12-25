@@ -1,7 +1,8 @@
 <?php
 /**
- * Full page replacement for modal registration (previously modal inside inventory.php)
+ * Full page replacement for modal registration
  * Path: web/apps/admin/modal_inventory.php
+ * CLEAN VERSION: No Search Buttons
  */
 
 require_once '../../includes/config.php';
@@ -42,7 +43,7 @@ include_once '../includes/header.php';
                 </ul>
 
                 <div class="tab-content">
-                    <!-- TAB 1: INFO ASET (keterangan opsional dihapus) -->
+                    <!-- TAB 1: INFO ASET -->
                     <div class="tab-pane fade show active p-3" id="asset-panel">
                         <div class="row g-3">
                             <div class="col-md-8">
@@ -78,70 +79,87 @@ include_once '../includes/header.php';
                                 <textarea name="deskripsi" class="form-control" rows="3" placeholder="Deskripsi singkat tentang buku ini..."></textarea>
                             </div>
 
-                            <div class="col-12 text-end mt-2">
-                                <button type="button" class="btn btn-primary px-4" onclick="document.getElementById('auth-tab-btn').click()">
-                                    Lanjut <i class="fas fa-arrow-right ms-2"></i>
-                                </button>
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold">Keterangan Cetakan (opsional)</label>
+                                <input type="text" name="keterangan_cetakan" id="input_keterangan_cetakan" class="form-control" placeholder="Misal: Cetakan ke-2, Edisi revisi">
+                                <small class="text-muted">Isi jika cetakan/edisi berbeda atau ada catatan cetakan</small>
                             </div>
+
+                             <div class="col-12 text-end mt-2">
+                                 <button type="button" class="btn btn-primary px-4" onclick="document.getElementById('auth-tab-btn').click()">
+                                     Lanjut <i class="fas fa-arrow-right ms-2"></i>
+                                 </button>
+                             </div>
                         </div>
                     </div>
 
-                    <!-- TAB 2: AUTHOR / PUBLISHER -->
+                    <!-- TAB 2: AUTHOR / PUBLISHER - CLEAN VERSION -->
                     <div class="tab-pane fade p-3" id="auth-panel">
                         <div class="row g-4">
+                            <!-- AUTHOR SECTION -->
                             <div class="col-md-6">
                                 <div class="border rounded p-3 h-100 bg-light-custom">
-                                    <div class="d-flex justify-content-between align-items-center mb-3">
-                                        <label class="form-label fw-bold text-primary mb-0">
-                                            <i class="fas fa-pen-nib me-2"></i>Data Penulis
-                                        </label>
-                                        <div class="form-check form-switch">
-                                            <input class="form-check-input" type="checkbox" id="switchMultiAuthor" name="is_multi_author">
-                                            <label class="form-check-label small fw-bold" for="switchMultiAuthor">Multi Penulis?</label>
-                                        </div>
+                                    <label class="form-label fw-bold text-primary mb-3">
+                                        <i class="fas fa-pen-nib me-2"></i>Daftar Penulis
+                                    </label>
+                                    
+                                    <!-- JSON data for existing authors (keperluan masa depan; boleh dihapus jika tidak dipakai) -->
+                                    <?php
+                                    $authorsArr = [];
+                                    $ars = $conn->query("SELECT id, nama_pengarang, biografi FROM authors WHERE is_deleted = 0 ORDER BY nama_pengarang");
+                                    while ($a = $ars->fetch_assoc()) {
+                                        $authorsArr[] = ['id' => $a['id'], 'name' => $a['nama_pengarang'], 'bio' => $a['biografi']];
+                                    }
+                                    ?>
+                                    <script id="authors_json" type="application/json"><?= json_encode($authorsArr, JSON_HEX_TAG|JSON_HEX_APOS|JSON_HEX_QUOT) ?></script>
+
+                                    <!-- Author List Container (JS will inject rows) -->
+                                    <div id="author_list_container" class="mb-3">
+                                        <!-- baris penulis akan dibuat oleh JS: input nama + peran + tombol hapus -->
                                     </div>
 
-                                    <select name="author_id" id="author_select" class="form-select mb-3">
-                                        <option value="">-- Pilih Penulis --</option>
-                                        <option value="new">Tambah Penulis Baru</option>
-                                        <?php 
-                                        $as = $conn->query("SELECT id, nama_pengarang FROM authors WHERE is_deleted = 0 ORDER BY nama_pengarang");
-                                        while($a = $as->fetch_assoc()) {
-                                            echo "<option value='{$a['id']}'>" . htmlspecialchars($a['nama_pengarang']) . "</option>";
-                                        }
-                                        ?>
-                                    </select>
-
-                                    <!-- existing author detail area (biografi akan di-load via JS like edit_inventory.js) -->
-                                    <div id="existing_author_fields" class="p-3 border rounded bg-white shadow-sm d-none">
-                                        <h6 class="fw-bold mb-2">Biografi Penulis</h6>
-                                        <p id="author_biografi_display" class="small text-muted mb-0">-</p>
+                                    <!-- Add Author Button -->
+                                    <div class="d-flex align-items-center gap-2">
+                                        <button type="button" id="btnAddAuthor" class="btn btn-sm btn-outline-primary">
+                                            <i class="fas fa-plus me-1"></i>Tambah Penulis
+                                        </button>
+                                        <small class="text-muted">Klik + untuk menambahkan baris penulis. Setiap baris berisi nama & peran.</small>
                                     </div>
+ 
+                                      <!-- New Author Section (if selecting "Tambah Penulis Baru") -->
+                                      <div id="new_author_fields" class="d-none">
+                                          <div class="mb-3">
+                                              <label class="fw-bold text-dark">Nama Lengkap Pengarang</label>
+                                              <input type="text" name="new_author_name" class="form-control" placeholder="Contoh: Prof. Dr. Eliot Anderson">
+                                          </div>
+                                          <div class="mb-0">
+                                              <label class="fw-bold text-dark">Biografi Singkat</label>
+                                              <textarea name="author_biografi" id="author_biografi_new" class="form-control" rows="4" maxlength="200" placeholder="Tulis biografi penulis maksimal 200 karakter..."></textarea>
+                                              <div class="text-end mt-1">
+                                                  <small class="text-muted" id="char-count-new">0/200</small>
+                                              </div>
+                                          </div>
+                                      </div>
 
-                                    <!-- New Author -->
-                                    <div id="new_author_fields" class="d-none p-3 border rounded bg-white shadow-sm">
-                                        <div class="mb-3">
-                                            <label class="fw-bold text-dark">Nama Lengkap Pengarang</label>
-                                            <input type="text" name="new_author_name" class="form-control" placeholder="Contoh: Prof. Dr. Eliot Anderson">
-                                        </div>
-                                        <div class="mb-0">
-                                            <label class="fw-bold text-dark">Biografi Singkat</label>
-                                            <textarea name="author_biografi" id="author_biografi_new" class="form-control" rows="4" maxlength="200" placeholder="Tulis biografi penulis maksimal 200 karakter..."></textarea>
-                                            <div class="text-end mt-1">
-                                                <small class="text-muted" id="char-count-new">0/200</small>
-                                            </div>
+                                    <!-- BIOGRAFI PENULIS (CARD TERPISAH) -->
+                                    <div id="author_bio_card" class="card mb-3">
+                                        <div class="card-body">
+                                            <label for="authors_bio_main" class="form-label fw-bold">Biografi Penulis Utama (opsional)</label>
+                                            <textarea id="authors_bio_main" name="authors_bio[]" class="form-control" rows="4" placeholder="Tulis biografi singkat penulis (maks 200 kata)" data-max-words="200"></textarea>
+                                            <div class="text-end mt-1"><small id="author_bio_counter" class="text-muted">0/200 kata</small></div>
                                         </div>
                                     </div>
-
                                 </div>
                             </div>
 
+                            <!-- PUBLISHER SECTION -->
                             <div class="col-md-6">
                                 <div class="border rounded p-3 h-100 bg-light-custom">
                                     <label class="form-label fw-bold text-success mb-3">
                                         <i class="fas fa-building me-2"></i>Data Penerbit
                                     </label>
 
+                                    <!-- Publisher Dropdown -->
                                     <select name="publisher_id" id="publisher_select" class="form-select mb-3">
                                         <option value="">-- Pilih Penerbit --</option>
                                         <option value="new">Tambah Penerbit Baru</option>
@@ -153,13 +171,14 @@ include_once '../includes/header.php';
                                         ?>
                                     </select>
 
-                                    <!-- existing publisher details (loaded via JS) -->
-                                    <div id="existing_publisher_fields" class="p-3 border rounded bg-white shadow-sm d-none">
-                                        <h6 class="fw-bold mb-2">Detail Penerbit</h6>
-                                        <p id="publisher_detail_display" class="small text-muted mb-0">-</p>
-                                    </div>
+                                     <!-- Existing publisher details -->
+                                     <div id="existing_publisher_fields" class="d-none">
+                                         <h6 class="fw-bold mb-2">Detail Penerbit</h6>
+                                         <p id="publisher_detail_display" class="small text-muted mb-0">-</p>
+                                     </div>
 
-                                    <div id="new_pub_fields" class="d-none p-3 border rounded bg-white shadow-sm">
+                                    <!-- New Publisher Form -->
+                                    <div id="new_pub_fields" class="d-none">
                                         <div class="mb-3">
                                             <label class="fw-bold text-dark">Nama Penerbit <span class="text-danger">*</span></label>
                                             <input type="text" name="new_pub_name" class="form-control" placeholder="PT. Gramedia Pustaka Utama">
@@ -179,12 +198,12 @@ include_once '../includes/header.php';
                                             </div>
                                         </div>
                                     </div>
-
                                 </div>
                             </div>
                         </div>
 
-                        <div class="d-flex justify-content-between mt-3">
+                        <!-- Navigation Buttons -->
+                        <div class="d-flex justify-content-between mt-4">
                             <button type="button" class="btn btn-outline-secondary" onclick="document.getElementById('asset-tab-btn').click()">
                                 <i class="fas fa-arrow-left me-2"></i>Kembali
                             </button>
@@ -236,8 +255,11 @@ include_once '../includes/header.php';
                     </div>
                 </div>
 
+                <!-- Form Action Buttons -->
                 <div class="mt-4 text-end">
-                    <a href="inventory.php" class="btn btn-light border me-2"><i class="fas fa-times me-2"></i>Batal</a>
+                    <a href="inventory.php" class="btn btn-light border me-2">
+                        <i class="fas fa-times me-2"></i>Batal
+                    </a>
                     <button type="submit" id="btnSimpan" class="btn btn-green px-4 shadow-sm" disabled>
                         <i class="fas fa-save me-2"></i>Simpan Aset
                     </button>

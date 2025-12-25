@@ -883,4 +883,198 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 });
 
+// ===== Authors dynamic UI (no inline bio in rows) =====
+function initAuthorsUI() {
+    const container = document.getElementById('author_list_container');
+    const btnAdd = document.getElementById('btnAddAuthor');
+    const bioCard = document.getElementById('author_bio_card'); // may be undefined if not present
+    if (!container || !btnAdd) return;
+
+    function createAuthorRow() {
+        const row = document.createElement('div');
+        row.className = 'author-row d-flex gap-2 align-items-center';
+
+        const input = document.createElement('input');
+        input.type = 'text';
+        input.name = 'authors[]';
+        input.className = 'form-control form-control-sm author-name-input';
+        input.placeholder = 'Nama penulis';
+
+        const selectWrap = document.createElement('div');
+        selectWrap.style.width = '180px';
+        selectWrap.innerHTML = `
+            <select name="authors_role[]" class="form-select form-select-sm">
+                <option value="penulis_utama">Penulis Utama</option>
+                <option value="kontributor">Kontributor</option>
+                <option value="editor">Editor</option>
+                <option value="penerjemah">Penerjemah</option>
+            </select>
+        `;
+
+        const btnRemove = document.createElement('button');
+        btnRemove.type = 'button';
+        btnRemove.className = 'btn btn-sm btn-outline-danger btn-remove-author';
+        btnRemove.title = 'Hapus';
+        btnRemove.style.width = '40px';
+        btnRemove.style.height = '40px';
+        btnRemove.innerHTML = '<i class="fas fa-times"></i>';
+        btnRemove.addEventListener('click', function () {
+            row.remove();
+            syncRemoveButtons();
+            syncBioInputs();
+        });
+
+        row.appendChild(input);
+        row.appendChild(selectWrap);
+        row.appendChild(btnRemove);
+
+        return row;
+    }
+
+    function syncRemoveButtons() {
+        const rows = container.querySelectorAll('.author-row');
+        rows.forEach((r, i) => {
+            const rm = r.querySelector('.btn-remove-author');
+            if (rm) rm.style.display = rows.length > 1 ? 'inline-flex' : 'none';
+        });
+    }
+
+    // Ensure at least one row exists (first row)
+    if (container.querySelectorAll('.author-row').length === 0) {
+        container.appendChild(createAuthorRow());
+    }
+    syncRemoveButtons();
+
+    btnAdd.addEventListener('click', function () {
+        container.appendChild(createAuthorRow());
+        syncRemoveButtons();
+        syncBioInputs();
+        // focus last input
+        const last = container.querySelectorAll('.author-row .author-name-input');
+        if (last.length) last[last.length - 1].focus();
+    });
+
+    // create initial hidden bio inputs mapping
+    syncBioInputs();
+
+    // try to attach submit sync if form exists (ensure visible bio value copied into first authors_bio[] input)
+    tryAttachFormSync();
+}
+
+// Sync authors_bio[] inputs: ensure one authors_bio[] per author row.
+// The first authors_bio[] is the visible textarea #authors_bio_main (if present),
+// remaining entries are hidden inputs with empty value (so server still receives array).
+function syncBioInputs() {
+    const container = document.getElementById('author_list_container');
+    const bioCard = document.getElementById('author_bio_card');
+    const bioMain = document.getElementById('authors_bio_main');
+    if (!container) return;
+
+    // container to hold bio inputs (hidden) - create if not exists
+    let bioInputsHolder = document.getElementById('authors_bio_holder');
+    if (!bioInputsHolder) {
+        bioInputsHolder = document.createElement('div');
+        bioInputsHolder.id = 'authors_bio_holder';
+        // keep holder visually hidden; place after author_list_container
+        const parent = container.parentNode;
+        parent.insertBefore(bioInputsHolder, container.nextSibling);
+        bioInputsHolder.style.display = 'none';
+    }
+
+    // get number of author rows
+    const rows = container.querySelectorAll('.author-row');
+    const count = rows.length;
+
+    // preserve current values if any
+    const prev = Array.from(bioInputsHolder.querySelectorAll('input[type="hidden"], textarea'))
+        .map(el => el.value || '');
+
+    // clear holder then re-create: first entry is visible textarea if exists, else hidden
+    bioInputsHolder.innerHTML = '';
+
+    if (bioMain) {
+        // ensure visible textarea has name authors_bio[]
+        bioMain.name = 'authors_bio[]';
+        // move visible textarea into holder positionally (but keep visual card where it is)
+        // To preserve UI we do NOT move DOM node; instead clone it invisibly as the first authors_bio[] input
+        // but to keep live value, create hidden input that will be synced on submit — easier approach:
+        // create hidden inputs for all entries; we will sync visible bio into first hidden input on submit.
+        // So here create hidden inputs count times.
+        for (let i = 0; i < count; i++) {
+            const hi = document.createElement('input');
+            hi.type = 'hidden';
+            hi.name = 'authors_bio[]';
+            hi.value = prev[i] || '';
+            bioInputsHolder.appendChild(hi);
+        }
+        // show main visible counter (no-op here)
+    } else {
+        // no visible bio, create hidden inputs for each row
+        for (let i = 0; i < count; i++) {
+            const hi = document.createElement('input');
+            hi.type = 'hidden';
+            hi.name = 'authors_bio[]';
+            hi.value = prev[i] || '';
+            bioInputsHolder.appendChild(hi);
+        }
+    }
+}
+
+// Attach synchronization to the form submit: copy visible bio textarea value into first hidden authors_bio[] input
+function tryAttachFormSync() {
+    const container = document.getElementById('author_list_container');
+    if (!container) return;
+    // find closest form (modal form) that contains the author list
+    const form = document.querySelector('#modalInventoryForm') || container.closest('form');
+    if (!form) return;
+
+    // avoid double-binding
+    if (form._authorsBioSyncAttached) return;
+    form._authorsBioSyncAttached = true;
+
+    form.addEventListener('submit', function (e) {
+        // sync visible bio into first hidden input
+        const bioMain = document.getElementById('authors_bio_main');
+        const holder = document.getElementById('authors_bio_holder');
+        if (!holder) return;
+        const hiddenInputs = holder.querySelectorAll('input[name="authors_bio[]"]');
+        if (hiddenInputs.length === 0) return;
+        if (bioMain) {
+            hiddenInputs[0].value = bioMain.value.trim();
+        } else {
+            hiddenInputs[0].value = hiddenInputs[0].value || '';
+        }
+        // ensure number of hidden inputs equals number of author rows
+        const rows = container.querySelectorAll('.author-row');
+        if (hiddenInputs.length !== rows.length) {
+            syncBioInputs();
+            const newHidden = holder.querySelectorAll('input[name="authors_bio[]"]');
+            if (bioMain && newHidden.length) newHidden[0].value = bioMain.value.trim();
+        }
+    });
+}
+
+// Initialize bio textarea word-count handler (visible card)
+function initAuthorBioHandlers() {
+    const bio = document.getElementById('authors_bio_main');
+    const counter = document.getElementById('author_bio_counter');
+    if (!bio || !counter) return;
+    const maxWords = parseInt(bio.getAttribute('data-max-words') || '200', 10);
+    bio.addEventListener('input', function () {
+        const words = this.value.trim().split(/\s+/).filter(Boolean);
+        if (words.length > maxWords) {
+            this.value = words.slice(0, maxWords).join(' ');
+        }
+        const current = this.value.trim() === '' ? 0 : this.value.trim().split(/\s+/).filter(Boolean).length;
+        counter.textContent = `${current}/${maxWords} kata`;
+        counter.classList.toggle('text-danger', current >= maxWords);
+    });
+}
+
+// Initialize authors UI and bio handlers on DOM ready
+document.addEventListener('DOMContentLoaded', function () {
+    try { initAuthorsUI(); } catch (e) { console.error('initAuthorsUI', e); }
+    try { initAuthorBioHandlers(); } catch (e) { console.error('initAuthorBioHandlers', e); }
+});
+
 console.log('[INVENTORY JS] Version 2.0 - Enhanced & Optimized');

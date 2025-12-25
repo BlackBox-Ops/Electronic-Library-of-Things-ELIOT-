@@ -140,3 +140,184 @@ document.addEventListener('DOMContentLoaded', function () {
     // initial apply
     applyFilters();
 });
+
+
+/* PAGINATION SCRIPT (5 rows per page) */
+document.addEventListener('DOMContentLoaded', function () {
+        const rowsPerPage = 5;
+        const mainRows = Array.from(document.querySelectorAll('tr.main-row'));
+        const paginationEl = document.getElementById('inventoryPagination');
+        if (!paginationEl) return;
+
+        const totalItems = mainRows.length;
+        const totalPages = Math.max(1, Math.ceil(totalItems / rowsPerPage));
+
+        function showPage(page) {
+            const start = (page - 1) * rowsPerPage;
+            const end = start + rowsPerPage;
+
+            mainRows.forEach((tr, idx) => {
+                const detail = tr.nextElementSibling && tr.nextElementSibling.classList.contains('detail-row')
+                    ? tr.nextElementSibling
+                    : null;
+
+                if (idx >= start && idx < end) {
+                    tr.classList.remove('d-none');
+                    // restore detail visibility only if previously expanded
+                    if (detail) {
+                        if (detail.dataset.expanded === '1') detail.classList.remove('d-none'); else detail.classList.add('d-none');
+                    }
+                } else {
+                    tr.classList.add('d-none');
+                    if (detail) detail.classList.add('d-none');
+                }
+            });
+
+            // update active page button
+            Array.from(paginationEl.querySelectorAll('li.page-item')).forEach(li => li.classList.remove('active'));
+            const activeBtn = paginationEl.querySelector(`li[data-page="${page}"]`);
+            if (activeBtn) activeBtn.classList.add('active');
+        }
+
+        function buildPagination() {
+            paginationEl.innerHTML = '';
+
+            // Prev
+            const prevLi = document.createElement('li');
+            prevLi.className = 'page-item';
+            prevLi.innerHTML = `<a class="page-link" href="#" aria-label="Previous">&laquo;</a>`;
+            prevLi.addEventListener('click', (e) => { e.preventDefault(); const cur = getCurrentPage(); if (cur > 1) goToPage(cur - 1); });
+            paginationEl.appendChild(prevLi);
+
+            // Pages
+            for (let p = 1; p <= totalPages; p++) {
+                const li = document.createElement('li');
+                li.className = 'page-item';
+                li.dataset.page = p;
+                li.innerHTML = `<a class="page-link" href="#">${p}</a>`;
+                li.addEventListener('click', function (e) {
+                    e.preventDefault();
+                    goToPage(p);
+                });
+                paginationEl.appendChild(li);
+            }
+
+            // Next
+            const nextLi = document.createElement('li');
+            nextLi.className = 'page-item';
+            nextLi.innerHTML = `<a class="page-link" href="#" aria-label="Next">&raquo;</a>`;
+            nextLi.addEventListener('click', (e) => { e.preventDefault(); const cur = getCurrentPage(); if (cur < totalPages) goToPage(cur + 1); });
+            paginationEl.appendChild(nextLi);
+        }
+
+        function getCurrentPage() {
+            const active = paginationEl.querySelector('li.page-item.active');
+            return active ? parseInt(active.dataset.page) : 1;
+        }
+
+        function goToPage(p) {
+            if (p < 1) p = 1;
+            if (p > totalPages) p = totalPages;
+            showPage(p);
+        }
+
+        // Expose toggleRow to keep expand/collapse behavior and mark detail state
+        window.toggleRow = function(rowId) {
+            const detail = document.getElementById(rowId);
+            const icon = document.getElementById('icon-' + rowId.split('-').pop()) || null;
+            if (!detail) return;
+            const isHidden = detail.classList.contains('d-none');
+            if (isHidden) {
+                detail.classList.remove('d-none');
+                detail.dataset.expanded = '1';
+                if (icon) icon.classList.add('rotated');
+            } else {
+                detail.classList.add('d-none');
+                detail.dataset.expanded = '0';
+                if (icon) icon.classList.remove('rotated');
+            }
+        };
+
+        // Initialize
+        buildPagination();
+        goToPage(1);
+});
+
+
+/* RESET UID SCRIPT */
+document.addEventListener('DOMContentLoaded', function(){
+        const btn = document.getElementById('btnResetUID');
+        const statsEl = document.getElementById('stats_uid_available');
+        if (!btn) return;
+
+        btn.addEventListener('click', function(e){
+            e.preventDefault();
+
+            const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+            Swal.fire({
+                title: 'Reset expired UID?',
+                text: 'UID yang "expired" (pending > 5 menit) akan di-reset timestamp-nya. Lanjutkan?',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonText: 'Ya, Reset',
+                cancelButtonText: 'Batal',
+                confirmButtonColor: '#dc3545',
+                customClass: isDark ? { popup: 'swal-dark' } : {}
+            }).then((result) => {
+                if (!result.isConfirmed) return;
+
+                btn.disabled = true;
+                btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Resetting...';
+
+                fetch('../includes/api/reset_expired_uid.php?limit=50', {
+                    method: 'GET',
+                    cache: 'no-store'
+                })
+                .then(res => res.json())
+                .then(data => {
+                    btn.disabled = false;
+                    btn.innerHTML = '<i class="fas fa-undo"></i>';
+
+                    if (data && data.success) {
+                        // update stats if provided
+                        if (statsEl && typeof data.summary !== 'undefined') {
+                            // optimistic: subtract reset_count from displayed available if makes sense
+                            // if API returns reset_count, decrement; otherwise attempt to use debug value
+                            const resetCount = parseInt(data.reset_count || 0);
+                            const current = parseInt(statsEl.textContent.replace(/,/g,'')) || 0;
+                            statsEl.textContent = Intl.NumberFormat().format(Math.max(0, current - resetCount));
+                        }
+
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Selesai',
+                            text: data.message || 'UID expired berhasil di-reset',
+                            confirmButtonColor: '#41644A',
+                            customClass: isDark ? { popup: 'swal-dark' } : {}
+                        });
+                    } else {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Gagal',
+                            text: data.message || 'Reset UID gagal',
+                            confirmButtonColor: '#dc3545',
+                            customClass: isDark ? { popup: 'swal-dark' } : {}
+                        });
+                    }
+                })
+                .catch(err => {
+                    console.error('[RESET UID ERROR]', err);
+                    btn.disabled = false;
+                    btn.innerHTML = '<i class="fas fa-undo"></i>';
+                    const isDarkInner = document.documentElement.getAttribute('data-theme') === 'dark';
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error',
+                        text: 'Terjadi masalah saat menghubungi server',
+                        confirmButtonColor: '#dc3545',
+                        customClass: isDarkInner ? { popup: 'swal-dark' } : {}
+                    });
+                });
+            });
+        });
+});

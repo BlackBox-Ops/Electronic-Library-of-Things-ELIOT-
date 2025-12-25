@@ -106,9 +106,7 @@ try {
                 'suggestions' => [
                     'Pastikan RFID tag sudah di-scan pada reader ESP32',
                     'Cek apakah data masuk ke tabel uid_buffer (jenis=pending, is_labeled=no)',
-                    'Cronjob invalidate_old_uid.py sudah berjalan? (untuk bersihkan UID expired)',
                     'UID belum pernah digunakan sebelumnya',
-                    'Waktu sistem server dan ESP32 sinkron?'
                 ],
                 'timestamp_now' => date('Y-m-d H:i:s'),
                 'time_limit_check' => 'timestamp >= NOW() - INTERVAL 5 MINUTE'
