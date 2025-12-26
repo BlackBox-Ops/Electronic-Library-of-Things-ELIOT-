@@ -1,0 +1,555 @@
+/**
+ * Preview Book Page - Clean & Modern Design
+ * Path: web/apps/assets/css/preview.css
+ * Dark Mode Adaptive | Responsive | Tab-Based Layout
+ */
+
+/* ========================================
+   COLOR VARIABLES
+   ======================================== */
+:root {
+    --bgBody: #f5f7f9;
+    --bgCard: #ffffff;
+    --bgHeader: #ffffff;
+    --textPrimary: #212529;
+    --textSecondary: #6c757d;
+    --borderColor: #e9ecef;
+    --bgTabActive: #f8f9fa;
+    --colorGreenPrimary: #628141;
+    --colorGreenHover: #6e9149;
+    --shadowColor: rgba(0, 0, 0, 0.08);
+    --starColor: #ffc107;
+}
+
+[data-theme="dark"] {
+    --bgBody: #0d0d0d;
+    --bgCard: #1a1a1a;
+    --bgHeader: #1e1e1e;
+    --textPrimary: #e8e8e8;
+    --textSecondary: #a0a0a0;
+    --borderColor: #2a2a2a;
+    --bgTabActive: #252525;
+    --colorGreenPrimary: #8BA76C;
+    --colorGreenHover: #9db87d;
+    --shadowColor: rgba(0, 0, 0, 0.4);
+    --starColor: #ffb300;
+}
+
+/* ========================================
+   BASE STYLES
+   ======================================== */
+body {
+    background-color: var(--bgBody);
+    color: var(--textPrimary);
+    transition: background 0.3s ease, color 0.3s ease;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+/* ========================================
+   HEADER SECTION - Always Visible
+   ======================================== */
+.preview-header {
+    background: var(--bgHeader);
+    border-bottom: 2px solid var(--borderColor);
+    padding: 2rem 0;
+    margin-bottom: 2rem;
+    box-shadow: 0 2px 12px var(--shadowColor);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+}
+
+.book-cover-img {
+    width: 180px;
+    height: 260px;
+    object-fit: cover;
+    border-radius: 12px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+    border: 3px solid var(--borderColor);
+}
+
+.book-cover-placeholder {
+    width: 180px;
+    height: 260px;
+    background: linear-gradient(135deg, var(--colorGreenPrimary) 0%, var(--colorGreenHover) 100%);
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 4rem;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+}
+
+.book-title {
+    font-size: 2rem;
+    font-weight: 800;
+    color: var(--textPrimary);
+    margin-bottom: 0.5rem;
+    line-height: 1.3;
+}
+
+.book-meta {
+    font-size: 0.95rem;
+    color: var(--textSecondary);
+    margin-bottom: 1rem;
+}
+
+.book-meta span {
+    margin-right: 1.5rem;
+    display: inline-flex;
+    align-items: center;
+}
+
+.book-meta i {
+    margin-right: 0.5rem;
+    color: var(--colorGreenPrimary);
+}
+
+/* Rating Stars */
+.rating-display {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+}
+
+.stars {
+    display: flex;
+    gap: 0.25rem;
+}
+
+.star {
+    color: #ddd;
+    font-size: 1.5rem;
+    transition: color 0.2s ease;
+}
+
+.star.filled {
+    color: var(--starColor);
+}
+
+.rating-number {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: var(--textPrimary);
+    margin-left: 0.5rem;
+}
+
+.rating-count {
+    font-size: 0.9rem;
+    color: var(--textSecondary);
+}
+
+/* Category Badge */
+.badge-category {
+    background-color: var(--colorGreenPrimary);
+    color: white;
+    padding: 0.4rem 1rem;
+    border-radius: 20px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+}
+
+/* ========================================
+   TAB NAVIGATION
+   ======================================== */
+.nav-tabs {
+    border-bottom: 2px solid var(--borderColor);
+    margin-bottom: 2rem;
+    background: var(--bgCard);
+    padding: 0 1rem;
+    border-radius: 12px 12px 0 0;
+}
+
+.nav-tabs .nav-link {
+    color: var(--textSecondary);
+    border: none;
+    padding: 1rem 1.5rem;
+    font-weight: 600;
+    font-size: 0.95rem;
+    transition: all 0.3s ease;
+    position: relative;
+}
+
+.nav-tabs .nav-link:hover {
+    color: var(--colorGreenPrimary);
+    background-color: transparent;
+}
+
+.nav-tabs .nav-link.active {
+    color: var(--colorGreenPrimary);
+    background-color: transparent;
+    border-bottom: 3px solid var(--colorGreenPrimary);
+}
+
+.nav-tabs .nav-link i {
+    margin-right: 0.5rem;
+    font-size: 1rem;
+}
+
+/* ========================================
+   TAB CONTENT
+   ======================================== */
+.tab-pane {
+    animation: fadeIn 0.4s ease-in-out;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* ========================================
+   CARD STYLES
+   ======================================== */
+.card {
+    background: var(--bgCard);
+    border: 1px solid var(--borderColor);
+    border-radius: 12px;
+    box-shadow: 0 2px 8px var(--shadowColor);
+    margin-bottom: 1.5rem;
+    transition: all 0.3s ease;
+}
+
+.card:hover {
+    box-shadow: 0 4px 16px var(--shadowColor);
+}
+
+.card-header {
+    background: transparent;
+    border-bottom: 1px solid var(--borderColor);
+    padding: 1rem 1.5rem;
+    font-weight: 700;
+    font-size: 1.1rem;
+    color: var(--textPrimary);
+}
+
+.card-body {
+    padding: 1.5rem;
+}
+
+/* ========================================
+   OVERVIEW TAB STYLES
+   ======================================== */
+.info-row {
+    display: flex;
+    padding: 0.75rem 0;
+    border-bottom: 1px solid var(--borderColor);
+}
+
+.info-row:last-child {
+    border-bottom: none;
+}
+
+.info-label {
+    flex: 0 0 200px;
+    font-weight: 600;
+    color: var(--textSecondary);
+}
+
+.info-value {
+    flex: 1;
+    color: var(--textPrimary);
+}
+
+.description-text {
+    line-height: 1.8;
+    color: var(--textPrimary);
+    text-align: justify;
+}
+
+/* Author Card in Overview */
+.author-inline {
+    display: flex;
+    gap: 1rem;
+    padding: 1rem;
+    background: var(--bgTabActive);
+    border-radius: 8px;
+    margin-bottom: 1rem;
+    border-left: 4px solid var(--colorGreenPrimary);
+}
+
+.author-inline .author-name {
+    font-weight: 700;
+    color: var(--colorGreenPrimary);
+    margin-bottom: 0.25rem;
+}
+
+.author-inline .author-role {
+    font-size: 0.85rem;
+    color: var(--textSecondary);
+    margin-bottom: 0.5rem;
+}
+
+.author-inline .author-bio {
+    font-size: 0.9rem;
+    color: var(--textPrimary);
+    line-height: 1.6;
+}
+
+/* Publisher Info in Overview */
+.publisher-info {
+    background: var(--bgTabActive);
+    padding: 1rem;
+    border-radius: 8px;
+    border-left: 4px solid var(--colorGreenPrimary);
+}
+
+.publisher-info h6 {
+    font-weight: 700;
+    color: var(--colorGreenPrimary);
+    margin-bottom: 0.75rem;
+}
+
+.publisher-info p {
+    margin-bottom: 0.5rem;
+    color: var(--textPrimary);
+}
+
+.publisher-info i {
+    color: var(--colorGreenPrimary);
+    width: 20px;
+}
+
+/* ========================================
+   EKSEMPLAR TAB - TABLE
+   ======================================== */
+.table {
+    color: var(--textPrimary);
+    border-color: var(--borderColor);
+}
+
+.table thead th {
+    background: var(--bgTabActive);
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    color: var(--textSecondary);
+    border: none;
+    padding: 1rem;
+    font-weight: 700;
+}
+
+.table tbody tr {
+    border-bottom: 1px solid var(--borderColor);
+    transition: all 0.2s ease;
+}
+
+.table tbody tr:hover {
+    background-color: rgba(98, 129, 65, 0.08);
+}
+
+.table td {
+    padding: 1rem;
+    vertical-align: middle;
+}
+
+/* Filter Buttons */
+.filter-buttons {
+    display: flex;
+    gap: 0.5rem;
+    margin-bottom: 1.5rem;
+    flex-wrap: wrap;
+}
+
+.filter-btn {
+    padding: 0.5rem 1rem;
+    border-radius: 20px;
+    border: 2px solid var(--borderColor);
+    background: transparent;
+    color: var(--textSecondary);
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.filter-btn:hover {
+    border-color: var(--colorGreenPrimary);
+    color: var(--colorGreenPrimary);
+}
+
+.filter-btn.active {
+    background: var(--colorGreenPrimary);
+    color: white;
+    border-color: var(--colorGreenPrimary);
+}
+
+/* Badges */
+.badge {
+    padding: 0.4rem 0.8rem;
+    border-radius: 6px;
+    font-weight: 600;
+    font-size: 0.8rem;
+}
+
+.badge-success { background: #28a745; color: white; }
+.badge-warning { background: #ffc107; color: #212529; }
+.badge-danger { background: #dc3545; color: white; }
+.badge-secondary { background: #6c757d; color: white; }
+
+/* ========================================
+   STATISTIK TAB
+   ======================================== */
+.stat-card {
+    text-align: center;
+    padding: 1.5rem;
+    background: var(--bgCard);
+    border: 2px solid var(--borderColor);
+    border-radius: 12px;
+    transition: all 0.3s ease;
+}
+
+.stat-card:hover {
+    border-color: var(--colorGreenPrimary);
+    box-shadow: 0 4px 16px var(--shadowColor);
+}
+
+.stat-number {
+    font-size: 2.5rem;
+    font-weight: 800;
+    color: var(--colorGreenPrimary);
+    margin-bottom: 0.5rem;
+}
+
+.stat-label {
+    font-size: 0.9rem;
+    color: var(--textSecondary);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    font-weight: 600;
+}
+
+/* Rating Breakdown */
+.rating-breakdown {
+    margin-top: 2rem;
+}
+
+.rating-bar-row {
+    display: flex;
+    align-items: center;
+    margin-bottom: 0.75rem;
+}
+
+.rating-bar-label {
+    flex: 0 0 80px;
+    font-weight: 600;
+    color: var(--textSecondary);
+}
+
+.rating-bar-container {
+    flex: 1;
+    height: 24px;
+    background: var(--bgTabActive);
+    border-radius: 12px;
+    overflow: hidden;
+    margin: 0 1rem;
+}
+
+.rating-bar-fill {
+    height: 100%;
+    background: var(--starColor);
+    transition: width 0.6s ease;
+    border-radius: 12px;
+}
+
+.rating-bar-count {
+    flex: 0 0 50px;
+    text-align: right;
+    font-weight: 600;
+    color: var(--textPrimary);
+}
+
+/* ========================================
+   RESPONSIVE
+   ======================================== */
+@media (max-width: 768px) {
+    .book-cover-img,
+    .book-cover-placeholder {
+        width: 140px;
+        height: 200px;
+    }
+
+    .book-title {
+        font-size: 1.5rem;
+    }
+
+    .nav-tabs .nav-link {
+        padding: 0.75rem 1rem;
+        font-size: 0.85rem;
+    }
+
+    .info-row {
+        flex-direction: column;
+    }
+
+    .info-label {
+        margin-bottom: 0.25rem;
+    }
+
+    .stat-number {
+        font-size: 2rem;
+    }
+}
+
+/* ========================================
+   UTILITIES
+   ======================================== */
+.text-green {
+    color: var(--colorGreenPrimary) !important;
+}
+
+.bg-green-light {
+    background-color: rgba(98, 129, 65, 0.1) !important;
+}
+
+code {
+    background: rgba(98, 129, 65, 0.12);
+    color: var(--colorGreenPrimary);
+    padding: 0.2rem 0.4rem;
+    border-radius: 4px;
+    font-family: 'Courier New', monospace;
+    font-size: 0.9em;
+}
+
+/* Empty State */
+.empty-state {
+    text-align: center;
+    padding: 3rem 1rem;
+    color: var(--textSecondary);
+}
+
+.empty-state i {
+    font-size: 4rem;
+    opacity: 0.3;
+    margin-bottom: 1rem;
+}
+
+/* Back Button */
+.btn-back {
+    background: transparent;
+    border: 2px solid var(--borderColor);
+    color: var(--textPrimary);
+    padding: 0.5rem 1.25rem;
+    border-radius: 8px;
+    font-weight: 600;
+    transition: all 0.3s ease;
+}
+
+.btn-back:hover {
+    border-color: var(--colorGreenPrimary);
+    color: var(--colorGreenPrimary);
+    background: transparent;
+}
+
+.btn-back i {
+    margin-right: 0.5rem;
+}
