@@ -1,0 +1,778 @@
+/**
+ * modal-dark-mode.css
+ * Path: web/apps/assets/css/modal-dark-mode.css
+ * 
+ * Purpose: Dark mode support untuk SweetAlert2 modals (Tab 2 & Tab 3)
+ * Fitur:
+ * ✅ Dark mode untuk modal Tambah Penulis
+ * ✅ Dark mode untuk modal Tambah Eksemplar
+ * ✅ Compact button sizing untuk semua modal
+ * ✅ Form controls adaptive dark/light mode
+ * ✅ Dropdown dan select styling
+ */
+
+/* ========================================
+   CSS VARIABLES - DARK MODE
+   ======================================== */
+:root {
+    --modal-bg-light: #ffffff;
+    --modal-text-light: #212529;
+    --modal-border-light: #dee2e6;
+    --modal-input-bg-light: #ffffff;
+    --modal-input-border-light: #ced4da;
+    --modal-badge-bg-light: #f1f3f5;
+    --modal-badge-text-light: #212529;
+    --modal-shadow-light: rgba(0, 0, 0, 0.15);
+}
+
+[data-theme="dark"] {
+    --modal-bg-dark: #1e1e1e;
+    --modal-text-dark: #e0e0e0;
+    --modal-border-dark: #3a3a3a;
+    --modal-input-bg-dark: #121212;
+    --modal-input-border-dark: #404040;
+    --modal-badge-bg-dark: #2d2d2d;
+    --modal-badge-text-dark: #f8f9fa;
+    --modal-shadow-dark: rgba(255, 255, 255, 0.1);
+}
+
+/* ========================================
+   SWEETALERT2 MODAL - DARK MODE BASE
+   ======================================== */
+
+/* Light Mode */
+.swal2-popup {
+    background: var(--modal-bg-light) !important;
+    color: var(--modal-text-light) !important;
+    border: 1px solid var(--modal-border-light) !important;
+    box-shadow: 0 10px 40px var(--modal-shadow-light) !important;
+    border-radius: 16px !important;
+}
+
+.swal2-title {
+    color: var(--modal-text-light) !important;
+    font-size: 1.25rem !important;
+    font-weight: 700 !important;
+}
+
+.swal2-html-container {
+    color: var(--modal-text-light) !important;
+    font-size: 0.95rem !important;
+}
+
+/* Dark Mode Override */
+[data-theme="dark"] .swal2-popup {
+    background: var(--modal-bg-dark) !important;
+    color: var(--modal-text-dark) !important;
+    border: 1px solid var(--modal-border-dark) !important;
+    box-shadow: 0 10px 40px var(--modal-shadow-dark) !important;
+}
+
+[data-theme="dark"] .swal2-title {
+    color: var(--modal-text-dark) !important;
+}
+
+[data-theme="dark"] .swal2-html-container {
+    color: var(--modal-text-dark) !important;
+}
+
+/* ========================================
+   FORM CONTROLS INSIDE MODAL - DARK MODE
+   ======================================== */
+
+/* Light Mode */
+.swal2-popup .form-control,
+.swal2-popup .form-select,
+.swal2-popup textarea {
+    background-color: var(--modal-input-bg-light) !important;
+    border: 1px solid var(--modal-input-border-light) !important;
+    color: var(--modal-text-light) !important;
+    border-radius: 8px !important;
+    padding: 0.5rem 0.75rem !important;
+    font-size: 0.9rem !important;
+    transition: all 0.2s ease !important;
+}
+
+.swal2-popup .form-control:focus,
+.swal2-popup .form-select:focus,
+.swal2-popup textarea:focus {
+    border-color: #628141 !important;
+    box-shadow: 0 0 0 0.2rem rgba(98, 129, 65, 0.15) !important;
+    outline: none !important;
+}
+
+.swal2-popup .form-control::placeholder {
+    color: #6c757d !important;
+    opacity: 0.7 !important;
+}
+
+/* Dark Mode */
+[data-theme="dark"] .swal2-popup .form-control,
+[data-theme="dark"] .swal2-popup .form-select,
+[data-theme="dark"] .swal2-popup textarea {
+    background-color: var(--modal-input-bg-dark) !important;
+    border: 1px solid var(--modal-input-border-dark) !important;
+    color: var(--modal-text-dark) !important;
+}
+
+[data-theme="dark"] .swal2-popup .form-control::placeholder {
+    color: #9e9e9e !important;
+}
+
+[data-theme="dark"] .swal2-popup .form-control:focus,
+[data-theme="dark"] .swal2-popup .form-select:focus,
+[data-theme="dark"] .swal2-popup textarea:focus {
+    border-color: #8BA76C !important;
+    box-shadow: 0 0 0 0.2rem rgba(139, 167, 108, 0.25) !important;
+}
+
+/* ========================================
+   SELECT DROPDOWN OPTIONS - DARK MODE
+   ======================================== */
+
+/* Light Mode */
+.swal2-popup select option {
+    background-color: var(--modal-input-bg-light) !important;
+    color: var(--modal-text-light) !important;
+}
+
+/* Dark Mode */
+[data-theme="dark"] .swal2-popup select option {
+    background-color: var(--modal-input-bg-dark) !important;
+    color: var(--modal-text-dark) !important;
+}
+
+/* ========================================
+   FORM LABELS - DARK MODE
+   ======================================== */
+
+/* Light Mode */
+.swal2-popup .form-label {
+    color: var(--modal-text-light) !important;
+    font-weight: 600 !important;
+    font-size: 0.875rem !important;
+    margin-bottom: 0.4rem !important;
+}
+
+/* Dark Mode */
+[data-theme="dark"] .swal2-popup .form-label {
+    color: var(--modal-text-dark) !important;
+}
+
+/* ========================================
+   TEXT UTILITIES - DARK MODE
+   ======================================== */
+
+/* Light Mode */
+.swal2-popup .text-muted,
+.swal2-popup small {
+    color: #6c757d !important;
+}
+
+/* Dark Mode */
+[data-theme="dark"] .swal2-popup .text-muted,
+[data-theme="dark"] .swal2-popup small {
+    color: #9e9e9e !important;
+}
+
+/* ========================================
+   ALERTS INSIDE MODAL - DARK MODE
+   ======================================== */
+
+/* Alert Info */
+.swal2-popup .alert-info {
+    background-color: rgba(13, 110, 253, 0.1) !important;
+    border: 1px solid rgba(13, 110, 253, 0.2) !important;
+    color: var(--modal-text-light) !important;
+    border-radius: 10px !important;
+    padding: 0.75rem 1rem !important;
+}
+
+[data-theme="dark"] .swal2-popup .alert-info {
+    background-color: rgba(13, 110, 253, 0.2) !important;
+    border-color: rgba(13, 110, 253, 0.3) !important;
+    color: var(--modal-text-dark) !important;
+}
+
+/* Alert Success */
+.swal2-popup .alert-success {
+    background-color: rgba(25, 135, 84, 0.1) !important;
+    border: 1px solid rgba(25, 135, 84, 0.2) !important;
+    color: var(--modal-text-light) !important;
+    border-radius: 10px !important;
+}
+
+[data-theme="dark"] .swal2-popup .alert-success {
+    background-color: rgba(25, 135, 84, 0.2) !important;
+    border-color: rgba(25, 135, 84, 0.3) !important;
+    color: var(--modal-text-dark) !important;
+}
+
+/* Alert Warning */
+.swal2-popup .alert-warning {
+    background-color: rgba(255, 193, 7, 0.1) !important;
+    border: 1px solid rgba(255, 193, 7, 0.2) !important;
+    color: var(--modal-text-light) !important;
+    border-radius: 10px !important;
+}
+
+[data-theme="dark"] .swal2-popup .alert-warning {
+    background-color: rgba(255, 193, 7, 0.2) !important;
+    border-color: rgba(255, 193, 7, 0.3) !important;
+    color: var(--modal-text-dark) !important;
+}
+
+/* ========================================
+   BADGES INSIDE MODAL - DARK MODE
+   ======================================== */
+
+/* Light Mode */
+.swal2-popup .badge {
+    font-size: 0.75rem !important;
+    padding: 0.35em 0.65em !important;
+    border-radius: 6px !important;
+    font-weight: 600 !important;
+}
+
+.swal2-popup .badge.bg-primary {
+    background-color: #0d6efd !important;
+    color: #ffffff !important;
+}
+
+.swal2-popup .badge.bg-secondary {
+    background-color: #6c757d !important;
+    color: #ffffff !important;
+}
+
+.swal2-popup .badge.bg-success {
+    background-color: #198754 !important;
+    color: #ffffff !important;
+}
+
+.swal2-popup .badge.bg-info {
+    background-color: #0dcaf0 !important;
+    color: #000000 !important;
+}
+
+/* Dark Mode */
+[data-theme="dark"] .swal2-popup .badge.bg-primary {
+    background-color: #0a58ca !important;
+}
+
+[data-theme="dark"] .swal2-popup .badge.bg-secondary {
+    background-color: #565e64 !important;
+}
+
+[data-theme="dark"] .swal2-popup .badge.bg-success {
+    background-color: #157347 !important;
+}
+
+[data-theme="dark"] .swal2-popup .badge.bg-info {
+    background-color: #087990 !important;
+    color: #ffffff !important;
+}
+
+/* ========================================
+   BUTTONS INSIDE MODAL - COMPACT & MINI
+   ======================================== */
+
+/* Confirm Button (Primary/Green) */
+.swal2-confirm {
+    background-color: #628141 !important;
+    color: #ffffff !important;
+    border: none !important;
+    border-radius: 8px !important;
+    padding: 0.5rem 1.25rem !important;
+    font-size: 0.875rem !important;
+    font-weight: 600 !important;
+    transition: all 0.2s ease !important;
+}
+
+.swal2-confirm:hover {
+    background-color: #6f924a !important;
+    transform: translateY(-1px) !important;
+    box-shadow: 0 4px 12px rgba(98, 129, 65, 0.3) !important;
+}
+
+.swal2-confirm:active {
+    transform: translateY(0) !important;
+}
+
+/* Cancel Button */
+.swal2-cancel {
+    background-color: #6c757d !important;
+    color: #ffffff !important;
+    border: none !important;
+    border-radius: 8px !important;
+    padding: 0.5rem 1.25rem !important;
+    font-size: 0.875rem !important;
+    font-weight: 600 !important;
+    transition: all 0.2s ease !important;
+}
+
+.swal2-cancel:hover {
+    background-color: #5a6268 !important;
+    transform: translateY(-1px) !important;
+}
+
+/* Dark Mode Button Adjustments */
+[data-theme="dark"] .swal2-confirm {
+    background-color: #8BA76C !important;
+}
+
+[data-theme="dark"] .swal2-confirm:hover {
+    background-color: #9db87d !important;
+}
+
+/* Mini Buttons inside Modal Content */
+.swal2-popup .btn-mini {
+    padding: 0.3rem 0.6rem !important;
+    font-size: 0.75rem !important;
+    border-radius: 6px !important;
+    font-weight: 500 !important;
+    transition: all 0.2s ease !important;
+}
+
+.swal2-popup .btn-mini:hover {
+    transform: translateY(-1px) !important;
+}
+
+.swal2-popup .btn-sm {
+    padding: 0.4rem 0.8rem !important;
+    font-size: 0.8rem !important;
+    border-radius: 6px !important;
+}
+
+/* Icon sizing in buttons */
+.swal2-popup .btn i.fas,
+.swal2-popup .btn i.far {
+    font-size: 0.85rem !important;
+    margin-right: 0.3rem !important;
+}
+
+/* ========================================
+   LIST GROUPS INSIDE MODAL - DARK MODE
+   ======================================== */
+
+/* Light Mode */
+.swal2-popup .list-group {
+    border-radius: 10px !important;
+    overflow: hidden !important;
+}
+
+.swal2-popup .list-group-item {
+    background-color: var(--modal-bg-light) !important;
+    border: 1px solid var(--modal-border-light) !important;
+    color: var(--modal-text-light) !important;
+    padding: 0.75rem 1rem !important;
+    transition: all 0.2s ease !important;
+}
+
+.swal2-popup .list-group-item:hover {
+    background-color: rgba(98, 129, 65, 0.05) !important;
+}
+
+/* Dark Mode */
+[data-theme="dark"] .swal2-popup .list-group-item {
+    background-color: var(--modal-bg-dark) !important;
+    border-color: var(--modal-border-dark) !important;
+    color: var(--modal-text-dark) !important;
+}
+
+[data-theme="dark"] .swal2-popup .list-group-item:hover {
+    background-color: rgba(139, 167, 108, 0.1) !important;
+}
+
+/* ========================================
+   CONTAINERS & DIVS INSIDE MODAL
+   ======================================== */
+
+/* Light Mode */
+.swal2-popup .border {
+    border-color: var(--modal-border-light) !important;
+}
+
+.swal2-popup .bg-light {
+    background-color: #f8f9fa !important;
+}
+
+.swal2-popup .rounded {
+    border-radius: 10px !important;
+}
+
+/* Dark Mode */
+[data-theme="dark"] .swal2-popup .border {
+    border-color: var(--modal-border-dark) !important;
+}
+
+[data-theme="dark"] .swal2-popup .bg-light {
+    background-color: #2d2d2d !important;
+}
+
+/* ========================================
+   SCAN RESULTS CONTAINER (Tab 3 - Eksemplar)
+   ======================================== */
+
+#scan_results_container {
+    max-height: 300px !important;
+    overflow-y: auto !important;
+    padding: 1rem !important;
+    border-radius: 10px !important;
+    border: 2px dashed var(--modal-border-light) !important;
+    background-color: #f8f9fa !important;
+}
+
+[data-theme="dark"] #scan_results_container {
+    border-color: var(--modal-border-dark) !important;
+    background-color: #2d2d2d !important;
+}
+
+/* Empty state icon */
+#scan_results_container .fa-barcode {
+    color: #6c757d !important;
+}
+
+[data-theme="dark"] #scan_results_container .fa-barcode {
+    color: #9e9e9e !important;
+}
+
+/* Scan count badge */
+#scan_count_badge {
+    font-size: 0.85rem !important;
+    padding: 0.4rem 0.8rem !important;
+    border-radius: 6px !important;
+}
+
+/* ========================================
+   CODE BLOCKS INSIDE MODAL
+   ======================================== */
+
+.swal2-popup code {
+    background-color: rgba(98, 129, 65, 0.1) !important;
+    color: #628141 !important;
+    padding: 0.2rem 0.5rem !important;
+    border-radius: 4px !important;
+    font-family: 'Courier New', Courier, monospace !important;
+    font-size: 0.85em !important;
+}
+
+[data-theme="dark"] .swal2-popup code {
+    background-color: rgba(139, 167, 108, 0.15) !important;
+    color: #8BA76C !important;
+}
+
+/* ========================================
+   CLOSE BUTTON (X) - DARK MODE
+   ======================================== */
+
+.swal2-close {
+    color: var(--modal-text-light) !important;
+    opacity: 0.6 !important;
+    transition: all 0.2s ease !important;
+}
+
+.swal2-close:hover {
+    color: #dc3545 !important;
+    opacity: 1 !important;
+}
+
+[data-theme="dark"] .swal2-close {
+    color: var(--modal-text-dark) !important;
+}
+
+/* ========================================
+   INPUT NUMBER CONTROLS
+   ======================================== */
+
+.swal2-popup input[type="number"] {
+    -moz-appearance: textfield !important;
+    -webkit-appearance: textfield !important;
+    appearance: textfield !important;
+}
+
+.swal2-popup input[type="number"]::-webkit-inner-spin-button,
+.swal2-popup input[type="number"]::-webkit-outer-spin-button {
+    opacity: 1 !important;
+}
+
+/* ========================================
+   SCROLLBAR STYLING FOR MODAL
+   ======================================== */
+
+.swal2-popup ::-webkit-scrollbar {
+    width: 8px !important;
+    height: 8px !important;
+}
+
+.swal2-popup ::-webkit-scrollbar-track {
+    background: var(--modal-border-light) !important;
+    border-radius: 4px !important;
+}
+
+.swal2-popup ::-webkit-scrollbar-thumb {
+    background: #628141 !important;
+    border-radius: 4px !important;
+}
+
+.swal2-popup ::-webkit-scrollbar-thumb:hover {
+    background: #6f924a !important;
+}
+
+[data-theme="dark"] .swal2-popup ::-webkit-scrollbar-track {
+    background: var(--modal-border-dark) !important;
+}
+
+[data-theme="dark"] .swal2-popup ::-webkit-scrollbar-thumb {
+    background: #8BA76C !important;
+}
+
+[data-theme="dark"] .swal2-popup ::-webkit-scrollbar-thumb:hover {
+    background: #9db87d !important;
+}
+
+/* ========================================
+   LOADING SPINNER - DARK MODE
+   ======================================== */
+
+.swal2-popup .spinner-border {
+    width: 2rem !important;
+    height: 2rem !important;
+    border-width: 0.25rem !important;
+}
+
+.swal2-popup .spinner-border-sm {
+    width: 1rem !important;
+    height: 1rem !important;
+    border-width: 0.15rem !important;
+}
+
+[data-theme="dark"] .swal2-popup .spinner-border {
+    border-color: #8BA76C !important;
+    border-right-color: transparent !important;
+}
+
+/* ========================================
+   HIDDEN FIELDS CONTAINER
+   ======================================== */
+
+.swal2-popup .d-none {
+    display: none !important;
+}
+
+/* ========================================
+   RESPONSIVE ADJUSTMENTS
+   ======================================== */
+
+@media (max-width: 768px) {
+    .swal2-popup {
+        width: 95% !important;
+        padding: 1.5rem !important;
+    }
+    
+    .swal2-title {
+        font-size: 1.1rem !important;
+    }
+    
+    .swal2-html-container {
+        font-size: 0.85rem !important;
+    }
+    
+    .swal2-confirm,
+    .swal2-cancel {
+        padding: 0.45rem 1rem !important;
+        font-size: 0.8rem !important;
+    }
+    
+    .swal2-popup .form-control,
+    .swal2-popup .form-select,
+    .swal2-popup textarea {
+        font-size: 0.85rem !important;
+        padding: 0.45rem 0.6rem !important;
+    }
+}
+
+/* ========================================
+   ANIMATION - FADE IN
+   ======================================== */
+
+@keyframes swal-fade-in {
+    from {
+        opacity: 0;
+        transform: scale(0.95);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+.swal2-show {
+    animation: swal-fade-in 0.2s ease-out !important;
+}
+
+/* ========================================
+   CUSTOM VALIDATION MESSAGE
+   ======================================== */
+
+.swal2-validation-message {
+    background-color: rgba(220, 53, 69, 0.1) !important;
+    border: 1px solid rgba(220, 53, 69, 0.3) !important;
+    color: #dc3545 !important;
+    border-radius: 8px !important;
+    padding: 0.5rem !important;
+    font-size: 0.85rem !important;
+}
+
+[data-theme="dark"] .swal2-validation-message {
+    background-color: rgba(220, 53, 69, 0.2) !important;
+    border-color: rgba(220, 53, 69, 0.4) !important;
+    color: #ff6b6b !important;
+}
+
+/* ========================================
+   CHARACTER COUNTER STYLING
+   ======================================== */
+
+#swal_bio_counter,
+#edit_bio_counter {
+    font-size: 0.8rem !important;
+    color: #6c757d !important;
+    font-weight: 600 !important;
+    margin-top: 0.25rem !important;
+}
+
+[data-theme="dark"] #swal_bio_counter,
+[data-theme="dark"] #edit_bio_counter {
+    color: #9e9e9e !important;
+}
+
+/* Counter turns red when limit reached */
+#swal_bio_counter.text-danger,
+#edit_bio_counter.text-danger {
+    color: #dc3545 !important;
+}
+
+/* ========================================
+   SPECIFIC STYLING FOR TAB 2 (AUTHORS)
+   ======================================== */
+
+/* Author select dropdown */
+#swal_author_select,
+#swal_author_role {
+    height: 42px !important;
+    padding: 0.5rem 0.75rem !important;
+}
+
+/* New author fields container */
+#swal_new_author_fields {
+    padding: 1rem !important;
+    background-color: rgba(98, 129, 65, 0.05) !important;
+    border-radius: 10px !important;
+    border: 1px solid var(--modal-border-light) !important;
+    margin-top: 0.5rem !important;
+}
+
+[data-theme="dark"] #swal_new_author_fields {
+    background-color: rgba(139, 167, 108, 0.08) !important;
+    border-color: var(--modal-border-dark) !important;
+}
+
+/* ========================================
+   SPECIFIC STYLING FOR TAB 3 (EKSEMPLAR)
+   ======================================== */
+
+/* Jumlah unit input */
+#swal_jumlah_unit {
+    height: 44px !important;
+    font-size: 1rem !important;
+    font-weight: 600 !important;
+    text-align: center !important;
+}
+
+/* Scan button */
+.swal2-popup .btn-lg {
+    padding: 0.75rem 2rem !important;
+    font-size: 1rem !important;
+    border-radius: 10px !important;
+}
+
+/* ========================================
+   UTILITY CLASSES
+   ======================================== */
+
+.swal2-popup .fw-bold {
+    font-weight: 700 !important;
+}
+
+.swal2-popup .fw-semibold {
+    font-weight: 600 !important;
+}
+
+.swal2-popup .opacity-50 {
+    opacity: 0.5 !important;
+}
+
+/* Text colors */
+.swal2-popup .text-primary {
+    color: #628141 !important;
+}
+
+.swal2-popup .text-secondary {
+    color: #6c757d !important;
+}
+
+.swal2-popup .text-success {
+    color: #198754 !important;
+}
+
+.swal2-popup .text-danger {
+    color: #dc3545 !important;
+}
+
+.swal2-popup .text-warning {
+    color: #ffc107 !important;
+}
+
+.swal2-popup .text-info {
+    color: #0dcaf0 !important;
+}
+
+/* Dark mode text colors */
+[data-theme="dark"] .swal2-popup .text-primary {
+    color: #8BA76C !important;
+}
+
+[data-theme="dark"] .swal2-popup .text-secondary {
+    color: #9e9e9e !important;
+}
+
+/* ========================================
+   FIX: Ensure all text is visible in dark mode
+   ======================================== */
+
+[data-theme="dark"] .swal2-popup * {
+    color: inherit !important;
+}
+
+[data-theme="dark"] .swal2-popup h1,
+[data-theme="dark"] .swal2-popup h2,
+[data-theme="dark"] .swal2-popup h3,
+[data-theme="dark"] .swal2-popup h4,
+[data-theme="dark"] .swal2-popup h5,
+[data-theme="dark"] .swal2-popup h6,
+[data-theme="dark"] .swal2-popup p,
+[data-theme="dark"] .swal2-popup span,
+[data-theme="dark"] .swal2-popup div {
+    color: var(--modal-text-dark) !important;
+}
+
+/* Exception for icons (keep their colors) */
+[data-theme="dark"] .swal2-popup .fas,
+[data-theme="dark"] .swal2-popup .far,
+[data-theme="dark"] .swal2-popup .fab {
+    color: currentColor !important;
+}
+
+/* ========================================
+   END OF MODAL DARK MODE CSS
+   ======================================== */

@@ -1,31 +1,507 @@
 /**
- * edit_inventory.js - FIXED & ENHANCED VERSION
+ * edit_inventory.js - ENHANCED VERSION with Multiple Authors
  * Path: web/apps/assets/js/edit_inventory.js
  * 
  * NEW FEATURES:
- * ✅ Fixed delete eksemplar functionality
- * ✅ Added "Tambah Eksemplar Baru" with RFID scan
- * ✅ Integration with AddEksemplarController.php
- * ✅ Real-time UID checking via check_latest_uid.php
- * ✅ Auto-generate kode eksemplar
- * ✅ Enhanced error handling
+ * ✅ Multiple authors dengan role selection
+ * ✅ Add/Edit/Remove authors functionality
+ * ✅ Publisher fields always visible (tidak hidden)
+ * ✅ Flexible author management
+ * ✅ All previous features preserved
  */
 
 // ========================================
 // GLOBAL STATE
 // ========================================
-let currentAuthorData = null;
 let currentPublisherData = null;
-let deletedEksemplarIds = []; // Track deleted IDs
-let scannedNewUIDs = []; // Track new scanned UIDs for add
+let deletedEksemplarIds = [];
+let scannedNewUIDs = [];
+let newAuthorsCounter = 0;
+let deletedAuthorIds = [];
 
 // ========================================
-// DELETE EKSEMPLAR FUNCTIONS (FIXED)
+// AUTHORS MANAGEMENT (NEW)
 // ========================================
 
 /**
- * Delete Single Eksemplar
+ * Open Modal to Add New Author
  */
+function openAddAuthorModal() {
+    // Check if dark mode is active
+    const isDarkMode = document.documentElement.getAttribute('data-theme') === 'dark';
+    
+    Swal.fire({
+        title: '<i class="fas fa-user-plus me-2"></i>Tambah Penulis',
+        customClass: {
+            popup: isDarkMode ? 'swal-dark' : ''
+        },
+        html: `
+            <div class="text-start">
+                <div class="mb-3">
+                    <label class="form-label fw-bold">Pilih Penulis</label>
+                    <select id="swal_author_select" class="form-select">
+                        <option value="">-- Pilih Penulis --</option>
+                        <option value="new">+ Tambah Penulis Baru</option>
+                    </select>
+                </div>
+                
+                <div id="swal_new_author_fields" class="d-none">
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Nama Penulis Baru <span class="text-danger">*</span></label>
+                        <input type="text" id="swal_new_author_name" class="form-control" 
+                               placeholder="Prof. Dr. Ahmad Dahlan">
+                    </div>
+                </div>
+                
+                <div class="mb-3">
+                    <label class="form-label fw-bold">Role Penulis <span class="text-danger">*</span></label>
+                    <select id="swal_author_role" class="form-select">
+                        <option value="penulis_utama">Penulis Utama</option>
+                        <option value="co_author">Co-Author</option>
+                        <option value="editor">Editor</option>
+                        <option value="translator">Translator</option>
+                    </select>
+                </div>
+                
+                <div class="mb-3">
+                    <label class="form-label fw-bold">Biografi (Opsional)</label>
+                    <textarea id="swal_author_bio" class="form-control" rows="3" maxlength="200"
+                              placeholder="Biografi singkat penulis (max 200 karakter)"></textarea>
+                    <small class="text-muted" id="swal_bio_counter">0/200</small>
+                </div>
+            </div>
+        `,
+        width: 600,
+        showCancelButton: true,
+        confirmButtonText: '<i class="fas fa-check me-2"></i>Tambah',
+        cancelButtonText: '<i class="fas fa-times me-2"></i>Batal',
+        confirmButtonColor: '#007bff',
+        cancelButtonColor: '#6c757d',
+        didOpen: () => {
+            // Load authors list
+            loadAuthorsDropdown();
+            
+            // Author select change handler
+            const authorSelect = document.getElementById('swal_author_select');
+            const newFields = document.getElementById('swal_new_author_fields');
+            
+            authorSelect.addEventListener('change', function() {
+                if (this.value === 'new') {
+                    newFields.classList.remove('d-none');
+                } else {
+                    newFields.classList.add('d-none');
+                }
+            });
+            
+            // Bio counter
+            const bioTextarea = document.getElementById('swal_author_bio');
+            const counter = document.getElementById('swal_bio_counter');
+            
+            bioTextarea.addEventListener('input', function() {
+                counter.textContent = `${this.value.length}/200`;
+            });
+        },
+        preConfirm: () => {
+            const authorSelect = document.getElementById('swal_author_select').value;
+            const newName = document.getElementById('swal_new_author_name').value.trim();
+            const role = document.getElementById('swal_author_role').value;
+            const bio = document.getElementById('swal_author_bio').value.trim();
+            
+            if (authorSelect === 'new' && !newName) {
+                Swal.showValidationMessage('Nama penulis baru wajib diisi!');
+                return false;
+            }
+            
+            if (!authorSelect) {
+                Swal.showValidationMessage('Pilih penulis atau tambah baru!');
+                return false;
+            }
+            
+            return {
+                authorId: authorSelect,
+                newName: newName,
+                role: role,
+                bio: bio
+            };
+        }
+    }).then((result) => {
+        if (result.isConfirmed) {
+            addAuthorToList(result.value);
+        }
+    });
+}
+
+/**
+ * Load Authors Dropdown from Database
+ */
+function loadAuthorsDropdown() {
+    fetch('../includes/api/get_all_authors.php')
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                const select = document.getElementById('swal_author_select');
+                
+                data.authors.forEach(author => {
+                    const option = document.createElement('option');
+                    option.value = author.id;
+                    option.textContent = author.nama_pengarang;
+                    select.insertBefore(option, select.lastElementChild);
+                });
+            }
+        })
+        .catch(err => {
+            console.error('[LOAD AUTHORS ERROR]', err);
+        });
+}
+
+/**
+ * Add Author to List
+ */
+function addAuthorToList(data) {
+    const container = document.getElementById('new-authors-container');
+    newAuthorsCounter++;
+    
+    const roleLabels = {
+        'penulis_utama': 'Penulis Utama',
+        'co_author': 'Co-Author',
+        'editor': 'Editor',
+        'translator': 'Translator'
+    };
+    
+    const roleBadgeClass = data.role === 'penulis_utama' ? 'bg-primary' : 'bg-secondary';
+    const authorName = data.authorId === 'new' ? data.newName : 'Loading...';
+    
+    const itemHtml = `
+        <div class="list-group-item mb-2 border rounded shadow-sm" id="new-author-${newAuthorsCounter}">
+            <div class="d-flex justify-content-between align-items-start">
+                <div class="flex-grow-1">
+                    <h6 class="mb-1 fw-bold" id="author-name-${newAuthorsCounter}">${authorName}</h6>
+                    <span class="badge ${roleBadgeClass} mb-2">${roleLabels[data.role]}</span>
+                    ${data.bio ? `<p class="mb-0 small text-muted"><i class="fas fa-quote-left me-1"></i>${data.bio}</p>` : ''}
+                </div>
+                <button type="button" class="btn btn-sm btn-outline-danger ms-2" 
+                        onclick="removeNewAuthor(${newAuthorsCounter})">
+                    <i class="fas fa-trash"></i>
+                </button>
+            </div>
+            <input type="hidden" name="new_authors[${newAuthorsCounter}][author_id]" value="${data.authorId}">
+            <input type="hidden" name="new_authors[${newAuthorsCounter}][new_name]" value="${data.newName}">
+            <input type="hidden" name="new_authors[${newAuthorsCounter}][role]" value="${data.role}">
+            <input type="hidden" name="new_authors[${newAuthorsCounter}][bio]" value="${data.bio}">
+        </div>
+    `;
+    
+    container.insertAdjacentHTML('beforeend', itemHtml);
+    
+    // If existing author, fetch name
+    if (data.authorId !== 'new') {
+        fetchAuthorName(data.authorId, newAuthorsCounter);
+    }
+    
+    Swal.fire({
+        icon: 'success',
+        title: 'Berhasil!',
+        text: 'Penulis berhasil ditambahkan',
+        timer: 1500,
+        showConfirmButton: false
+    });
+}
+
+/**
+ * Fetch Author Name
+ */
+function fetchAuthorName(authorId, counter) {
+    fetch(`../includes/api/get_author_data.php?id=${authorId}`)
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                const nameElement = document.getElementById(`author-name-${counter}`);
+                if (nameElement) {
+                    nameElement.textContent = data.author.nama_pengarang;
+                }
+            }
+        })
+        .catch(err => {
+            console.error('[FETCH AUTHOR NAME ERROR]', err);
+        });
+}
+
+/**
+ * Remove New Author
+ */
+function removeNewAuthor(counter) {
+    Swal.fire({
+        title: 'Hapus Penulis?',
+        text: 'Penulis ini akan dihapus dari daftar',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#dc3545',
+        cancelButtonColor: '#6c757d',
+        confirmButtonText: 'Ya, Hapus!',
+        cancelButtonText: 'Batal'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            const item = document.getElementById(`new-author-${counter}`);
+            if (item) {
+                item.remove();
+                
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Terhapus!',
+                    text: 'Penulis berhasil dihapus',
+                    timer: 1500,
+                    showConfirmButton: false
+                });
+            }
+        }
+    });
+}
+
+/**
+ * Edit Existing Author
+ */
+function editAuthor(relationId, authorId, authorName, role, bio) {
+    const isDarkMode = document.documentElement.getAttribute('data-theme') === 'dark';
+    
+    Swal.fire({
+        title: '<i class="fas fa-edit me-2"></i>Edit Penulis',
+        customClass: {
+            popup: isDarkMode ? 'swal-dark' : ''
+        },
+        html: `
+            <div class="text-start">
+                <div class="mb-3">
+                    <label class="form-label fw-bold">Nama Penulis</label>
+                    <input type="text" class="form-control" value="${authorName}" disabled>
+                </div>
+                
+                <div class="mb-3">
+                    <label class="form-label fw-bold">Role Penulis</label>
+                    <select id="edit_author_role" class="form-select">
+                        <option value="penulis_utama" ${role === 'penulis_utama' ? 'selected' : ''}>Penulis Utama</option>
+                        <option value="co_author" ${role === 'co_author' ? 'selected' : ''}>Co-Author</option>
+                        <option value="editor" ${role === 'editor' ? 'selected' : ''}>Editor</option>
+                        <option value="translator" ${role === 'translator' ? 'selected' : ''}>Translator</option>
+                    </select>
+                </div>
+                
+                <div class="mb-3">
+                    <label class="form-label fw-bold">Biografi</label>
+                    <textarea id="edit_author_bio" class="form-control" rows="3" maxlength="200">${bio || ''}</textarea>
+                    <small class="text-muted" id="edit_bio_counter">${(bio || '').length}/200</small>
+                </div>
+            </div>
+        `,
+        width: 600,
+        showCancelButton: true,
+        confirmButtonText: '<i class="fas fa-save me-2"></i>Simpan',
+        cancelButtonText: '<i class="fas fa-times me-2"></i>Batal',
+        confirmButtonColor: '#28a745',
+        cancelButtonColor: '#6c757d',
+        didOpen: () => {
+            const bioTextarea = document.getElementById('edit_author_bio');
+            const counter = document.getElementById('edit_bio_counter');
+            
+            bioTextarea.addEventListener('input', function() {
+                counter.textContent = `${this.value.length}/200`;
+            });
+        },
+        preConfirm: () => {
+            return {
+                role: document.getElementById('edit_author_role').value,
+                bio: document.getElementById('edit_author_bio').value.trim()
+            };
+        }
+    }).then((result) => {
+        if (result.isConfirmed) {
+            updateAuthorInList(relationId, authorId, result.value.role, result.value.bio);
+        }
+    });
+}
+
+/**
+ * Update Author in List
+ */
+function updateAuthorInList(relationId, authorId, newRole, newBio) {
+    const item = document.getElementById(`author-item-${relationId}`);
+    if (!item) return;
+    
+    // Update hidden inputs
+    const inputs = item.querySelectorAll('input[type="hidden"]');
+    inputs.forEach(input => {
+        if (input.name.includes('[peran]')) {
+            input.value = newRole;
+        }
+        if (input.name.includes('[biografi]')) {
+            input.value = newBio;
+        }
+    });
+    
+    // Update visual display
+    const roleLabels = {
+        'penulis_utama': 'Penulis Utama',
+        'co_author': 'Co-Author',
+        'editor': 'Editor',
+        'translator': 'Translator'
+    };
+    
+    const badge = item.querySelector('.badge');
+    if (badge) {
+        badge.textContent = roleLabels[newRole];
+        badge.className = `badge ${newRole === 'penulis_utama' ? 'bg-primary' : 'bg-secondary'} mb-2`;
+    }
+    
+    // Update bio display
+    const bioP = item.querySelector('p.small');
+    if (newBio) {
+        if (bioP) {
+            bioP.innerHTML = `<i class="fas fa-quote-left me-1"></i>${newBio.substring(0, 100)}${newBio.length > 100 ? '...' : ''}`;
+        } else {
+            const bioHtml = `<p class="mb-0 small text-muted"><i class="fas fa-quote-left me-1"></i>${newBio.substring(0, 100)}${newBio.length > 100 ? '...' : ''}</p>`;
+            item.querySelector('.flex-grow-1').insertAdjacentHTML('beforeend', bioHtml);
+        }
+    } else if (bioP) {
+        bioP.remove();
+    }
+    
+    Swal.fire({
+        icon: 'success',
+        title: 'Berhasil!',
+        text: 'Data penulis berhasil diupdate',
+        timer: 1500,
+        showConfirmButton: false
+    });
+}
+
+/**
+ * Remove Existing Author
+ */
+function removeAuthor(relationId) {
+    Swal.fire({
+        title: 'Hapus Penulis?',
+        text: 'Penulis ini akan dihapus dari buku',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#dc3545',
+        cancelButtonColor: '#6c757d',
+        confirmButtonText: 'Ya, Hapus!',
+        cancelButtonText: 'Batal'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            const item = document.getElementById(`author-item-${relationId}`);
+            if (item) {
+                // Add to deleted list
+                deletedAuthorIds.push(relationId);
+                
+                // Update hidden input
+                updateDeletedAuthorsInput();
+                
+                // Remove from DOM
+                item.style.transition = 'opacity 0.3s';
+                item.style.opacity = '0';
+                
+                setTimeout(() => {
+                    item.remove();
+                    
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Terhapus!',
+                        text: 'Penulis berhasil dihapus',
+                        timer: 1500,
+                        showConfirmButton: false
+                    });
+                }, 300);
+            }
+        }
+    });
+}
+
+/**
+ * Update Deleted Authors Input
+ */
+function updateDeletedAuthorsInput() {
+    const form = document.getElementById('formEditInventory');
+    let hiddenInput = document.getElementById('deleted_authors');
+    
+    if (!hiddenInput && form) {
+        hiddenInput = document.createElement('input');
+        hiddenInput.type = 'hidden';
+        hiddenInput.id = 'deleted_authors';
+        hiddenInput.name = 'deleted_authors';
+        form.appendChild(hiddenInput);
+    }
+    
+    if (hiddenInput) {
+        hiddenInput.value = JSON.stringify(deletedAuthorIds);
+    }
+}
+
+// ========================================
+// PUBLISHER SECTION HANDLERS (ENHANCED)
+// ========================================
+
+function handlePublisherChange() {
+    const publisherSelect = document.getElementById('publisher_select');
+    const newNameField = document.getElementById('new_publisher_name_field');
+    const actionInput = document.getElementById('publisher_action');
+    
+    if (!publisherSelect) return;
+    
+    const selectedValue = publisherSelect.value;
+    
+    if (selectedValue === 'new') {
+        // Show new publisher name field
+        newNameField.classList.remove('d-none');
+        actionInput.value = 'new';
+        
+        // Clear other fields for new entry
+        document.getElementById('publisher_alamat').value = '';
+        document.getElementById('publisher_telepon').value = '';
+        document.getElementById('publisher_email').value = '';
+        
+    } else if (selectedValue && selectedValue !== '') {
+        // Hide new publisher name field
+        newNameField.classList.add('d-none');
+        actionInput.value = 'existing';
+        
+        // Fetch and populate publisher data
+        fetchPublisherData(selectedValue);
+        
+    } else {
+        // No selection
+        newNameField.classList.add('d-none');
+        actionInput.value = '';
+    }
+}
+
+function fetchPublisherData(publisherId) {
+    fetch(`../includes/api/get_publisher_data.php?id=${publisherId}`)
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                currentPublisherData = data.publisher;
+                
+                // Populate fields (always visible)
+                const alamatInput = document.getElementById('publisher_alamat');
+                const teleponInput = document.getElementById('publisher_telepon');
+                const emailInput = document.getElementById('publisher_email');
+                
+                if (alamatInput) alamatInput.value = data.publisher.alamat || '';
+                if (teleponInput) teleponInput.value = data.publisher.no_telepon || '';
+                if (emailInput) emailInput.value = data.publisher.email || '';
+                
+                console.log('[PUBLISHER] Data loaded:', data.publisher);
+            }
+        })
+        .catch(err => {
+            console.error('[PUBLISHER FETCH ERROR]', err);
+        });
+}
+
+// ========================================
+// DELETE EKSEMPLAR FUNCTIONS
+// ========================================
+
 function deleteEksemplar(eksId) {
     Swal.fire({
         title: 'Hapus Eksemplar?',
@@ -38,15 +514,12 @@ function deleteEksemplar(eksId) {
         cancelButtonText: 'Batal'
     }).then((result) => {
         if (result.isConfirmed) {
-            // Add to deleted list
             if (!deletedEksemplarIds.includes(eksId)) {
                 deletedEksemplarIds.push(eksId);
             }
             
-            // Update hidden input
             updateDeletedInput();
             
-            // Remove row from table
             const row = document.getElementById(`row-eks-${eksId}`);
             if (row) {
                 row.style.transition = 'opacity 0.3s';
@@ -68,9 +541,6 @@ function deleteEksemplar(eksId) {
     });
 }
 
-/**
- * Delete Selected Eksemplars (Bulk Delete)
- */
 function deleteSelected() {
     const checkboxes = document.querySelectorAll('.check-item:checked');
     
@@ -98,23 +568,17 @@ function deleteSelected() {
             checkboxes.forEach(cb => {
                 const eksId = parseInt(cb.value);
                 
-                // Add to deleted list
                 if (!deletedEksemplarIds.includes(eksId)) {
                     deletedEksemplarIds.push(eksId);
                 }
                 
-                // Remove row
                 const row = document.getElementById(`row-eks-${eksId}`);
-                if (row) {
-                    row.remove();
-                }
+                if (row) row.remove();
             });
             
-            // Update hidden input
             updateDeletedInput();
             updateEksemplarCount();
             
-            // Uncheck "check all"
             const checkAll = document.getElementById('checkAll');
             if (checkAll) checkAll.checked = false;
             
@@ -129,15 +593,11 @@ function deleteSelected() {
     });
 }
 
-/**
- * Update Hidden Input for Deleted IDs
- */
 function updateDeletedInput() {
     const form = document.getElementById('formEditInventory');
     let hiddenInput = document.getElementById('deleted_eksemplar');
     
     if (!hiddenInput && form) {
-        // Create if doesn't exist
         hiddenInput = document.createElement('input');
         hiddenInput.type = 'hidden';
         hiddenInput.id = 'deleted_eksemplar';
@@ -148,12 +608,8 @@ function updateDeletedInput() {
     if (hiddenInput) {
         hiddenInput.value = JSON.stringify(deletedEksemplarIds);
     }
-    console.log('[DELETE] Updated deleted IDs:', deletedEksemplarIds);
 }
 
-/**
- * Update Eksemplar Count Display
- */
 function updateEksemplarCount() {
     const tbody = document.getElementById('eksemplar-container');
     if (tbody) {
@@ -163,36 +619,20 @@ function updateEksemplarCount() {
 }
 
 // ========================================
-// CHECK ALL CHECKBOX HANDLER
-// ========================================
-document.addEventListener('DOMContentLoaded', function() {
-    const checkAll = document.getElementById('checkAll');
-    if (checkAll) {
-        checkAll.addEventListener('change', function() {
-            const checkboxes = document.querySelectorAll('.check-item');
-            checkboxes.forEach(cb => {
-                cb.checked = this.checked;
-            });
-        });
-    }
-});
-
-// ========================================
-// ADD NEW EKSEMPLAR FUNCTIONS (NEW)
+// ADD NEW EKSEMPLAR FUNCTIONS
 // ========================================
 
-/**
- * Open Modal to Add New Eksemplar with RFID Scan
- */
 function openAddEksemplarModal(reset = true) {
     const bookId = document.querySelector('input[name="book_id"]').value;
+    const isDarkMode = document.documentElement.getAttribute('data-theme') === 'dark';
     
-    // reset only when requested (initial open)
     if (reset) scannedNewUIDs = [];
     
-    const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
     Swal.fire({
         title: '<i class="fas fa-plus-circle me-2"></i>Tambah Eksemplar Baru',
+        customClass: {
+            popup: isDarkMode ? 'swal-dark' : ''
+        },
         html: `
             <div class="text-start">
                 <div class="alert alert-info border-0 mb-3">
@@ -228,47 +668,48 @@ function openAddEksemplarModal(reset = true) {
         showCancelButton: true,
         confirmButtonText: '<i class="fas fa-save me-2"></i>Simpan Unit Baru',
         cancelButtonText: '<i class="fas fa-times me-2"></i>Batal',
+        confirmButtonColor: '#28a745',
+        cancelButtonColor: '#6c757d',
         showLoaderOnConfirm: true,
-        // removed resetting scannedNewUIDs from didOpen
         didOpen: () => {
-            // keep existing scannedNewUIDs if re-opening after scan
             updateScanResultsUI();
         },
         preConfirm: () => {
             return submitNewEksemplar(bookId);
         },
-        allowOutsideClick: () => !Swal.isLoading(),
-        customClass: isDark ? { popup: 'swal-dark' } : {}
+        allowOutsideClick: () => !Swal.isLoading()
     });
 }
 
-/**
- * Start Scanning New Eksemplar UIDs
- */
 function startScanNewEksemplar() {
     const jumlahUnit = parseInt(document.getElementById('swal_jumlah_unit').value) || 1;
+    const isDarkMode = document.documentElement.getAttribute('data-theme') === 'dark';
     
     if (scannedNewUIDs.length >= jumlahUnit) {
         Swal.fire({
             icon: 'warning',
             title: 'Scan Sudah Cukup',
             text: `Anda sudah scan ${scannedNewUIDs.length} UID. Klik Simpan untuk melanjutkan.`,
-            confirmButtonColor: '#ffc107'
+            confirmButtonColor: '#ffc107',
+            customClass: {
+                popup: isDarkMode ? 'swal-dark' : ''
+            }
         }).then(() => {
-            openAddEksemplarModal();
+            openAddEksemplarModal(false);
         });
         return;
     }
     
-    // Show loading
     Swal.fire({
         title: 'Scanning RFID...',
         html: '<i class="fas fa-spinner fa-spin fa-3x mb-3"></i><br>Dekatkan RFID tag ke reader',
         allowOutsideClick: false,
-        showConfirmButton: false
+        showConfirmButton: false,
+        customClass: {
+            popup: isDarkMode ? 'swal-dark' : ''
+        }
     });
     
-    // Call API to check latest UID
     fetch('../includes/api/check_latest_uid.php?limit=1')
         .then(res => res.json())
         .then(data => {
@@ -277,7 +718,6 @@ function startScanNewEksemplar() {
             if (data.success && data.uids && data.uids.length > 0) {
                 const uid = data.uids[0];
                 
-                // Check duplicate
                 const isDuplicate = scannedNewUIDs.some(u => u.id === uid.id);
                 
                 if (isDuplicate) {
@@ -292,10 +732,7 @@ function startScanNewEksemplar() {
                     return;
                 }
                 
-                // Add to scanned list
                 scannedNewUIDs.push(uid);
-                
-                // Update UI
                 updateScanResultsUI();
                 
                 Swal.fire({
@@ -334,44 +771,12 @@ function startScanNewEksemplar() {
         });
 }
 
-/**
- * Update Scan Results UI in Modal
- */
 function updateScanResultsUI() {
     const container = document.getElementById('scan_results_container');
     const badge = document.getElementById('scan_count_badge');
+    
     if (!container) return;
-
-    // determine prefix: prefer explicit kode_buku, else derive from judul (first 3 alnum uppercase)
-    let prefix = '';
-    const kodeInput = document.querySelector('input[name="kode_buku"]');
-    const judulEl = document.querySelector('input[name="judul"]') || document.querySelector('.book-title');
-    if (kodeInput && kodeInput.value.trim() !== '') {
-        prefix = kodeInput.value.trim().toUpperCase();
-    } else if (judulEl) {
-        const t = (judulEl.value || judulEl.textContent || '').toUpperCase();
-        const m = (t.match(/[A-Z0-9]/g) || []).slice(0,3).join('');
-        prefix = m || 'EKS';
-    } else {
-        prefix = 'EKS';
-    }
-
-    // calculate provisional max number from DOM (existing eksemplar) but limited to same prefix
-    const existingRows = document.querySelectorAll('#eksemplar-container tr[id^="row-eks-"]');
-    let maxNumber = 0;
-    existingRows.forEach(row => {
-        const kodeCell = row.querySelector('td:nth-child(2) strong');
-        if (kodeCell) {
-            const match = kodeCell.textContent.match(new RegExp(`^${prefix}-(\\d+)`));
-            if (match) maxNumber = Math.max(maxNumber, parseInt(match[1],10));
-            else {
-                // also accept older EKS- prefixed rows for continuity if no prefix-match found
-                const m2 = kodeCell.textContent.match(/-(\d+)$/);
-                if (m2) maxNumber = Math.max(maxNumber, parseInt(m2[1],10));
-            }
-        }
-    });
-
+    
     if (scannedNewUIDs.length === 0) {
         container.innerHTML = `
             <div class="text-center text-muted py-4">
@@ -381,352 +786,99 @@ function updateScanResultsUI() {
         `;
     } else {
         let html = '<div class="list-group">';
+        
         scannedNewUIDs.forEach((uid, index) => {
-            const newNumber = maxNumber + index + 1;
-            const kodeEksemplar = `${prefix}-${String(newNumber).padStart(4, '0')}`;
-
             html += `
-                <div class="list-group-item d-flex justify-content-between align-items-start gap-3">
-                    <div class="flex-grow-1">
-                        <div class="d-flex align-items-center mb-1">
-                            <strong class="me-2">#${index + 1}</strong>
-                            <code class="me-3">${uid.uid}</code>
-                            <small class="text-muted">UID-buffer-id: ${uid.id}</small>
-                        </div>
-
-                        <div class="row g-2 align-items-center">
-                            <div class="col-auto" style="min-width:160px;">
-                                <label class="form-label small mb-1">Kode Eksemplar</label>
-                                <input type="text" class="form-control form-control-sm kode-input" data-uid-index="${index}" value="${kodeEksemplar}">
-                            </div>
-                            <div class="col-auto" style="min-width:140px;">
-                                <label class="form-label small mb-1">Kondisi</label>
-                                <select class="form-select form-select-sm kondisi-select" data-uid-index="${index}">
-                                    <option value="baik" selected>Baik</option>
-                                    <option value="rusak_ringan">Rusak Ringan</option>
-                                    <option value="rusak_berat">Rusak Berat</option>
-                                    <option value="hilang">Hilang</option>
-                                </select>
-                            </div>
-                            <div class="col-auto ms-auto">
-                                <label class="form-label small mb-1">&nbsp;</label>
-                                <div>
-                                    <button type="button" class="btn btn-sm btn-danger ms-1" onclick="removeScannedUID(${index})" title="Hapus UID">
-                                        <i class="fas fa-times"></i>
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
+                <div class="list-group-item d-flex justify-content-between align-items-center">
+                    <div>
+                        <strong>#${index + 1}</strong>
+                        <code class="ms-2">${uid.uid}</code>
                     </div>
+                    <button type="button" class="btn btn-sm btn-danger" onclick="removeScannedUID(${index})">
+                        <i class="fas fa-times"></i>
+                    </button>
                 </div>
             `;
         });
+        
         html += '</div>';
         container.innerHTML = html;
     }
-
+    
     if (badge) {
         badge.textContent = `${scannedNewUIDs.length} UID Terscan`;
         badge.className = scannedNewUIDs.length > 0 ? 'badge bg-success' : 'badge bg-info';
     }
 }
 
-/**
- * Remove Scanned UID from List
- */
 function removeScannedUID(index) {
     scannedNewUIDs.splice(index, 1);
     updateScanResultsUI();
 }
 
-/**
- * Submit New Eksemplar to Server
- */
-async function submitNewEksemplar(bookId) {
+function submitNewEksemplar(bookId) {
     if (scannedNewUIDs.length === 0) {
         Swal.showValidationMessage('Belum ada UID yang di-scan!');
         return false;
     }
-
-    // collect user-edited kode and kondisi from modal inputs
-    const kodeInputs = Array.from(document.querySelectorAll('.kode-input'));
-    const kondisiSelects = Array.from(document.querySelectorAll('.kondisi-select'));
-
-    const prepared = scannedNewUIDs.map((uid, idx) => {
-        const kodeEl = kodeInputs.find(i => parseInt(i.dataset.uidIndex) === idx);
-        const kondisiEl = kondisiSelects.find(s => parseInt(s.dataset.uidIndex) === idx);
+    
+    const existingRows = document.querySelectorAll('#eksemplar-container tr[id^="row-eks-"]');
+    let maxNumber = 0;
+    
+    existingRows.forEach(row => {
+        const kodeCell = row.querySelector('td:nth-child(2) strong');
+        if (kodeCell) {
+            const match = kodeCell.textContent.match(/EKS-(\d+)/);
+            if (match) {
+                maxNumber = Math.max(maxNumber, parseInt(match[1]));
+            }
+        }
+    });
+    
+    const newEksemplar = scannedNewUIDs.map((uid, idx) => {
+        const newNumber = maxNumber + idx + 1;
+        const kodeEksemplar = `EKS-${String(newNumber).padStart(4, '0')}`;
+        
         return {
             uid_buffer_id: uid.id,
-            uid_raw: uid.uid,
-            kode_eksemplar: (kodeEl ? kodeEl.value.trim() : (`EKS-${String(idx+1).padStart(4,'0')}`)),
-            kondisi: (kondisiEl ? kondisiEl.value : 'baik')
+            kode_eksemplar: kodeEksemplar,
+            kondisi: 'baik'
         };
     });
-
-    // Client-side duplicate check via API (quick feedback)
-    for (const item of prepared) {
-        try {
-            const res = await fetch(`../includes/api/check_duplicate_uid.php?uid=${encodeURIComponent(item.uid_raw)}&book_id=${parseInt(bookId)}`);
-            const json = await res.json();
-            if (!json.success) {
-                Swal.showValidationMessage(json.message || 'Gagal cek UID');
-                return false;
-            }
-            if (json.isDuplicate) {
-                const used = json.usedIn || {};
-                Swal.showValidationMessage(`UID ${item.uid_raw} sudah terdaftar pada buku: ${used.book_title || 'N/A'} (kode ${used.kode_eksemplar || '-'})`);
-                return false;
-            }
-        } catch (err) {
-            console.error('[DUP CHECK ERROR]', err);
-            Swal.showValidationMessage('Gagal menghubungi server untuk validasi UID');
-            return false;
-        }
-    }
-
-    // Ready to send to server
-    const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
-    try {
-        const res = await fetch('../controllers/AddEksemplarController.php', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                book_id: parseInt(bookId),
-                new_eksemplar: prepared
-            })
-        });
-        const data = await res.json();
-
+    
+    return fetch('../controllers/AddEksemplarController.php', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+            book_id: parseInt(bookId),
+            new_eksemplar: newEksemplar
+        })
+    })
+    .then(res => res.json())
+    .then(data => {
         if (data.success) {
             Swal.fire({
                 icon: 'success',
                 title: 'Berhasil!',
-                text: data.message || 'Eksemplar berhasil ditambahkan',
-                confirmButtonColor: '#28a745',
-                customClass: isDark ? { popup: 'swal-dark' } : {}
-            }).then(()=> location.reload());
+                text: data.message,
+                confirmButtonColor: '#28a745'
+            }).then(() => {
+                location.reload();
+            });
         } else {
-            Swal.showValidationMessage(data.message || 'Gagal menambahkan eksemplar');
-            return false;
+            Swal.showValidationMessage(data.message);
         }
-    } catch (err) {
+    })
+    .catch(err => {
         console.error('[SUBMIT ERROR]', err);
-        Swal.showValidationMessage('Gagal menambahkan eksemplar (server error)');
-        return false;
-    }
-}
-
-// ensure modal uses dark class when open
-function openAddEksemplarModal(reset = true) {
-    const bookId = document.querySelector('input[name="book_id"]').value;
-    if (reset) scannedNewUIDs = [];
-
-    const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
-    Swal.fire({
-        title: '<i class="fas fa-plus-circle me-2"></i>Tambah Eksemplar Baru',
-        html: `
-            <div class="text-start">
-                <div class="alert alert-info border-0 mb-3">
-                    <i class="fas fa-info-circle me-2"></i>
-                    <strong>Panduan:</strong> Scan RFID untuk unit baru yang akan ditambahkan
-                </div>
-                
-                <div class="mb-3">
-                    <label class="form-label fw-bold">Jumlah Unit Baru</label>
-                    <input type="number" id="swal_jumlah_unit" class="form-control" value="1" min="1" max="50">
-                    <small class="text-muted">Maksimal 50 unit per sekali tambah</small>
-                </div>
-                
-                <div class="text-center mb-3">
-                    <button type="button" class="btn btn-primary btn-lg px-4" onclick="startScanNewEksemplar()">
-                        <i class="fas fa-qrcode me-2"></i>MULAI SCAN RFID
-                    </button>
-                </div>
-                
-                <div id="scan_results_container" class="border rounded p-3 bg-light" style="max-height: 300px; overflow-y: auto; min-height: 100px;">
-                    <div class="text-center text-muted py-4">
-                        <i class="fas fa-barcode fa-3x opacity-50 mb-2"></i>
-                        <p class="mb-0">Belum ada scan</p>
-                    </div>
-                </div>
-                
-                <div class="mt-3">
-                    <span class="badge bg-info" id="scan_count_badge">0 UID Terscan</span>
-                </div>
-            </div>
-        `,
-        width: 700,
-        showCancelButton: true,
-        confirmButtonText: '<i class="fas fa-save me-2"></i>Simpan Unit Baru',
-        cancelButtonText: '<i class="fas fa-times me-2"></i>Batal',
-        showLoaderOnConfirm: true,
-        didOpen: () => updateScanResultsUI(),
-        preConfirm: () => submitNewEksemplar(bookId),
-        allowOutsideClick: () => !Swal.isLoading(),
-        customClass: isDark ? { popup: 'swal-dark' } : {}
+        Swal.showValidationMessage('Gagal menambahkan eksemplar');
     });
 }
 
 // ========================================
-// AUTHOR SECTION HANDLERS
-// ========================================
-
-function handleAuthorChange() {
-    const authorSelect = document.getElementById('author_select');
-    const newAuthorFields = document.getElementById('new_author_fields');
-    const existingAuthorFields = document.getElementById('existing_author_fields');
-    const biografiTextarea = document.getElementById('author_biografi');
-    const charCount = document.getElementById('char_count_author');
-    
-    if (!authorSelect) return;
-    
-    const selectedValue = authorSelect.value;
-    
-    if (selectedValue === 'new') {
-        newAuthorFields.classList.remove('d-none');
-        existingAuthorFields.classList.add('d-none');
-        
-        if (biografiTextarea) {
-            biografiTextarea.value = '';
-            biografiTextarea.disabled = false;
-        }
-        if (charCount) {
-            charCount.textContent = '0/200';
-        }
-        
-        document.getElementById('author_action').value = 'new';
-        
-    } else if (selectedValue && selectedValue !== '') {
-        newAuthorFields.classList.add('d-none');
-        existingAuthorFields.classList.remove('d-none');
-        
-        document.getElementById('author_action').value = 'existing';
-        fetchAuthorData(selectedValue);
-        
-    } else {
-        newAuthorFields.classList.add('d-none');
-        existingAuthorFields.classList.add('d-none');
-        
-        if (biografiTextarea) {
-            biografiTextarea.value = '';
-            biografiTextarea.disabled = true;
-        }
-    }
-}
-
-function fetchAuthorData(authorId) {
-    const biografiTextarea = document.getElementById('author_biografi');
-    const charCount = document.getElementById('char_count_author');
-    const loadingMsg = document.getElementById('author_loading');
-    
-    if (loadingMsg) loadingMsg.classList.remove('d-none');
-    
-    fetch(`../includes/api/get_author_data.php?id=${authorId}`)
-        .then(res => res.json())
-        .then(data => {
-            if (loadingMsg) loadingMsg.classList.add('d-none');
-            
-            if (data.success) {
-                currentAuthorData = data.author;
-                
-                if (biografiTextarea) {
-                    biografiTextarea.value = data.author.biografi || '';
-                    biografiTextarea.disabled = false;
-                }
-                
-                if (charCount) {
-                    const length = (data.author.biografi || '').length;
-                    charCount.textContent = `${length}/200`;
-                }
-            }
-        })
-        .catch(err => {
-            if (loadingMsg) loadingMsg.classList.add('d-none');
-            console.error('[AUTHOR FETCH ERROR]', err);
-        });
-}
-
-// ========================================
-// PUBLISHER SECTION HANDLERS
-// ========================================
-
-function handlePublisherChange() {
-    const publisherSelect = document.getElementById('publisher_select');
-    const newPublisherFields = document.getElementById('new_publisher_fields');
-    const existingPublisherFields = document.getElementById('existing_publisher_fields');
-    
-    if (!publisherSelect) return;
-    
-    const selectedValue = publisherSelect.value;
-    
-    if (selectedValue === 'new') {
-        newPublisherFields.classList.remove('d-none');
-        existingPublisherFields.classList.add('d-none');
-        document.getElementById('publisher_action').value = 'new';
-        
-    } else if (selectedValue && selectedValue !== '') {
-        newPublisherFields.classList.add('d-none');
-        existingPublisherFields.classList.remove('d-none');
-        document.getElementById('publisher_action').value = 'existing';
-        fetchPublisherData(selectedValue);
-        
-    } else {
-        newPublisherFields.classList.add('d-none');
-        existingPublisherFields.classList.add('d-none');
-    }
-}
-
-function fetchPublisherData(publisherId) {
-    const loadingMsg = document.getElementById('publisher_loading');
-    
-    if (loadingMsg) loadingMsg.classList.remove('d-none');
-    
-    fetch(`../includes/api/get_publisher_data.php?id=${publisherId}`)
-        .then(res => res.json())
-        .then(data => {
-            if (loadingMsg) loadingMsg.classList.add('d-none');
-            
-            if (data.success) {
-                currentPublisherData = data.publisher;
-                
-                const alamatInput = document.getElementById('publisher_alamat');
-                const teleponInput = document.getElementById('publisher_telepon');
-                const emailInput = document.getElementById('publisher_email');
-                
-                if (alamatInput) alamatInput.value = data.publisher.alamat || '';
-                if (teleponInput) teleponInput.value = data.publisher.no_telepon || '';
-                if (emailInput) emailInput.value = data.publisher.email || '';
-            }
-        })
-        .catch(err => {
-            if (loadingMsg) loadingMsg.classList.add('d-none');
-            console.error('[PUBLISHER FETCH ERROR]', err);
-        });
-}
-
-// ========================================
-// CHARACTER COUNTER
-// ========================================
-
-function initBiografiCounter() {
-    const biografiTextarea = document.getElementById('author_biografi');
-    const charCount = document.getElementById('char_count_author');
-    
-    if (biografiTextarea && charCount) {
-        biografiTextarea.addEventListener('input', function() {
-            const currentLength = this.value.length;
-            charCount.textContent = `${currentLength}/200`;
-            
-            if (currentLength > 200) {
-                this.value = this.value.substring(0, 200);
-                charCount.textContent = '200/200';
-            }
-        });
-    }
-}
-
-// ========================================
-// FORM SUBMIT HANDLER
+// FORM SUBMIT HANDLER (ENHANCED)
 // ========================================
 
 function initFormSubmit() {
@@ -736,20 +888,34 @@ function initFormSubmit() {
         form.addEventListener('submit', function(e) {
             e.preventDefault();
             
-            // Show loading
+            // Validate authors
+            const existingAuthors = document.querySelectorAll('[id^="author-item-"]').length;
+            const newAuthors = document.querySelectorAll('[id^="new-author-"]').length;
+            
+            if (existingAuthors + newAuthors === 0) {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Peringatan',
+                    text: 'Minimal harus ada 1 penulis!',
+                    confirmButtonColor: '#ffc107'
+                });
+                return;
+            }
+            
             const btnSubmit = document.getElementById('btnSimpanEdit');
             const originalText = btnSubmit.innerHTML;
             
             btnSubmit.disabled = true;
             btnSubmit.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Menyimpan...';
             
-            // Submit form
             const formData = new FormData(this);
             
-            // Ensure deleted_eksemplar is set
+            // Ensure deleted arrays are set
             formData.set('delete_eksemplar', JSON.stringify(deletedEksemplarIds));
+            formData.set('deleted_authors', JSON.stringify(deletedAuthorIds));
             
-            console.log('[FORM SUBMIT] Deleted IDs:', deletedEksemplarIds);
+            console.log('[FORM SUBMIT] Deleted Eksemplar:', deletedEksemplarIds);
+            console.log('[FORM SUBMIT] Deleted Authors:', deletedAuthorIds);
             
             fetch('../controllers/EditInventoryController.php', {
                 method: 'POST',
@@ -800,19 +966,23 @@ function initFormSubmit() {
 // ========================================
 
 document.addEventListener('DOMContentLoaded', function() {
-    console.log('[EDIT INVENTORY JS] FIXED & ENHANCED VERSION Loaded');
-    
-    const authorSelect = document.getElementById('author_select');
-    if (authorSelect) {
-        authorSelect.addEventListener('change', handleAuthorChange);
-    }
+    console.log('[EDIT INVENTORY JS] ENHANCED VERSION with Multiple Authors Loaded');
     
     const publisherSelect = document.getElementById('publisher_select');
     if (publisherSelect) {
         publisherSelect.addEventListener('change', handlePublisherChange);
     }
     
-    initBiografiCounter();
+    const checkAll = document.getElementById('checkAll');
+    if (checkAll) {
+        checkAll.addEventListener('change', function() {
+            const checkboxes = document.querySelectorAll('.check-item');
+            checkboxes.forEach(cb => {
+                cb.checked = this.checked;
+            });
+        });
+    }
+    
     initFormSubmit();
     
     console.log('[EDIT INVENTORY JS] All handlers attached successfully');
@@ -829,4 +999,4 @@ function switchToTab(tabId) {
     }
 }
 
-console.log('[EDIT INVENTORY JS] Version 3.0 - FIXED & ENHANCED with Add Eksemplar Feature');
+console.log('[EDIT INVENTORY JS] Version 4.0 - ENHANCED with Multiple Authors & Flexible Publisher');
