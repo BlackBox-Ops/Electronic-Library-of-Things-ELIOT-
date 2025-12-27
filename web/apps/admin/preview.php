@@ -10,6 +10,8 @@
  * ✅ No target="_blank" required
  * ✅ Smooth scrolling
  * ✅ Responsive blocking < 900px
+ * ✅ Added mini button to inventory.php in preview-header
+ * ✅ Added mobile warning for <768px
  */
 
 require_once '../../includes/config.php';
@@ -162,7 +164,10 @@ function displayRole($role) {
 include_once '../includes/header.php';
 ?>
 
-<link rel="stylesheet" href="../assets/css/inventory.css">
+<!-- FontAwesome CDN (Fallback jika belum di header.php) -->
+<!-- <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"> -->
+
+<!-- Only call preview.css (with merged root from inventory.css) -->
 <link rel="stylesheet" href="../assets/css/preview.css">
 
 <!-- FIXED BACK BUTTON BAR - Always Visible (z-index: 999) -->
@@ -220,6 +225,19 @@ include_once '../includes/header.php';
                         </span>
                     <?php endif; ?>
                 </div>
+            </div>
+
+            <!-- Added: Mini Button to Inventory -->
+            <div class="col-auto">
+                <button 
+                    class="inventory-btn" 
+                    aria-label="Kembali ke Inventory" 
+                    data-bs-toggle="tooltip" 
+                    data-bs-placement="left" 
+                    title="Kembali ke Inventory"
+                    onclick="window.location.href='inventory.php'">
+                    <i class="fas fa-box"></i>
+                </button>
             </div>
         </div>
     </div>
@@ -466,42 +484,64 @@ include_once '../includes/header.php';
     </div>
 </div>
 
+<!-- Added: Mobile Warning Element -->
+<div class="mobile-warning" role="alert">
+    <i class="fas fa-exclamation-triangle"></i>
+    <p>Silahkan buka di PC/Laptop atau Tab. Web ini tidak dioptimalkan untuk mobile.</p>
+</div>
+
 <script>
-// Filter Eksemplar Table
-document.addEventListener('DOMContentLoaded', function() {
-    const filterBtns = document.querySelectorAll('.filter-btn');
-    const tableRows = document.querySelectorAll('#eksemplarTable tbody tr');
-
-    filterBtns.forEach(btn => {
-        btn.addEventListener('click', function() {
-            // Update active button
-            filterBtns.forEach(b => b.classList.remove('active'));
-            this.classList.add('active');
-
-            const filter = this.dataset.filter;
-
-            tableRows.forEach(row => {
-                if (filter === 'all') {
-                    row.style.display = '';
-                } else if (filter === 'tersedia') {
-                    row.style.display = row.dataset.status === 'tersedia' ? '' : 'none';
-                } else if (filter === 'dipinjam') {
-                    row.style.display = row.dataset.status === 'sedang_dipinjam' ? '' : 'none';
-                } else if (filter === 'baik') {
-                    row.style.display = row.dataset.kondisi === 'baik' ? '' : 'none';
-                } else if (filter === 'rusak') {
-                    row.style.display = row.dataset.kondisi.includes('rusak') ? '' : 'none';
-                }
-            });
+    document.addEventListener('DOMContentLoaded', function () {
+    // Aktifkan semua tooltip di halaman
+    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+    tooltipTriggerList.map(function (tooltipTriggerEl) {
+        return new bootstrap.Tooltip(tooltipTriggerEl, {
+            delay: { show: 100, hide: 100 },
+            trigger: 'hover focus' // hover di desktop, focus di mobile (touch)
         });
     });
-
-    // Redirect to inventory when clicking blocking overlay on small screens
-    if (window.innerWidth < 900) {
-        document.body.addEventListener('click', function() {
-            window.location.href = 'inventory.php';
-        });
+        
+    // Theme Detection (Add dark-mode class if prefers dark)
+    if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+        document.documentElement.setAttribute('data-theme', 'dark');
     }
+
+    // Filter Eksemplar Table
+    document.addEventListener('DOMContentLoaded', function() {
+        const filterBtns = document.querySelectorAll('.filter-btn');
+        const tableRows = document.querySelectorAll('#eksemplarTable tbody tr');
+
+        filterBtns.forEach(btn => {
+            btn.addEventListener('click', function() {
+                // Update active button
+                filterBtns.forEach(b => b.classList.remove('active'));
+                this.classList.add('active');
+
+                const filter = this.dataset.filter;
+
+                tableRows.forEach(row => {
+                    if (filter === 'all') {
+                        row.style.display = '';
+                    } else if (filter === 'tersedia') {
+                        row.style.display = row.dataset.status === 'tersedia' ? '' : 'none';
+                    } else if (filter === 'dipinjam') {
+                        row.style.display = row.dataset.status === 'sedang_dipinjam' ? '' : 'none';
+                    } else if (filter === 'baik') {
+                        row.style.display = row.dataset.kondisi === 'baik' ? '' : 'none';
+                    } else if (filter === 'rusak') {
+                        row.style.display = row.dataset.kondisi.includes('rusak') ? '' : 'none';
+                    }
+                });
+            });
+        });
+
+        // Redirect to inventory when clicking blocking overlay on small screens
+        if (window.innerWidth < 900) {
+            document.body.addEventListener('click', function() {
+                window.location.href = 'inventory.php';
+            });
+        }
+    });
 });
 </script>
 

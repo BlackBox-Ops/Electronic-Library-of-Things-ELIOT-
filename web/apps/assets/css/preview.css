@@ -9,40 +9,46 @@
  * ✅ Smooth scrolling
  * ✅ Responsive blocking < 900px
  * ✅ Optimized transitions (0.2s max)
+ * ✅ Integrated root variables from inventory.css (no need to call inventory.css)
  */
 
 /* ========================================
-   COLOR VARIABLES
+   COLOR VARIABLES (Merged from inventory.css)
    ======================================== */
 :root {
     --bgBody: #f5f7f9;
     --bgCard: #ffffff;
-    --bgHeader: #ffffff;
-    --bgFixedBar: #ffffff;
+    --bgModal: #ffffff;
     --textPrimary: #212529;
     --textSecondary: #6c757d;
     --borderColor: #e9ecef;
-    --bgTabActive: #f8f9fa;
-    --colorGreenPrimary: #41644A;
+    --bgDetailContainer: #f8f9fa;
+    --badgeCategoryBg: #f1f3f5;
+    --badgeCategoryText: #212529;
+    --shadowColor: rgba(0, 0, 0, 0.1);
+    --bgHeader: #ffffff;
+    --bgFixedBar: #ffffff;
+    --colorGreenPrimary: #41644A; /* From preview.css light */
     --colorGreenHover: #9CAB84;
-    --shadowColor: rgba(2, 1, 1, 0.08);
     --starColor: #ffc107;
 }
 
 [data-theme="dark"] {
-    --bgBody: #0d0d0d;
-    --bgCard: #1a1a1a;
-    --bgHeader: #1e1e1e;
-    --bgFixedBar: #1e1e1e;
-    --textPrimary: #e8e8e8;
-    --textSecondary: #a0a0a0;
-    --borderColor: #2a2a2a;
-    --bgTabActive: #252525;
+    --bgBody: #121212;
+    --bgCard: #1e1e1e;
+    --bgModal: #252525;
+    --textPrimary: #e0e0e0;
+    --textSecondary: #9e9e9e;
+    --borderColor: #333333;
+    --bgDetailContainer: #2d2d2d;
     --colorGreenPrimary: #8BA76C;
     --colorGreenHover: #9db87d;
-    --shadowColor: rgba(0, 0, 0, 0.4);
+    --badgeCategoryBg: #3d3d3d;
+    --badgeCategoryText: #f8f9fa;
+    --shadowColor: rgba(255, 255, 255, 0.1);
+    --bgHeader: #1e1e1e;
+    --bgFixedBar: #1e1e1e;
     --starColor: #ffb300;
-    
 }
 
 /* ========================================
@@ -200,15 +206,14 @@ body {
 
 /* Category Badge - Compact */
 .badge-category {
-    background-color: var(--colorGreenPrimary);
-    color: white;
-    padding: 0.35rem 0.85rem;
-    border-radius: 16px;
-    font-size: 0.8rem;
+    background-color: var(--badgeCategoryBg);
+    color: var(--badgeCategoryText);
+    border: 1px solid var(--borderColor);
+    padding: 0.45em 1em;
+    font-size: 0.75rem;
+    border-radius: 8px;
     font-weight: 600;
-    letter-spacing: 0.5px;
-    text-transform: uppercase;
-    display: inline-block;
+    letter-spacing: 0.3px;
 }
 
 .book-keterangan {
@@ -598,6 +603,67 @@ code {
 }
 
 /* ========================================
+   MINI BUTTON TO INVENTORY (Added)
+   ======================================== */
+.inventory-btn {
+    background-color: var(--colorGreenPrimary);
+    color: white; /* Kontras dengan primary */
+    border: none;
+    padding: 0.5rem;
+    cursor: pointer;
+    font-size: 1rem; /* Mini */
+    border-radius: 50%; /* Bulat modern */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px; /* Mini size */
+    height: 40px;
+    transition: all 0.2s ease;
+}
+
+.inventory-btn:hover {
+    background-color: var(--colorGreenHover);
+    opacity: 0.9;
+    transform: scale(1.05);
+}
+
+.inventory-btn i {
+    color: white; /* Adaptif, kontras dengan bg tombol */
+}
+
+/* ========================================
+   MOBILE WARNING (Added: <768px)
+   ======================================== */
+.mobile-warning {
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100vh;
+    text-align: center;
+    padding: 2rem;
+    background-color: var(--bgBody);
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 1000;
+}
+
+.mobile-warning i {
+    font-size: 3rem;
+    color: inherit; /* Polos, tanpa warna custom; inherit dari textPrimary */
+    margin-bottom: 1rem;
+}
+
+.mobile-warning p {
+    font-size: 1.2rem;
+    color: var(--textPrimary); /* Adaptif dark/light */
+    font-weight: 600;
+}
+
+/* ========================================
    RESPONSIVE BLOCKING < 900px (P1)
    ======================================== */
 @media (max-width: 899px) {
@@ -646,6 +712,20 @@ code {
     [data-theme="dark"] body::after {
         background: #1e1e1e;
         color: #e8e8e8;
+    }
+}
+
+/* Mobile Warning Specific (Override for <768px, synced with 700-800px) */
+@media (max-width: 767px) {
+    .preview-content,
+    .preview-header,
+    .nav-tabs-sticky-wrapper,
+    .fixed-back-bar {
+        display: none !important; /* Sembunyikan konten utama */
+    }
+    
+    .mobile-warning {
+        display: flex !important; /* Tampilkan pesan */
     }
 }
 
