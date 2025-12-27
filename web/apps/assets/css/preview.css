@@ -780,3 +780,48 @@ code {
         margin-top: 0;
     }
 }
+
+/* ========================================
+   PAGINATION for Tab 2
+   ======================================== */
+.pagination-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 1rem;
+    background: var(--bgCard);
+    border-top: 1px solid var(--borderColor);
+}
+
+.pagination-btn {
+    background-color: var(--colorGreenPrimary);
+    color: white;
+    border: none;
+    padding: 0.5rem 1rem;
+    border-radius: 8px;
+    margin: 0 1rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+}
+
+.pagination-btn:hover {
+    background-color: var(--colorGreenHover);
+    transform: scale(1.05);
+}
+
+.pagination-btn.disabled {
+    background-color: var(--textSecondary);
+    cursor: not-allowed;
+    transform: none;
+}
+
+.pagination-info {
+    font-size: 0.9rem;
+    color: var(--textSecondary);
+    font-weight: 600;
+}

@@ -6,12 +6,10 @@
  * IMPROVEMENTS:
  * ✅ Fixed back button (always visible)
  * ✅ Compact header (100px)
- * ✅ Sticky tabs below fixed button
- * ✅ No target="_blank" required
- * ✅ Smooth scrolling
- * ✅ Responsive blocking < 900px
- * ✅ Added mini button to inventory.php in preview-header
- * ✅ Added mobile warning for <768px
+ * ✅ Mini button to inventory.php with TOOLTIP
+ * ✅ Pagination Tab 2: 5 items per page
+ * ✅ Stay on active tab after pagination reload
+ * ✅ Mobile warning for <768px
  */
 
 require_once '../../includes/config.php';
@@ -72,7 +70,24 @@ $authorsQuery->bind_param("i", $book_id);
 $authorsQuery->execute();
 $authors = $authorsQuery->get_result()->fetch_all(MYSQLI_ASSOC);
 
-// Query 3: Eksemplar dengan UID & Status
+// Pagination for Tab 2: Eksemplar (5 items per page)
+$page = isset($_GET['page']) ? max(1, (int)$_GET['page']) : 1;
+$limit = 5;
+$offset = ($page - 1) * $limit;
+
+// Count total eksemplar
+$totalQuery = $conn->prepare("
+    SELECT COUNT(*) as total
+    FROM rt_book_uid rbu
+    WHERE rbu.book_id = ? AND rbu.is_deleted = 0
+");
+$totalQuery->bind_param("i", $book_id);
+$totalQuery->execute();
+$totalResult = $totalQuery->get_result()->fetch_assoc();
+$totalEksemplar = $totalResult['total'];
+$totalPages = ceil($totalEksemplar / $limit);
+
+// Query 3: Eksemplar dengan pagination
 $eksemplarQuery = $conn->prepare("
     SELECT 
         rbu.id,
@@ -94,8 +109,9 @@ $eksemplarQuery = $conn->prepare("
     WHERE rbu.book_id = ? AND rbu.is_deleted = 0
     GROUP BY rbu.id
     ORDER BY rbu.kode_eksemplar ASC
+    LIMIT ? OFFSET ?
 ");
-$eksemplarQuery->bind_param("i", $book_id);
+$eksemplarQuery->bind_param("iii", $book_id, $limit, $offset);
 $eksemplarQuery->execute();
 $eksemplars = $eksemplarQuery->get_result()->fetch_all(MYSQLI_ASSOC);
 
@@ -164,29 +180,23 @@ function displayRole($role) {
 include_once '../includes/header.php';
 ?>
 
-<!-- FontAwesome CDN (Fallback jika belum di header.php) -->
-<!-- <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"> -->
-
-<!-- Only call preview.css (with merged root from inventory.css) -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 <link rel="stylesheet" href="../assets/css/preview.css">
 
-<!-- FIXED BACK BUTTON BAR - Always Visible (z-index: 999) -->
+<!-- FIXED BACK BUTTON BAR -->
 <div class="fixed-back-bar">
     <a href="inventory.php" class="btn-back">
         <i class="fas fa-arrow-left"></i> Kembali ke Inventory
     </a>
 </div>
 
-<!-- COMPACT HEADER - 100px Height -->
+<!-- COMPACT HEADER -->
 <div class="preview-header">
     <div class="container-fluid">
         <div class="row align-items-center">
-            <!-- Cover Image - Compact (120x160) -->
             <div class="col-auto">
                 <?php if (!empty($book['cover_image'])): ?>
-                    <img src="<?= htmlspecialchars($book['cover_image']) ?>" 
-                        alt="Cover" 
-                        class="book-cover-img">
+                    <img src="<?= htmlspecialchars($book['cover_image']) ?>" alt="Cover" class="book-cover-img">
                 <?php else: ?>
                     <div class="book-cover-placeholder">
                         <i class="fas fa-book"></i>
@@ -194,20 +204,15 @@ include_once '../includes/header.php';
                 <?php endif; ?>
             </div>
 
-            <!-- Book Info - Inline & Compact -->
             <div class="col">
                 <h1 class="book-title"><?= htmlspecialchars($book['judul_buku']) ?></h1>
                 
-                <!-- Rating Display -->
                 <div class="rating-display">
-                    <div class="stars">
-                        <?= renderStars($rating['average_rating']) ?>
-                    </div>
+                    <div class="stars"><?= renderStars($rating['average_rating']) ?></div>
                     <span class="rating-number"><?= number_format($rating['average_rating'], 1) ?></span>
                     <span class="rating-count">(<?= $rating['total_reviews'] ?> review)</span>
                 </div>
 
-                <!-- Meta Info - Inline -->
                 <div class="book-meta">
                     <span><i class="fas fa-barcode"></i> ISBN: <?= htmlspecialchars($book['isbn']) ?></span>
                     <span><i class="fas fa-calendar"></i> <?= $book['tahun_terbit'] ?></span>
@@ -215,23 +220,21 @@ include_once '../includes/header.php';
                     <span><i class="fas fa-map-marker-alt"></i> Rak <?= htmlspecialchars($book['lokasi_rak']) ?></span>
                 </div>
 
-                <!-- Category Badge & Keterangan -->
                 <div>
                     <span class="badge-category"><?= ucfirst($book['kategori']) ?></span>
                     <?php if (!empty($book['keterangan'])): ?>
                         <span class="book-keterangan ms-3">
-                            <i class="fas fa-info-circle"></i> 
-                            <?= htmlspecialchars($book['keterangan']) ?>
+                            <i class="fas fa-info-circle"></i> <?= htmlspecialchars($book['keterangan']) ?>
                         </span>
                     <?php endif; ?>
                 </div>
             </div>
 
-            <!-- Added: Mini Button to Inventory -->
+            <!-- Mini Button with Tooltip -->
             <div class="col-auto">
                 <button 
                     class="inventory-btn" 
-                    aria-label="Kembali ke Inventory" 
+                    aria-label="Kembali ke Inventory"
                     data-bs-toggle="tooltip" 
                     data-bs-placement="left" 
                     title="Kembali ke Inventory"
@@ -243,38 +246,34 @@ include_once '../includes/header.php';
     </div>
 </div>
 
-<!-- STICKY TAB NAVIGATION - Below fixed back button (top: 60px) -->
+<!-- STICKY TAB NAVIGATION -->
 <div class="nav-tabs-sticky-wrapper">
     <ul class="nav nav-tabs" id="previewTabs" role="tablist">
         <li class="nav-item" role="presentation">
-            <button class="nav-link active" id="overview-tab" data-bs-toggle="tab" 
-                    data-bs-target="#overview" type="button" role="tab">
+            <button class="nav-link active" id="overview-tab" data-bs-toggle="tab" data-bs-target="#overview" type="button" role="tab">
                 <i class="fas fa-info-circle"></i> Overview
             </button>
         </li>
         <li class="nav-item" role="presentation">
-            <button class="nav-link" id="eksemplar-tab" data-bs-toggle="tab" 
-                    data-bs-target="#eksemplar" type="button" role="tab">
+            <button class="nav-link" id="eksemplar-tab" data-bs-toggle="tab" data-bs-target="#eksemplar" type="button" role="tab">
                 <i class="fas fa-tags"></i> Eksemplar & RFID
-                <span class="badge"><?= count($eksemplars) ?></span>
+                <span class="badge"><?= $totalEksemplar ?></span>
             </button>
         </li>
         <li class="nav-item" role="presentation">
-            <button class="nav-link" id="statistik-tab" data-bs-toggle="tab" 
-                    data-bs-target="#statistik" type="button" role="tab">
+            <button class="nav-link" id="statistik-tab" data-bs-toggle="tab" data-bs-target="#statistik" type="button" role="tab">
                 <i class="fas fa-chart-bar"></i> Statistik
             </button>
         </li>
     </ul>
 </div>
 
-<!-- TAB CONTENT - Scrollable Area -->
+<!-- TAB CONTENT -->
 <div class="preview-content">
     <div class="tab-content" id="previewTabContent">
-        
+
         <!-- TAB 1: OVERVIEW -->
         <div class="tab-pane fade show active" id="overview" role="tabpanel">
-            
             <!-- Deskripsi Buku -->
             <div class="card">
                 <div class="card-header">
@@ -348,19 +347,14 @@ include_once '../includes/header.php';
 
         <!-- TAB 2: EKSEMPLAR & RFID -->
         <div class="tab-pane fade" id="eksemplar" role="tabpanel">
-            
-            <!-- Filter Buttons -->
             <div class="filter-buttons">
-                <button class="filter-btn active" data-filter="all">
-                    Semua <span class="badge"><?= count($eksemplars) ?></span>
-                </button>
+                <button class="filter-btn active" data-filter="all">Semua <span class="badge"><?= $totalEksemplar ?></span></button>
                 <button class="filter-btn" data-filter="tersedia">Tersedia</button>
                 <button class="filter-btn" data-filter="dipinjam">Sedang Dipinjam</button>
                 <button class="filter-btn" data-filter="baik">Kondisi Baik</button>
                 <button class="filter-btn" data-filter="rusak">Rusak</button>
             </div>
 
-            <!-- Eksemplar Table -->
             <div class="card">
                 <div class="table-responsive">
                     <table class="table table-hover mb-0" id="eksemplarTable">
@@ -386,11 +380,11 @@ include_once '../includes/header.php';
                                         ];
                                         $badgeClass = $kondisiBadge[$eks['kondisi']] ?? 'badge-secondary';
                                         $statusBadge = $eks['status_saat_ini'] == 'Tersedia' ? 'badge-success' : 'badge-warning';
+                                        $statusKey = strtolower(str_replace(' ', '_', $eks['status_saat_ini']));
                                     ?>
-                                    <tr data-kondisi="<?= $eks['kondisi'] ?>" 
-                                        data-status="<?= strtolower(str_replace(' ', '_', $eks['status_saat_ini'])) ?>">
+                                    <tr data-kondisi="<?= $eks['kondisi'] ?>" data-status="<?= $statusKey ?>">
                                         <td><strong><?= htmlspecialchars($eks['kode_eksemplar']) ?></strong></td>
-                                        <td><code><?= htmlspecialchars($eks['uid_rfid']) ?></code></td>
+                                        <td><code><?= htmlspecialchars($eks['uid_rfid'] ?? '-') ?></code></td>
                                         <td><span class="badge <?= $badgeClass ?>"><?= ucwords(str_replace('_', ' ', $eks['kondisi'])) ?></span></td>
                                         <td><span class="badge <?= $statusBadge ?>"><?= $eks['status_saat_ini'] ?></span></td>
                                         <td><?= $eks['jumlah_dipinjam'] ?> kali</td>
@@ -410,13 +404,26 @@ include_once '../includes/header.php';
                         </tbody>
                     </table>
                 </div>
+
+                <!-- Pagination -->
+                <?php if ($totalPages > 1): ?>
+                    <div class="pagination-container">
+                        <a href="?id=<?= $book_id ?>&page=<?= max(1, $page - 1) ?>#eksemplar" 
+                           class="pagination-btn <?= ($page <= 1) ? 'disabled' : '' ?>">
+                            <i class="fas fa-chevron-left"></i>
+                        </a>
+                        <span class="pagination-info">Halaman <?= $page ?> dari <?= $totalPages ?></span>
+                        <a href="?id=<?= $book_id ?>&page=<?= min($totalPages, $page + 1) ?>#eksemplar" 
+                           class="pagination-btn <?= ($page >= $totalPages) ? 'disabled' : '' ?>">
+                            <i class="fas fa-chevron-right"></i>
+                        </a>
+                    </div>
+                <?php endif; ?>
             </div>
         </div>
 
         <!-- TAB 3: STATISTIK -->
         <div class="tab-pane fade" id="statistik" role="tabpanel">
-            
-            <!-- Stats Cards -->
             <div class="row mb-4">
                 <div class="col-md-3">
                     <div class="stat-card">
@@ -444,7 +451,6 @@ include_once '../includes/header.php';
                 </div>
             </div>
 
-            <!-- Rating Breakdown -->
             <div class="card">
                 <div class="card-header">
                     <i class="fas fa-star me-2"></i> Rating & Review
@@ -453,9 +459,7 @@ include_once '../includes/header.php';
                     <div class="row align-items-center mb-4">
                         <div class="col-md-4 text-center">
                             <div class="stat-number"><?= number_format($rating['average_rating'], 1) ?></div>
-                            <div class="stars mb-2">
-                                <?= renderStars($rating['average_rating']) ?>
-                            </div>
+                            <div class="stars mb-2"><?= renderStars($rating['average_rating']) ?></div>
                             <div class="text-muted"><?= $rating['total_reviews'] ?> reviews</div>
                         </div>
                         <div class="col-md-8">
@@ -481,67 +485,69 @@ include_once '../includes/header.php';
                 </div>
             </div>
         </div>
+
     </div>
 </div>
 
-<!-- Added: Mobile Warning Element -->
+<!-- Mobile Warning -->
 <div class="mobile-warning" role="alert">
     <i class="fas fa-exclamation-triangle"></i>
     <p>Silahkan buka di PC/Laptop atau Tab. Web ini tidak dioptimalkan untuk mobile.</p>
 </div>
 
 <script>
-    document.addEventListener('DOMContentLoaded', function () {
-    // Aktifkan semua tooltip di halaman
+// Tooltip, Active Tab Persistence, Filter, Theme, Mobile Redirect
+document.addEventListener('DOMContentLoaded', function () {
+    // Tooltip Bootstrap
     var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
-    tooltipTriggerList.map(function (tooltipTriggerEl) {
-        return new bootstrap.Tooltip(tooltipTriggerEl, {
-            delay: { show: 100, hide: 100 },
-            trigger: 'hover focus' // hover di desktop, focus di mobile (touch)
+    tooltipTriggerList.map(function (el) {
+        return new bootstrap.Tooltip(el, { delay: { show: 100, hide: 100 }, trigger: 'hover focus' });
+    });
+
+    // Restore active tab after reload (pagination)
+    const tabKey = 'previewActiveTab';
+    const savedTab = localStorage.getItem(tabKey);
+    if (savedTab) {
+        const tabBtn = document.querySelector(`#${savedTab}-tab`);
+        if (tabBtn) new bootstrap.Tab(tabBtn).show();
+    }
+
+    // Save active tab on change
+    document.querySelectorAll('#previewTabs .nav-link').forEach(tab => {
+        tab.addEventListener('shown.bs.tab', function (e) {
+            const id = e.target.id.replace('-tab', '');
+            localStorage.setItem(tabKey, id);
         });
     });
-        
-    // Theme Detection (Add dark-mode class if prefers dark)
-    if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+
+    // Theme detection
+    if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
         document.documentElement.setAttribute('data-theme', 'dark');
     }
 
-    // Filter Eksemplar Table
-    document.addEventListener('DOMContentLoaded', function() {
-        const filterBtns = document.querySelectorAll('.filter-btn');
-        const tableRows = document.querySelectorAll('#eksemplarTable tbody tr');
-
-        filterBtns.forEach(btn => {
-            btn.addEventListener('click', function() {
-                // Update active button
-                filterBtns.forEach(b => b.classList.remove('active'));
-                this.classList.add('active');
-
-                const filter = this.dataset.filter;
-
-                tableRows.forEach(row => {
-                    if (filter === 'all') {
-                        row.style.display = '';
-                    } else if (filter === 'tersedia') {
-                        row.style.display = row.dataset.status === 'tersedia' ? '' : 'none';
-                    } else if (filter === 'dipinjam') {
-                        row.style.display = row.dataset.status === 'sedang_dipinjam' ? '' : 'none';
-                    } else if (filter === 'baik') {
-                        row.style.display = row.dataset.kondisi === 'baik' ? '' : 'none';
-                    } else if (filter === 'rusak') {
-                        row.style.display = row.dataset.kondisi.includes('rusak') ? '' : 'none';
-                    }
-                });
+    // Client-side filter
+    const filterBtns = document.querySelectorAll('.filter-btn');
+    const rows = document.querySelectorAll('#eksemplarTable tbody tr');
+    filterBtns.forEach(btn => {
+        btn.addEventListener('click', () => {
+            filterBtns.forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            const filter = btn.dataset.filter;
+            rows.forEach(row => {
+                let show = true;
+                if (filter === 'tersedia' && row.dataset.status !== 'tersedia') show = false;
+                if (filter === 'dipinjam' && row.dataset.status !== 'sedang_dipinjam') show = false;
+                if (filter === 'baik' && row.dataset.kondisi !== 'baik') show = false;
+                if (filter === 'rusak' && !row.dataset.kondisi.includes('rusak')) show = false;
+                row.style.display = show ? '' : 'none';
             });
         });
-
-        // Redirect to inventory when clicking blocking overlay on small screens
-        if (window.innerWidth < 900) {
-            document.body.addEventListener('click', function() {
-                window.location.href = 'inventory.php';
-            });
-        }
     });
+
+    // Mobile redirect
+    if (window.innerWidth < 900) {
+        document.body.addEventListener('click', () => location.href = 'inventory.php');
+    }
 });
 </script>
 
