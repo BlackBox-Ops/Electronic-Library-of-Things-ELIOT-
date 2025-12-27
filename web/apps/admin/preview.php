@@ -1,14 +1,15 @@
 <?php
 /**
- * Book Preview Page - Detail & Comprehensive View
+ * Book Preview Page - Optimized Version
  * Path: web/apps/admin/preview.php
  * 
- * FEATURES:
- * - Tab 1 (Overview): Info buku, penulis inline, penerbit inline
- * - Tab 2 (Eksemplar): Table semua eksemplar dengan filter
- * - Tab 3 (Statistik): Total peminjaman, rating, grafik
- * - Header: Always visible dengan cover, judul, rating
- * - Dark mode adaptive
+ * IMPROVEMENTS:
+ * ✅ Fixed back button (always visible)
+ * ✅ Compact header (100px)
+ * ✅ Sticky tabs below fixed button
+ * ✅ No target="_blank" required
+ * ✅ Smooth scrolling
+ * ✅ Responsive blocking < 900px
  */
 
 require_once '../../includes/config.php';
@@ -77,7 +78,7 @@ $eksemplarQuery = $conn->prepare("
         ub.uid as uid_rfid,
         rbu.kondisi,
         rbu.tanggal_registrasi,
-        COUNT(tp.id) as jumlah_dipinjam,
+        COUNT(DISTINCT tp.id) as jumlah_dipinjam,
         CASE 
             WHEN tp.status = 'dipinjam' THEN 'Sedang Dipinjam'
             ELSE 'Tersedia'
@@ -161,71 +162,71 @@ function displayRole($role) {
 include_once '../includes/header.php';
 ?>
 
+<link rel="stylesheet" href="../assets/css/inventory.css">
 <link rel="stylesheet" href="../assets/css/preview.css">
 
-<div class="container-fluid py-4">
-    <!-- Back Button -->
-    <div class="mb-3">
-        <a href="inventory.php" class="btn btn-back">
-            <i class="fas fa-arrow-left"></i> Kembali ke Inventory
-        </a>
-    </div>
+<!-- FIXED BACK BUTTON BAR - Always Visible (z-index: 999) -->
+<div class="fixed-back-bar">
+    <a href="inventory.php" class="btn-back">
+        <i class="fas fa-arrow-left"></i> Kembali ke Inventory
+    </a>
+</div>
 
-    <!-- HEADER SECTION - Always Visible -->
-    <div class="preview-header">
-        <div class="container-fluid">
-            <div class="row align-items-start">
-                <!-- Cover Image -->
-                <div class="col-md-2">
-                    <?php if (!empty($book['cover_image'])): ?>
-                        <img src="<?= htmlspecialchars($book['cover_image']) ?>" 
-                             alt="Cover" 
-                             class="book-cover-img">
-                    <?php else: ?>
-                        <div class="book-cover-placeholder">
-                            <i class="fas fa-book"></i>
-                        </div>
-                    <?php endif; ?>
+<!-- COMPACT HEADER - 100px Height -->
+<div class="preview-header">
+    <div class="container-fluid">
+        <div class="row align-items-center">
+            <!-- Cover Image - Compact (120x160) -->
+            <div class="col-auto">
+                <?php if (!empty($book['cover_image'])): ?>
+                    <img src="<?= htmlspecialchars($book['cover_image']) ?>" 
+                         alt="Cover" 
+                         class="book-cover-img">
+                <?php else: ?>
+                    <div class="book-cover-placeholder">
+                        <i class="fas fa-book"></i>
+                    </div>
+                <?php endif; ?>
+            </div>
+
+            <!-- Book Info - Inline & Compact -->
+            <div class="col">
+                <h1 class="book-title"><?= htmlspecialchars($book['judul_buku']) ?></h1>
+                
+                <!-- Rating Display -->
+                <div class="rating-display">
+                    <div class="stars">
+                        <?= renderStars($rating['average_rating']) ?>
+                    </div>
+                    <span class="rating-number"><?= number_format($rating['average_rating'], 1) ?></span>
+                    <span class="rating-count">(<?= $rating['total_reviews'] ?> review)</span>
                 </div>
 
-                <!-- Book Info -->
-                <div class="col-md-10">
-                    <h1 class="book-title"><?= htmlspecialchars($book['judul_buku']) ?></h1>
-                    
-                    <!-- Rating Display -->
-                    <div class="rating-display">
-                        <div class="stars">
-                            <?= renderStars($rating['average_rating']) ?>
-                        </div>
-                        <span class="rating-number"><?= number_format($rating['average_rating'], 1) ?></span>
-                        <span class="rating-count">(<?= $rating['total_reviews'] ?> review)</span>
-                    </div>
+                <!-- Meta Info - Inline -->
+                <div class="book-meta">
+                    <span><i class="fas fa-barcode"></i> ISBN: <?= htmlspecialchars($book['isbn']) ?></span>
+                    <span><i class="fas fa-calendar"></i> <?= $book['tahun_terbit'] ?></span>
+                    <span><i class="fas fa-file-alt"></i> <?= $book['jumlah_halaman'] ?> hal</span>
+                    <span><i class="fas fa-map-marker-alt"></i> Rak <?= htmlspecialchars($book['lokasi_rak']) ?></span>
+                </div>
 
-                    <!-- Meta Info -->
-                    <div class="book-meta">
-                        <span><i class="fas fa-barcode"></i> ISBN: <?= htmlspecialchars($book['isbn']) ?></span>
-                        <span><i class="fas fa-calendar"></i> Tahun: <?= $book['tahun_terbit'] ?></span>
-                        <span><i class="fas fa-file-alt"></i> <?= $book['jumlah_halaman'] ?> halaman</span>
-                        <span><i class="fas fa-map-marker-alt"></i> Rak: <?= htmlspecialchars($book['lokasi_rak']) ?></span>
-                    </div>
-
-                    <!-- Category Badge -->
+                <!-- Category Badge & Keterangan -->
+                <div>
                     <span class="badge-category"><?= ucfirst($book['kategori']) ?></span>
-                    
                     <?php if (!empty($book['keterangan'])): ?>
-                        <div class="mt-2">
-                            <small class="text-muted">
-                                <i class="fas fa-info-circle"></i> 
-                                <?= htmlspecialchars($book['keterangan']) ?>
-                            </small>
-                        </div>
+                        <span class="book-keterangan ms-3">
+                            <i class="fas fa-info-circle"></i> 
+                            <?= htmlspecialchars($book['keterangan']) ?>
+                        </span>
                     <?php endif; ?>
                 </div>
             </div>
         </div>
     </div>
+</div>
 
-    <!-- TAB NAVIGATION -->
+<!-- STICKY TAB NAVIGATION - Below fixed back button (top: 60px) -->
+<div class="nav-tabs-sticky-wrapper">
     <ul class="nav nav-tabs" id="previewTabs" role="tablist">
         <li class="nav-item" role="presentation">
             <button class="nav-link active" id="overview-tab" data-bs-toggle="tab" 
@@ -237,6 +238,7 @@ include_once '../includes/header.php';
             <button class="nav-link" id="eksemplar-tab" data-bs-toggle="tab" 
                     data-bs-target="#eksemplar" type="button" role="tab">
                 <i class="fas fa-tags"></i> Eksemplar & RFID
+                <span class="badge"><?= count($eksemplars) ?></span>
             </button>
         </li>
         <li class="nav-item" role="presentation">
@@ -246,8 +248,10 @@ include_once '../includes/header.php';
             </button>
         </li>
     </ul>
+</div>
 
-    <!-- TAB CONTENT -->
+<!-- TAB CONTENT - Scrollable Area -->
+<div class="preview-content">
     <div class="tab-content" id="previewTabContent">
         
         <!-- TAB 1: OVERVIEW -->
@@ -329,7 +333,9 @@ include_once '../includes/header.php';
             
             <!-- Filter Buttons -->
             <div class="filter-buttons">
-                <button class="filter-btn active" data-filter="all">Semua (<?= count($eksemplars) ?>)</button>
+                <button class="filter-btn active" data-filter="all">
+                    Semua <span class="badge"><?= count($eksemplars) ?></span>
+                </button>
                 <button class="filter-btn" data-filter="tersedia">Tersedia</button>
                 <button class="filter-btn" data-filter="dipinjam">Sedang Dipinjam</button>
                 <button class="filter-btn" data-filter="baik">Kondisi Baik</button>
@@ -489,6 +495,13 @@ document.addEventListener('DOMContentLoaded', function() {
             });
         });
     });
+
+    // Redirect to inventory when clicking blocking overlay on small screens
+    if (window.innerWidth < 900) {
+        document.body.addEventListener('click', function() {
+            window.location.href = 'inventory.php';
+        });
+    }
 });
 </script>
 

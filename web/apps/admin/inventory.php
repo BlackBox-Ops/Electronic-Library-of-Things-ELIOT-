@@ -10,6 +10,8 @@
  * - UC-4: Auto-generate kode eksemplar
  * - UC-5: Kondisi buku dropdown per unit
  * - UC-6: Multi-author toggle dengan conditional role
+ * 
+ * FIXED: Preview link opens in same window (no target="_blank")
  */
 
 require_once '../../includes/config.php'; 
@@ -206,7 +208,8 @@ include_once '../includes/header.php';
                                 <a href="edit_inventory.php?id=<?= $row['id'] ?>" class="btn btn-mini btn-light border" title="Edit">
                                     <i class="fas fa-edit"></i>
                                 </a>
-                                <a href="preview.php?id=<?= $row['id'] ?>" target="_blank" class="btn btn-mini btn-outline-primary border" title="Preview">
+                                <!-- FIXED: Removed target="_blank" - opens in same window -->
+                                <a href="preview.php?id=<?= $row['id'] ?>" class="btn btn-mini btn-outline-primary border" title="Preview">
                                     <i class="fas fa-eye"></i>
                                 </a>
                             </div>
@@ -293,7 +296,7 @@ include_once '../includes/header.php';
         </div>
     </div>
 
-        <!-- PAGINATION CONTROLS -->
+    <!-- PAGINATION CONTROLS -->
     <div class="d-flex justify-content-end mt-3">
         <nav aria-label="Inventory pagination">
             <ul class="pagination mb-0" id="inventoryPagination"></ul>

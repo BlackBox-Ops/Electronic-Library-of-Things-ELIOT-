@@ -1,7 +1,14 @@
 /**
- * Preview Book Page - Clean & Modern Design
+ * Preview Book Page - Optimized & Compact Design
  * Path: web/apps/assets/css/preview.css
- * Dark Mode Adaptive | Responsive | Tab-Based Layout
+ * 
+ * IMPROVEMENTS:
+ * ✅ Fixed back button (always visible, z-index: 999)
+ * ✅ Compact header (100px instead of 260px)
+ * ✅ Sticky tabs (below fixed button)
+ * ✅ Smooth scrolling
+ * ✅ Responsive blocking < 900px
+ * ✅ Optimized transitions (0.2s max)
  */
 
 /* ========================================
@@ -11,13 +18,14 @@
     --bgBody: #f5f7f9;
     --bgCard: #ffffff;
     --bgHeader: #ffffff;
+    --bgFixedBar: #ffffff;
     --textPrimary: #212529;
     --textSecondary: #6c757d;
     --borderColor: #e9ecef;
     --bgTabActive: #f8f9fa;
-    --colorGreenPrimary: #628141;
-    --colorGreenHover: #6e9149;
-    --shadowColor: rgba(0, 0, 0, 0.08);
+    --colorGreenPrimary: #41644A;
+    --colorGreenHover: #9CAB84;
+    --shadowColor: rgba(2, 1, 1, 0.08);
     --starColor: #ffc107;
 }
 
@@ -25,6 +33,7 @@
     --bgBody: #0d0d0d;
     --bgCard: #1a1a1a;
     --bgHeader: #1e1e1e;
+    --bgFixedBar: #1e1e1e;
     --textPrimary: #e8e8e8;
     --textSecondary: #a0a0a0;
     --borderColor: #2a2a2a;
@@ -33,95 +42,143 @@
     --colorGreenHover: #9db87d;
     --shadowColor: rgba(0, 0, 0, 0.4);
     --starColor: #ffb300;
+    
 }
 
 /* ========================================
-   BASE STYLES
+   BASE STYLES - Smooth Scrolling
    ======================================== */
+html {
+    scroll-behavior: smooth;
+}
+
 body {
     background-color: var(--bgBody);
     color: var(--textPrimary);
-    transition: background 0.3s ease, color 0.3s ease;
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    transition: background 0.2s ease, color 0.2s ease;
+    font-family: Poppins,'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 }
 
 /* ========================================
-   HEADER SECTION - Always Visible
+   FIXED BACK BUTTON - Always Visible (P0)
+   ======================================== */
+.fixed-back-bar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 60px;
+    background: var(--bgFixedBar);
+    border-bottom: 2px solid var(--borderColor);
+    box-shadow: 0 2px 8px var(--shadowColor);
+    z-index: 999;
+    display: flex;
+    align-items: center;
+    padding: 0 2rem;
+    transition: background 0.2s ease;
+}
+
+.btn-back {
+    background: transparent;
+    border: 2px solid var(--borderColor);
+    color: var(--textPrimary);
+    padding: 0.5rem 1.25rem;
+    border-radius: 8px;
+    font-weight: 600;
+    transition: all 0.2s ease;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+}
+
+.btn-back:hover {
+    border-color: var(--colorGreenPrimary);
+    color: var(--colorGreenPrimary);
+    background: transparent;
+    transform: translateX(-4px);
+}
+
+.btn-back i {
+    margin-right: 0.5rem;
+}
+
+/* ========================================
+   COMPACT HEADER - 100px Height (P0)
    ======================================== */
 .preview-header {
     background: var(--bgHeader);
+    padding: 1rem 2rem;
+    margin-top: 60px; /* Space for fixed back button */
     border-bottom: 2px solid var(--borderColor);
-    padding: 2rem 0;
-    margin-bottom: 2rem;
-    box-shadow: 0 2px 12px var(--shadowColor);
-    position: sticky;
-    top: 0;
-    z-index: 100;
+    box-shadow: 0 2px 8px var(--shadowColor);
 }
 
 .book-cover-img {
-    width: 180px;
-    height: 260px;
+    width: 120px;
+    height: 160px;
     object-fit: cover;
-    border-radius: 12px;
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
-    border: 3px solid var(--borderColor);
+    border-radius: 10px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    border: 2px solid var(--borderColor);
 }
 
 .book-cover-placeholder {
-    width: 180px;
-    height: 260px;
+    width: 120px;
+    height: 160px;
     background: linear-gradient(135deg, var(--colorGreenPrimary) 0%, var(--colorGreenHover) 100%);
-    border-radius: 12px;
+    border-radius: 10px;
     display: flex;
     align-items: center;
     justify-content: center;
     color: white;
-    font-size: 4rem;
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+    font-size: 3rem;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 }
 
 .book-title {
-    font-size: 2rem;
+    font-size: 1.75rem;
     font-weight: 800;
     color: var(--textPrimary);
     margin-bottom: 0.5rem;
-    line-height: 1.3;
+    line-height: 1.2;
 }
 
 .book-meta {
-    font-size: 0.95rem;
+    font-size: 0.9rem;
     color: var(--textSecondary);
-    margin-bottom: 1rem;
+    margin-bottom: 0.75rem;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
 }
 
 .book-meta span {
-    margin-right: 1.5rem;
     display: inline-flex;
     align-items: center;
 }
 
 .book-meta i {
-    margin-right: 0.5rem;
+    margin-right: 0.4rem;
     color: var(--colorGreenPrimary);
+    font-size: 0.85rem;
 }
 
-/* Rating Stars */
+/* Rating Stars - Compact */
 .rating-display {
     display: flex;
     align-items: center;
     gap: 0.5rem;
-    margin-bottom: 1rem;
+    margin-bottom: 0.75rem;
 }
 
 .stars {
     display: flex;
-    gap: 0.25rem;
+    gap: 0.2rem;
 }
 
 .star {
     color: #ddd;
-    font-size: 1.5rem;
+    font-size: 1.2rem;
     transition: color 0.2s ease;
 }
 
@@ -130,38 +187,55 @@ body {
 }
 
 .rating-number {
-    font-size: 1.25rem;
+    font-size: 1.1rem;
     font-weight: 700;
     color: var(--textPrimary);
-    margin-left: 0.5rem;
+    margin-left: 0.25rem;
 }
 
 .rating-count {
-    font-size: 0.9rem;
+    font-size: 0.85rem;
     color: var(--textSecondary);
 }
 
-/* Category Badge */
+/* Category Badge - Compact */
 .badge-category {
     background-color: var(--colorGreenPrimary);
     color: white;
-    padding: 0.4rem 1rem;
-    border-radius: 20px;
-    font-size: 0.85rem;
+    padding: 0.35rem 0.85rem;
+    border-radius: 16px;
+    font-size: 0.8rem;
     font-weight: 600;
     letter-spacing: 0.5px;
     text-transform: uppercase;
+    display: inline-block;
+}
+
+.book-keterangan {
+    font-size: 0.85rem;
+    color: var(--textSecondary);
+    margin-top: 0.5rem;
 }
 
 /* ========================================
-   TAB NAVIGATION
+   STICKY TAB NAVIGATION (P1)
+   Position: Below fixed back button
    ======================================== */
-.nav-tabs {
-    border-bottom: 2px solid var(--borderColor);
-    margin-bottom: 2rem;
+.nav-tabs-sticky-wrapper {
+    position: sticky;
+    top: 60px; /* Below fixed back button */
+    z-index: 100;
     background: var(--bgCard);
-    padding: 0 1rem;
-    border-radius: 12px 12px 0 0;
+    box-shadow: 0 2px 8px var(--shadowColor);
+    border-bottom: 2px solid var(--borderColor);
+}
+
+.nav-tabs {
+    border-bottom: none;
+    margin-bottom: 0;
+    background: var(--bgCard);
+    padding: 0 2rem;
+    display: flex;
 }
 
 .nav-tabs .nav-link {
@@ -170,8 +244,9 @@ body {
     padding: 1rem 1.5rem;
     font-weight: 600;
     font-size: 0.95rem;
-    transition: all 0.3s ease;
+    transition: all 0.2s ease;
     position: relative;
+    border-bottom: 3px solid transparent;
 }
 
 .nav-tabs .nav-link:hover {
@@ -187,20 +262,34 @@ body {
 
 .nav-tabs .nav-link i {
     margin-right: 0.5rem;
-    font-size: 1rem;
+    font-size: 0.95rem;
+}
+
+.nav-tabs .nav-link .badge {
+    margin-left: 0.5rem;
+    background: var(--colorGreenPrimary);
+    color: white;
+    padding: 0.2rem 0.5rem;
+    border-radius: 10px;
+    font-size: 0.75rem;
 }
 
 /* ========================================
-   TAB CONTENT
+   TAB CONTENT - Optimized Scrolling
    ======================================== */
-.tab-pane {
-    animation: fadeIn 0.4s ease-in-out;
+.preview-content {
+    padding: 2rem;
+    padding-top: 1.5rem;
 }
 
-@keyframes fadeIn {
+.tab-pane {
+    animation: fadeInContent 0.3s ease-in-out;
+}
+
+@keyframes fadeInContent {
     from {
         opacity: 0;
-        transform: translateY(10px);
+        transform: translateY(15px);
     }
     to {
         opacity: 1;
@@ -209,19 +298,19 @@ body {
 }
 
 /* ========================================
-   CARD STYLES
+   CARD STYLES - Lighter Shadows
    ======================================== */
 .card {
     background: var(--bgCard);
     border: 1px solid var(--borderColor);
     border-radius: 12px;
-    box-shadow: 0 2px 8px var(--shadowColor);
+    box-shadow: 0 2px 6px var(--shadowColor);
     margin-bottom: 1.5rem;
-    transition: all 0.3s ease;
+    transition: box-shadow 0.2s ease;
 }
 
 .card:hover {
-    box-shadow: 0 4px 16px var(--shadowColor);
+    box-shadow: 0 4px 12px var(--shadowColor);
 }
 
 .card-header {
@@ -229,7 +318,7 @@ body {
     border-bottom: 1px solid var(--borderColor);
     padding: 1rem 1.5rem;
     font-weight: 700;
-    font-size: 1.1rem;
+    font-size: 1.05rem;
     color: var(--textPrimary);
 }
 
@@ -276,6 +365,11 @@ body {
     border-radius: 8px;
     margin-bottom: 1rem;
     border-left: 4px solid var(--colorGreenPrimary);
+    transition: transform 0.2s ease;
+}
+
+.author-inline:hover {
+    transform: translateX(4px);
 }
 
 .author-inline .author-name {
@@ -341,7 +435,7 @@ body {
 
 .table tbody tr {
     border-bottom: 1px solid var(--borderColor);
-    transition: all 0.2s ease;
+    transition: background-color 0.2s ease;
 }
 
 .table tbody tr:hover {
@@ -369,12 +463,13 @@ body {
     color: var(--textSecondary);
     font-weight: 600;
     cursor: pointer;
-    transition: all 0.3s ease;
+    transition: all 0.2s ease;
 }
 
 .filter-btn:hover {
     border-color: var(--colorGreenPrimary);
     color: var(--colorGreenPrimary);
+    transform: translateY(-2px);
 }
 
 .filter-btn.active {
@@ -405,12 +500,13 @@ body {
     background: var(--bgCard);
     border: 2px solid var(--borderColor);
     border-radius: 12px;
-    transition: all 0.3s ease;
+    transition: all 0.2s ease;
 }
 
 .stat-card:hover {
     border-color: var(--colorGreenPrimary);
-    box-shadow: 0 4px 16px var(--shadowColor);
+    box-shadow: 0 4px 12px var(--shadowColor);
+    transform: translateY(-4px);
 }
 
 .stat-number {
@@ -469,38 +565,6 @@ body {
 }
 
 /* ========================================
-   RESPONSIVE
-   ======================================== */
-@media (max-width: 768px) {
-    .book-cover-img,
-    .book-cover-placeholder {
-        width: 140px;
-        height: 200px;
-    }
-
-    .book-title {
-        font-size: 1.5rem;
-    }
-
-    .nav-tabs .nav-link {
-        padding: 0.75rem 1rem;
-        font-size: 0.85rem;
-    }
-
-    .info-row {
-        flex-direction: column;
-    }
-
-    .info-label {
-        margin-bottom: 0.25rem;
-    }
-
-    .stat-number {
-        font-size: 2rem;
-    }
-}
-
-/* ========================================
    UTILITIES
    ======================================== */
 .text-green {
@@ -533,23 +597,106 @@ code {
     margin-bottom: 1rem;
 }
 
-/* Back Button */
-.btn-back {
-    background: transparent;
-    border: 2px solid var(--borderColor);
-    color: var(--textPrimary);
-    padding: 0.5rem 1.25rem;
-    border-radius: 8px;
-    font-weight: 600;
-    transition: all 0.3s ease;
+/* ========================================
+   RESPONSIVE BLOCKING < 900px (P1)
+   ======================================== */
+@media (max-width: 899px) {
+    /* Hide entire preview content */
+    .fixed-back-bar,
+    .preview-header,
+    .nav-tabs-sticky-wrapper,
+    .preview-content {
+        display: none !important;
+    }
+    
+    /* Show blocking overlay */
+    body::before {
+        content: '';
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        z-index: 999998;
+    }
+    
+    body::after {
+        content: '📱\A\AHalaman Preview Buku\ATidak Tersedia di Perangkat Kecil\A\A\AMinimum Width: 900px\A\AGunakan:\A• Tablet Besar (iPad Pro)\A• Laptop\A• Desktop\A\A\A← Kembali ke Inventory';
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        z-index: 999999;
+        background: white;
+        padding: 3rem 2.5rem;
+        border-radius: 20px;
+        text-align: center;
+        white-space: pre-line;
+        font-size: 1.1rem;
+        font-weight: 700;
+        color: #333;
+        box-shadow: 0 20px 60px rgba(0,0,0,0.4);
+        max-width: 85%;
+        line-height: 1.8;
+        cursor: pointer;
+    }
+    
+    /* Dark mode blocking overlay */
+    [data-theme="dark"] body::after {
+        background: #1e1e1e;
+        color: #e8e8e8;
+    }
 }
 
-.btn-back:hover {
-    border-color: var(--colorGreenPrimary);
-    color: var(--colorGreenPrimary);
-    background: transparent;
+/* ========================================
+   TABLET OPTIMIZATION (900px - 1200px)
+   ======================================== */
+@media (min-width: 900px) and (max-width: 1200px) {
+    .book-cover-img,
+    .book-cover-placeholder {
+        width: 100px;
+        height: 140px;
+    }
+
+    .book-title {
+        font-size: 1.5rem;
+    }
+
+    .nav-tabs .nav-link {
+        padding: 0.875rem 1.25rem;
+        font-size: 0.9rem;
+    }
+
+    .stat-number {
+        font-size: 2rem;
+    }
+
+    .preview-content {
+        padding: 1.5rem;
+    }
 }
 
-.btn-back i {
-    margin-right: 0.5rem;
+/* ========================================
+   DESKTOP OPTIMIZATION (1200px+)
+   ======================================== */
+@media (min-width: 1200px) {
+    .preview-content {
+        max-width: 1400px;
+        margin: 0 auto;
+    }
+}
+
+/* ========================================
+   PRINT STYLES
+   ======================================== */
+@media print {
+    .fixed-back-bar,
+    .nav-tabs-sticky-wrapper {
+        display: none !important;
+    }
+    
+    .preview-header {
+        margin-top: 0;
+    }
 }
