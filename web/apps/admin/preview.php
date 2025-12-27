@@ -180,8 +180,8 @@ include_once '../includes/header.php';
             <div class="col-auto">
                 <?php if (!empty($book['cover_image'])): ?>
                     <img src="<?= htmlspecialchars($book['cover_image']) ?>" 
-                         alt="Cover" 
-                         class="book-cover-img">
+                        alt="Cover" 
+                        class="book-cover-img">
                 <?php else: ?>
                     <div class="book-cover-placeholder">
                         <i class="fas fa-book"></i>
