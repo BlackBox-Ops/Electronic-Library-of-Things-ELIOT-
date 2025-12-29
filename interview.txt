@@ -1,0 +1,30 @@
+Nama saya Alan Firdaus, lulusan sistem komputer spesialisasi Mikro Robotika Industri.
+
+setelah lulus, saya kerja 1 tahun 8 bulan sebagai IT Support Level 2. 
+Mungkin kedengarannya beda sama embedded system, tapi di situ saya sempat handle perangkat IoT 
+yaitu SKF Aptitude untuk monitoring getaran mesin dan juga ZKTeco untuk akses kontrol mulai dari setup software, 
+inetgrasi u sistem, sampai testing. Jadi saya paham gimana IoT Device bekerja di lingkungan produksi.
+
+Tapi passion saya emang di embedded system. oleh karena ini saat hari libur saya konsisten bikin project pribadi.
+Saya udah selesaikan beberapa project WSN (Wireless Sensor Network).
+
+- Pertama : Monitoting polusi udara pakai sensor MQ-Series dengan MQTT
+- Kedua   : Monitoring Kualitas air untuk tambak ikan bandeng dan juga udang 
+            menggunakan sensor suhu, PH dan juga TDS. 
+            
+Untuk saat ini saya sedang tidak bekerja terakhir di bulan januari kemarin. 
+dan untuk kesibukan saya fokus untuk melatih kemampuan skill sebagai salah satu contoh nya :
+
+sekarang lagi develop project perpustakaan berbasis RFID namanya ELIOT atau kepanjangan dari :
+Electronic Library of Things - pakai MQTT Server sama web interface yang saya buat di bantu dengan AI
+
+Jadi singkat nya saya punya background akademis yang solid, pengalaman handle IoT device di dunia kerja.
+plus portofolio project yang aktif. 
+
+-- Closing
+Oke terima kasih banyak bu/pak atas waktu dan kesempatan intervie pada hari ini.
+
+dari diskusi tadi, saya makin yakin ini lingkungan yang tepat untuk saya tumbuh sebagai embedded engineer 
+saya percaya kombinasi fondasi pendidikan, pengalaman praktik IoT Device dan proven portofolio bisa membawa value ke tim.
+
+semoga bisa kolaborasi dalam waktu dekat terima kasih, selamat siang bu/pak.
