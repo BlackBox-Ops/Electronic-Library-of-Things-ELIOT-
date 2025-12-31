@@ -1,0 +1,579 @@
+/**
+ * Peminjaman Module Styles
+ * Path: web/apps/assets/css/peminjaman.css
+ * 
+ * Features:
+ * - Dark mode support
+ * - RFID scanner animations
+ * - Cart system styling
+ * - Responsive design
+ */
+
+/* ============================================
+   CSS VARIABLES - Light & Dark Mode
+   ============================================ */
+:root {
+    /* Ambil dari dashboard.css */
+    --colorGreenPrimary: #41644A;
+    --colorGreenHover: #9CAB84;
+    --bgBody: #f5f7f9;
+    --bgCard: #ffffff;
+    --textPrimary: #212529;
+    --textSecondary: #6c757d;
+    --borderColor: #e9ecef;
+    --bgDetailContainer: #f8f9fa;
+    /* Status Colors (match dashboard) */
+    --statusSuccess: #10b981;
+    --statusWarning: #f59e0b;
+    --statusDanger: #ef4444;
+    --statusInfo: #06b6d4;
+    /* RFID Scanner States (tetap) */
+    --rfidIdle: #6366f1;
+    --rfidScanning: #8b5cf6;
+    --rfidSuccess: #10b981;
+    --rfidError: #ef4444;
+}
+
+/* Dark Mode Variables */
+[data-theme="dark"] {
+    --bgBody: #121212;
+    --bgCard: #1e1e1e;
+    --textPrimary: #e0e0e0;
+    --textSecondary: #9e9e9e;
+    --borderColor: #333333;
+    --bgDetailContainer: #2d2d2d;
+    --colorGreenPrimary: #8BA76C;
+    --colorGreenHover: #9db87d;
+}
+
+/* ============================================
+   STATISTICS CARDS
+   ============================================ */
+.stat-card {
+    background: var(--bgCard);
+    border-radius: 12px;
+    padding: 1.5rem;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    transition: transform 0.2s, box-shadow 0.2s;
+    border: 1px solid var(--borderColor);
+}
+
+.stat-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 16px var(--shadowColor);
+}
+
+.stat-icon {
+    width: 56px;
+    height: 56px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+    flex-shrink: 0;
+}
+
+.stat-card-primary .stat-icon {
+    background: rgba(37, 99, 235, 0.1);
+    color: #2563eb;
+}
+
+.stat-card-warning .stat-icon {
+    background: rgba(245, 158, 11, 0.1);
+    color: #f59e0b;
+}
+
+.stat-card-danger .stat-icon {
+    background: rgba(239, 68, 68, 0.1);
+    color: #ef4444;
+}
+
+.stat-card-info .stat-icon {
+    background: rgba(6, 182, 212, 0.1);
+    color: #06b6d4;
+}
+
+.stat-content {
+    flex: 1;
+}
+
+.stat-label {
+    font-size: 0.875rem;
+    color: var(--textSecondary);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 0.25rem;
+}
+
+.stat-value {
+    font-size: 2rem;
+    font-weight: 700;
+    color: var(--textPrimary);
+    line-height: 1;
+}
+
+/* ============================================
+   CARD ADAPTIVE (Dark Mode Support)
+   ============================================ */
+.card-adaptive {
+    background: var(--bgCard);
+    color: var(--textPrimary);
+}
+
+.card-adaptive .card-header {
+    background: var(--bgCard);
+    color: var(--textPrimary);
+    border-bottom: 1px solid var(--borderColor);
+}
+
+/* ============================================
+   SECTION HEADER
+   ============================================ */
+.section-header {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.step-badge {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--colorGreenPrimary), var(--colorGreenHover));
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 1.125rem;
+    flex-shrink: 0;
+}
+
+/* ============================================
+   RFID SCANNER BOX
+   ============================================ */
+.rfid-scanner-box {
+    background: var(--bgDetailContainer);
+    border: 2px dashed var(--borderColor);
+    border-radius: 12px;
+    padding: 2rem;
+    text-align: center;
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+.scanner-animation {
+    position: relative;
+    display: inline-block;
+}
+
+.scanner-animation i {
+    color: var(--textSecondary);
+    transition: all 0.3s ease;
+}
+
+.pulse-ring {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 80px;
+    height: 80px;
+    border: 3px solid var(--rfidIdle);
+    border-radius: 50%;
+    opacity: 0;
+}
+
+/* Scanner States */
+.rfid-scanner-box[data-state="idle"] {
+    border-color: var(--rfidIdle);
+}
+
+.rfid-scanner-box[data-state="idle"] .pulse-ring {
+    animation: pulse 2s ease-in-out infinite;
+    border-color: var(--rfidIdle);
+}
+
+.rfid-scanner-box[data-state="idle"] .scanner-animation i {
+    color: var(--rfidIdle);
+}
+
+.rfid-scanner-box[data-state="scanning"] {
+    border-color: var(--rfidScanning);
+    background: rgba(139, 92, 246, 0.05);
+}
+
+.rfid-scanner-box[data-state="scanning"] .pulse-ring {
+    animation: pulse-fast 0.8s ease-in-out infinite;
+    border-color: var(--rfidScanning);
+}
+
+.rfid-scanner-box[data-state="scanning"] .scanner-animation i {
+    color: var(--rfidScanning);
+    animation: bounce 0.8s ease-in-out infinite;
+}
+
+.rfid-scanner-box[data-state="success"] {
+    border-color: var(--rfidSuccess);
+    background: rgba(16, 185, 129, 0.05);
+}
+
+.rfid-scanner-box[data-state="success"] .scanner-animation i {
+    color: var(--rfidSuccess);
+    animation: scaleUp 0.4s ease;
+}
+
+.rfid-scanner-box[data-state="error"] {
+    border-color: var(--rfidError);
+    background: rgba(239, 68, 68, 0.05);
+}
+
+.rfid-scanner-box[data-state="error"] .scanner-animation i {
+    color: var(--rfidError);
+    animation: shake 0.5s ease;
+}
+
+.rfid-scanner-box[data-state="disabled"] {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* Scanner Text */
+.scanner-text {
+    color: var(--textPrimary);
+    font-weight: 600;
+    font-size: 1rem;
+}
+
+.scanner-status .badge {
+    font-size: 0.75rem;
+}
+
+/* ============================================
+   MEMBER INFO CARD
+   ============================================ */
+.member-info-card {
+    background: linear-gradient(135deg, rgba(108, 138, 79, 0.1), rgba(125, 154, 95, 0.05));
+    border: 2px solid var(--colorGreenPrimary);
+    border-radius: 12px;
+    padding: 1.5rem;
+    animation: slideDown 0.3s ease;
+}
+
+@keyframes slideDown {
+    from {
+        opacity: 0;
+        transform: translateY(-20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.member-avatar {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    overflow: hidden;
+    border: 3px solid var(--colorGreenPrimary);
+    flex-shrink: 0;
+}
+
+.member-avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.member-details h5 {
+    color: var(--textPrimary);
+    font-weight: 700;
+    margin-bottom: 0.25rem;
+}
+
+.member-details .text-muted {
+    color: var(--textSecondary) !important;
+}
+
+.member-meta {
+    display: flex;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+    margin-top: 0.75rem;
+}
+
+.member-meta .badge {
+    font-size: 0.875rem;
+    padding: 0.4rem 0.75rem;
+}
+
+.member-warning {
+    margin-top: 0.75rem;
+    padding: 0.75rem;
+    background: rgba(245, 158, 11, 0.1);
+    border-left: 3px solid var(--statusWarning);
+    border-radius: 4px;
+}
+
+.member-error {
+    margin-top: 0.75rem;
+    padding: 0.75rem;
+    background: rgba(239, 68, 68, 0.1);
+    border-left: 3px solid var(--statusDanger);
+    border-radius: 4px;
+}
+
+/* ============================================
+   DISABLED SECTION
+   ============================================ */
+.disabled-section {
+    opacity: 0.6;
+    pointer-events: none;
+    user-select: none;
+}
+
+/* ============================================
+   CART SYSTEM
+   ============================================ */
+.cart-empty-state {
+    text-align: center;
+    padding: 3rem 1rem;
+    color: var(--textSecondary);
+}
+
+.cart-empty-state i {
+    color: var(--textSecondary);
+}
+
+.cart-item {
+    background: var(--bgDetailContainer);
+    border: 1px solid var(--borderColor);
+    border-radius: 8px;
+    padding: 1rem;
+    margin-bottom: 0.75rem;
+    display: flex;
+    gap: 1rem;
+    align-items: flex-start;
+    transition: all 0.2s ease;
+    animation: slideIn 0.3s ease;
+}
+
+@keyframes slideIn {
+    from {
+        opacity: 0;
+        transform: translateX(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+.cart-item:hover {
+    border-color: var(--colorGreenPrimary);
+    box-shadow: 0 4px 8px var(--shadowColor);
+}
+
+.cart-item-cover {
+    width: 60px;
+    height: 80px;
+    border-radius: 4px;
+    overflow: hidden;
+    flex-shrink: 0;
+    background: var(--borderColor);
+}
+
+.cart-item-cover img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.cart-item-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.cart-item-title {
+    font-weight: 700;
+    font-size: 0.95rem;
+    color: var(--textPrimary);
+    margin-bottom: 0.25rem;
+    line-height: 1.3;
+}
+
+.cart-item-author {
+    font-size: 0.85rem;
+    color: var(--textSecondary);
+    margin-bottom: 0.5rem;
+}
+
+.cart-item-meta {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+    margin-bottom: 0.5rem;
+}
+
+.cart-item-meta .badge {
+    font-size: 0.75rem;
+}
+
+.cart-item-due {
+    font-size: 0.85rem;
+    color: var(--textSecondary);
+}
+
+.cart-item-due i {
+    color: var(--statusInfo);
+}
+
+.cart-item-actions {
+    flex-shrink: 0;
+}
+
+.cart-item-actions .btn {
+    width: 36px;
+    height: 36px;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* ============================================
+   BUTTONS
+   ============================================ */
+.btn-green {
+    background: var(--colorGreenPrimary);
+    border-color: var(--colorGreenPrimary);
+    color: white;
+    font-weight: 600;
+}
+
+.btn-green:hover {
+    background: var(--colorGreenHover);
+    border-color: var(--colorGreenHover);
+    color: white;
+}
+
+.btn-green:disabled {
+    background: var(--textSecondary);
+    border-color: var(--textSecondary);
+    opacity: 0.5;
+}
+
+/* ============================================
+   MONITORING TABLE
+   ============================================ */
+.table {
+    color: var(--textPrimary);
+}
+
+.table thead {
+    background: var(--bgDetailContainer);
+    color: var(--textPrimary);
+    font-size: 0.875rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.table tbody tr {
+    transition: background-color 0.2s ease;
+}
+
+.table tbody tr:hover {
+    background: var(--bgDetailContainer);
+}
+
+.table td {
+    padding: 1rem 0.75rem;
+    vertical-align: middle;
+    border-color: var(--borderColor);
+}
+
+/* Badge Variants */
+.badge-due-warning {
+    background: var(--statusWarning);
+    color: white;
+}
+
+.badge-due-danger {
+    background: var(--statusDanger);
+    color: white;
+}
+
+.badge-due-success {
+    background: var(--statusSuccess);
+    color: white;
+}
+
+/* ============================================
+   RESPONSIVE DESIGN
+   ============================================ */
+@media (max-width: 991px) {
+    .stat-card {
+        padding: 1rem;
+    }
+    
+    .stat-icon {
+        width: 48px;
+        height: 48px;
+        font-size: 1.25rem;
+    }
+    
+    .stat-value {
+        font-size: 1.5rem;
+    }
+    
+    .member-avatar {
+        width: 60px;
+        height: 60px;
+    }
+    
+    .cart-item {
+        flex-direction: column;
+    }
+    
+    .cart-item-cover {
+        width: 100%;
+        height: 120px;
+    }
+}
+
+@media (max-width: 576px) {
+    .stat-card {
+        flex-direction: column;
+        text-align: center;
+    }
+    
+    .stat-label {
+        font-size: 0.75rem;
+    }
+    
+    .stat-value {
+        font-size: 1.25rem;
+    }
+}
+
+/* ============================================
+   UTILITY CLASSES
+   ============================================ */
+.text-green-primary {
+    color: var(--colorGreenPrimary) !important;
+}
+
+.bg-green-primary {
+    background-color: var(--colorGreenPrimary) !important;
+}
+
+.border-green-primary {
+    border-color: var(--colorGreenPrimary) !important;
+}

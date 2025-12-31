@@ -7,7 +7,7 @@ $menu = [
         ['icon' => 'fas fa-tachometer-alt', 'title' => 'Dashboard', 'link' => 'dashboard.php', 'folder' => ''],
         ['header' => 'Manajemen Aset'],
         ['icon' => 'fas fa-boxes', 'title' => 'Inventaris', 'link' => 'inventory.php', 'folder' => 'admin'],
-        ['icon' => 'fas fa-tags', 'title' => 'Peminjaman', 'link' => 'peminjaman.php', 'folder' => ''],
+        ['icon' => 'fas fa-book-reader', 'title' => 'Peminjaman', 'link' => 'peminjaman/', 'folder' => 'admin'], // trailing slash penting
         ['icon' => 'fas fa-qrcode', 'title' => 'Cetak RFID', 'link' => 'printLabels.php', 'folder' => ''],
         ['header' => 'Pengguna'],
         ['icon' => 'fas fa-users', 'title' => 'Daftar Pengguna', 'link' => 'users.php', 'folder' => ''],
@@ -29,8 +29,14 @@ $menu = [
 ];
 
 $activeMenu = $menu[$userRole] ?? $menu['member'];
-$currentPage = basename($_SERVER['PHP_SELF']);
+
+// Ambil informasi path saat ini
+$currentScript = $_SERVER['PHP_SELF'];                  // contoh: /eliot/web/apps/admin/peminjaman/index.php
+$currentPage   = basename($currentScript);              // hasil: index.php
+$currentDir    = dirname($currentScript);               // hasil: /eliot/web/apps/admin/peminjaman
+$currentFolder = basename($currentDir);                 // hasil: peminjaman
 ?>
+
 <aside class="sidebar" id="sidebar">
     <div class="sidebar-header">
         <a href="<?= $baseUrl ?>/apps/dashboard.php">
@@ -43,18 +49,39 @@ $currentPage = basename($_SERVER['PHP_SELF']);
         <ul class="nav flex-column">
             <?php foreach ($activeMenu as $item): ?>
                 <?php if (isset($item['header'])): ?>
-                    <li class="nav-header"><?= $item['header'] ?></li>
+                    <li class="nav-header"><?= htmlspecialchars($item['header']) ?></li>
                 <?php else: ?>
                     <?php 
-                        // Tentukan path berdasarkan folder
                         $folder = $item['folder'] ?? '';
-                        $fullPath = $baseUrl . '/apps/' . ($folder ? $folder . '/' : '') . $item['link'];
-                        $isActive = $currentPage === $item['link'];
+                        $link   = $item['link'];
+
+                        // Logic penentuan active yang lebih akurat
+                        $isActive = false;
+
+                        // Case 1: Link file langsung (misal dashboard.php, users.php)
+                        if ($currentPage === $link) {
+                            $isActive = true;
+                        }
+
+                        // Case 2: Link folder dengan trailing slash (misal peminjaman/)
+                        // Cek apakah current directory mengandung folder tersebut
+                        if (str_ends_with($link, '/') && strpos($currentDir, rtrim($link, '/')) !== false) {
+                            $isActive = true;
+                        }
+
+                        // Case 3: Backup untuk folder tanpa trailing slash atau index.php
+                        $cleanLink = rtrim($link, '/');
+                        if ($currentFolder === $cleanLink || $currentPage === $cleanLink . '.php') {
+                            $isActive = true;
+                        }
+
+                        // Bangun full URL
+                        $fullPath = $baseUrl . '/apps/' . ($folder ? $folder . '/' : '') . $link;
                     ?>
                     <li class="nav-item">
-                        <a class="nav-link <?= $isActive ? 'active' : '' ?>" href="<?= $fullPath ?>">
-                            <i class="<?= $item['icon'] ?>"></i>
-                            <?= $item['title'] ?>
+                        <a class="nav-link <?= $isActive ? 'active' : '' ?>" href="<?= htmlspecialchars($fullPath) ?>">
+                            <i class="<?= htmlspecialchars($item['icon']) ?>"></i>
+                            <?= htmlspecialchars($item['title']) ?>
                         </a>
                     </li>
                 <?php endif; ?>
