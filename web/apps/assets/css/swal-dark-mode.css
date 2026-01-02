@@ -1,0 +1,245 @@
+/**
+ * SweetAlert2 Dark Mode Support
+ * Path: web/apps/assets/css/swal-dark-mode.css
+ * 
+ * Custom styling untuk SweetAlert2 di dark mode
+ * Update: Modal bantuan lebih lebar & lega
+ * 
+ * @author ELIOT System
+ * @version 1.0.1
+ */
+
+/* ============================================
+   SWAL DARK MODE OVERRIDES
+   ============================================ */
+
+[data-theme="dark"] .swal2-popup,
+[data-theme="dark"] .swal-dark-popup {
+    background: #1e1e1e !important;
+    color: #e0e0e0 !important;
+    border: 1px solid #333333 !important;
+    /* Perbaikan utama: modal bantuan lebih lebar */
+    width: 680px !important;
+    max-width: 90vw !important;
+    padding: 2rem 1.8rem !important;
+    border-radius: 16px !important;
+}
+
+[data-theme="dark"] .swal2-title,
+[data-theme="dark"] .swal-dark-title {
+    color: #e0e0e0 !important;
+    font-size: 1.4rem !important;
+    text-align: center !important;
+    margin-bottom: 1.5rem !important;
+}
+
+[data-theme="dark"] .swal2-html-container,
+[data-theme="dark"] .swal-dark-html {
+    color: #e0e0e0 !important;
+    font-size: 1rem !important;
+    line-height: 1.7 !important;
+    max-height: 65vh !important;
+    overflow-y: auto !important;
+}
+
+[data-theme="dark"] .swal2-html-container .text-muted {
+    color: #9e9e9e !important;
+}
+
+[data-theme="dark"] .swal2-html-container small {
+    color: #b0b0b0 !important;
+}
+
+/* Buttons */
+[data-theme="dark"] .swal2-confirm,
+[data-theme="dark"] .swal-dark-confirm {
+    background: #41644A !important;
+    border-color: #41644A !important;
+    font-size: 1rem !important;
+    padding: 0.75rem 2rem !important;
+    border-radius: 10px !important;
+}
+
+[data-theme="dark"] .swal2-confirm:hover {
+    background: #9CAB84 !important;
+    border-color: #9CAB84 !important;
+}
+
+[data-theme="dark"] .swal2-cancel,
+[data-theme="dark"] .swal-dark-cancel {
+    background: #424242 !important;
+    border-color: #424242 !important;
+    color: #e0e0e0 !important;
+}
+
+[data-theme="dark"] .swal2-cancel:hover {
+    background: #616161 !important;
+}
+
+/* Close button */
+[data-theme="dark"] .swal2-close {
+    color: #e0e0e0 !important;
+}
+
+[data-theme="dark"] .swal2-close:hover {
+    color: #ffffff !important;
+}
+
+/* Input fields */
+[data-theme="dark"] .swal2-input,
+[data-theme="dark"] .swal2-textarea,
+[data-theme="dark"] .swal2-select {
+    background: #2d2d2d !important;
+    border-color: #444444 !important;
+    color: #e0e0e0 !important;
+}
+
+[data-theme="dark"] .swal2-input::placeholder,
+[data-theme="dark"] .swal2-textarea::placeholder {
+    color: #757575 !important;
+}
+
+[data-theme="dark"] .swal2-input:focus,
+[data-theme="dark"] .swal2-textarea:focus,
+[data-theme="dark"] .swal2-select:focus {
+    border-color: #41644A !important;
+    box-shadow: 0 0 0 3px rgba(65, 100, 74, 0.2) !important;
+}
+
+/* Validation message */
+[data-theme="dark"] .swal2-validation-message {
+    background: #2d2d2d !important;
+    color: #ef4444 !important;
+    border-color: #ef4444 !important;
+}
+
+/* Progress steps & timer */
+[data-theme="dark"] .swal2-progress-steps .swal2-progress-step {
+    background: #41644A !important;
+}
+
+[data-theme="dark"] .swal2-progress-steps .swal2-progress-step-line {
+    background: #444444 !important;
+}
+
+[data-theme="dark"] .swal2-timer-progress-bar {
+    background: #41644A !important;
+}
+
+/* Toast */
+[data-theme="dark"] .swal2-toast {
+    background: #2d2d2d !important;
+    color: #e0e0e0 !important;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5) !important;
+}
+
+[data-theme="dark"] .swal2-toast .swal2-title,
+[data-theme="dark"] .swal2-toast .swal2-close {
+    color: #e0e0e0 !important;
+}
+
+/* Icons tetap cerah */
+[data-theme="dark"] .swal2-icon.swal2-success [class^='swal2-success-line'] { background-color: #10b981 !important; }
+[data-theme="dark"] .swal2-icon.swal2-success .swal2-success-ring { border-color: rgba(16, 185, 129, 0.3) !important; }
+[data-theme="dark"] .swal2-icon.swal2-error [class^='swal2-x-mark-line'] { background-color: #ef4444 !important; }
+[data-theme="dark"] .swal2-icon.swal2-warning { border-color: #f59e0b !important; color: #f59e0b !important; }
+[data-theme="dark"] .swal2-icon.swal2-info { border-color: #06b6d4 !important; color: #06b6d4 !important; }
+[data-theme="dark"] .swal2-icon.swal2-question { border-color: #8b5cf6 !important; color: #8b5cf6 !important; }
+
+/* Loader & backdrop */
+[data-theme="dark"] .swal2-loader { border-color: #41644A transparent #41644A transparent !important; }
+[data-theme="dark"] .swal2-container.swal2-backdrop-show { background: rgba(0, 0, 0, 0.7) !important; }
+
+/* ============================================
+   CUSTOM HELP MODAL STYLES (Perbaikan utama)
+   ============================================ */
+
+[data-theme="dark"] .help-step {
+    padding: 1rem 0 !important;
+    border-bottom: 1px solid #333333 !important;
+}
+
+[data-theme="dark"] .help-step:last-child {
+    border-bottom: none !important;
+}
+
+[data-theme="dark"] .help-step-icon i {
+    opacity: 0.9;
+    font-size: 2rem;
+}
+
+[data-theme="dark"] .help-step h6 {
+    font-size: 1.1rem !important;
+    margin-bottom: 0.5rem !important;
+}
+
+[data-theme="dark"] .help-step p {
+    margin: 0 !important;
+    font-size: 0.95rem !important;
+}
+
+[data-theme="dark"] .alert-warning {
+    background: rgba(245, 158, 11, 0.1) !important;
+    border-color: #f59e0b !important;
+    color: #e0e0e0 !important;
+    padding: 1rem !important;
+    border-radius: 10px !important;
+    margin-top: 1.5rem !important;
+}
+
+[data-theme="dark"] .alert-warning strong {
+    color: #fbbf24 !important;
+}
+
+[data-theme="dark"] .border-bottom {
+    border-color: #333333 !important;
+}
+
+/* Scrollbar cantik di dalam modal */
+[data-theme="dark"] .swal2-html-container::-webkit-scrollbar {
+    width: 8px;
+}
+
+[data-theme="dark"] .swal2-html-container::-webkit-scrollbar-track {
+    background: #2d2d2d;
+    border-radius: 4px;
+}
+
+[data-theme="dark"] .swal2-html-container::-webkit-scrollbar-thumb {
+    background: #41644A;
+    border-radius: 4px;
+}
+
+[data-theme="dark"] .swal2-html-container::-webkit-scrollbar-thumb:hover {
+    background: #9CAB84;
+}
+
+/* ============================================
+   RESPONSIVE
+   ============================================ */
+
+@media (max-width: 768px) {
+    [data-theme="dark"] .swal2-popup {
+        width: 95vw !important;
+        padding: 2rem 1.5rem !important;
+    }
+    
+    [data-theme="dark"] .swal2-title {
+        font-size: 1.3rem !important;
+    }
+}
+
+@media (max-width: 576px) {
+    [data-theme="dark"] .swal2-popup {
+        padding: 1.5rem !important;
+    }
+    
+    [data-theme="dark"] .help-step {
+        flex-direction: column;
+        text-align: center;
+    }
+    
+    [data-theme="dark"] .help-step-icon {
+        margin-bottom: 1rem;
+    }
+}
