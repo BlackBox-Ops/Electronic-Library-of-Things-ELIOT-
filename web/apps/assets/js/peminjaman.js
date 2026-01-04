@@ -2,398 +2,435 @@
  * Peminjaman App - Step 1: Member Validation
  * Path: web/apps/assets/js/peminjaman.js
  * 
- * Features:
- * - Member input (manual typing atau RFID scan)
- * - Validasi member via API
- * - Redirect ke biodata_peminjaman.php jika valid
- * - Monitoring table untuk peminjaman aktif
- * - Statistics update dengan auto-refresh
- * - Dark mode support untuk SweetAlert2
- * 
  * @author ELIOT System
- * @version 2.2.1 - FIXED
- * @date 2026-01-02
+ * @version 2.4.0 - FIXED
+ * @date 2026-01-04
  */
 
 const PeminjamanApp = (function() {
     'use strict';
 
-    // ============================================
-    // STATE MANAGEMENT
-    // ============================================
+    // State Management
     const state = {
-        scanning: false,              // Status sedang memvalidasi
-        rfidBuffer: '',               // Buffer untuk RFID scanner
-        rfidTimeout: null,            // Timeout untuk RFID scanner
-        autoRefreshInterval: null     // Interval untuk auto-refresh
+        scanning: false,
+        rfidBuffer: '',
+        rfidTimeout: null,
+        autoRefreshInterval: null,
+        memberVerified: null
     };
 
-    // ============================================
-    // API ENDPOINTS - FIXED PATH
+    // API Endpoints
     const API = {
         validateMember: '/eliot/apps/includes/api/validate_member.php',
         getStats: '/eliot/apps/includes/api/get_dashboard_stats.php',
         getMonitoring: '/eliot/apps/includes/api/get_peminjaman_aktif.php'
     };
 
-    // ============================================
+    // ========================================
     // INITIALIZATION
-    // ============================================
+    // ========================================
     
-    /**
-     * Initialize aplikasi
-     * Setup semua event listeners dan load data awal
-     */
     function init() {
-        console.log('[Peminjaman] Initializing application...');
-        console.log('[Peminjaman] API Endpoints:', API);
+        console.log('[Peminjaman] Initializing...');
         
-        // Setup event handlers
+        checkMemberVerified();
         setupInputHandlers();
         setupRFIDListener();
         setupMonitoring();
         
-        // Load data awal
         refreshMonitoringTable();
         updateStatistics();
         
-        // Auto-refresh setiap 30 detik
         state.autoRefreshInterval = setInterval(() => {
             refreshMonitoringTable();
             updateStatistics();
         }, 30000);
         
-        console.log('[Peminjaman] Application initialized successfully');
+        console.log('[Peminjaman] Initialized');
     }
 
-    // ============================================
-    // EVENT HANDLERS SETUP
-    // ============================================
+    // ========================================
+    // CHECK MEMBER VERIFIED
+    // ========================================
     
-    /**
-     * Setup input handlers untuk button dan Enter key
-     */
+    function checkMemberVerified() {
+        const memberData = sessionStorage.getItem('member_verified');
+        
+        if (memberData) {
+            try {
+                const member = JSON.parse(memberData);
+                const now = Date.now();
+                const elapsed = (now - member.timestamp) / 1000 / 60;
+                
+                if (elapsed > 5) {
+                    sessionStorage.removeItem('member_verified');
+                    return;
+                }
+                
+                state.memberVerified = member;
+                enableStep2(member);
+                showToast('success', 'Member ' + member.nama + ' berhasil diverifikasi!');
+                
+            } catch (error) {
+                console.error('[Peminjaman] Error parsing member:', error);
+                sessionStorage.removeItem('member_verified');
+            }
+        }
+    }
+
+    // ========================================
+    // SETUP EVENT HANDLERS
+    // ========================================
+    
     function setupInputHandlers() {
         const btnValidate = document.getElementById('btn-validate-member');
         const inputUid = document.getElementById('input-member-uid');
         
-        // Button click handler
         if (btnValidate) {
             btnValidate.addEventListener('click', handleValidateMember);
-            console.log('[Peminjaman] Validate button handler attached');
         }
         
         if (inputUid) {
-            // Enter key handler
-            inputUid.addEventListener('keypress', (e) => {
+            inputUid.addEventListener('keypress', function(e) {
                 if (e.key === 'Enter') {
                     e.preventDefault();
                     handleValidateMember();
                 }
             });
             
-            // Auto-focus on page load
             inputUid.focus();
             
-            // Select all text on focus
-            inputUid.addEventListener('focus', () => {
+            inputUid.addEventListener('focus', function() {
                 inputUid.select();
             });
-            
-            console.log('[Peminjaman] Input field handlers attached');
         }
     }
 
-    /**
-     * Setup RFID listener (deteksi keyboard input dari RFID scanner)
-     * RFID scanner biasanya mensimulasikan keyboard input yang sangat cepat
-     */
     function setupRFIDListener() {
         const inputUid = document.getElementById('input-member-uid');
         
-        document.addEventListener('keypress', (e) => {
-            // Abaikan jika user sedang mengetik di input field
-            if (e.target === inputUid) {
-                return;
-            }
-            
-            // Abaikan jika user mengetik di input/textarea lain
-            if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') {
-                return;
-            }
+        document.addEventListener('keypress', function(e) {
+            if (e.target === inputUid) return;
+            if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
             
             e.preventDefault();
-            
-            // Tambahkan karakter ke buffer
             state.rfidBuffer += e.key;
             
-            // Clear timeout sebelumnya
-            if (state.rfidTimeout) {
-                clearTimeout(state.rfidTimeout);
-            }
+            if (state.rfidTimeout) clearTimeout(state.rfidTimeout);
             
-            // Set timeout baru untuk memproses RFID input
-            // RFID scanner biasanya mengirim semua karakter dalam < 100ms
-            state.rfidTimeout = setTimeout(() => {
+            state.rfidTimeout = setTimeout(function() {
                 const uid = state.rfidBuffer.trim();
-                state.rfidBuffer = ''; // Reset buffer
+                state.rfidBuffer = '';
                 
                 if (uid) {
                     console.log('[Peminjaman] RFID scanned:', uid);
-                    
-                    // Isi input field dengan UID yang di-scan
-                    if (inputUid) {
-                        inputUid.value = uid;
-                    }
-                    
-                    // Auto-validasi
+                    if (inputUid) inputUid.value = uid;
                     handleValidateMember();
                 }
             }, 100);
         });
-        
-        console.log('[Peminjaman] RFID listener attached');
     }
 
-    /**
-     * Setup monitoring table
-     * Tambahkan event listener untuk filter
-     */
     function setupMonitoring() {
         const filterStatus = document.getElementById('filter-status');
-        
         if (filterStatus) {
-            filterStatus.addEventListener('change', () => {
-                console.log('[Peminjaman] Filter changed:', filterStatus.value);
+            filterStatus.addEventListener('change', function() {
                 refreshMonitoringTable();
             });
         }
     }
 
-    // ============================================
+    // ========================================
     // MEMBER VALIDATION
-    // ============================================
+    // ========================================
     
-    /**
-     * Handle validasi member button click
-     */
     async function handleValidateMember() {
         const inputUid = document.getElementById('input-member-uid');
-        const uid = inputUid?.value.trim();
+        const uid = inputUid ? inputUid.value.trim() : '';
         
-        // Validasi input tidak kosong
         if (!uid) {
             showToast('warning', 'Harap masukkan NIM/NIDN/NIK');
-            inputUid?.focus();
+            if (inputUid) inputUid.focus();
             return;
         }
         
-        // Proses validasi
         await validateMember(uid);
     }
 
-    /**
-     * Validasi member via API
-     * @param {string} uid - NIM/NIDN/NIK member
-     */
     async function validateMember(uid) {
-        // Prevent double submission
         if (state.scanning) {
-            console.log('[Peminjaman] Already validating, skipping...');
+            console.log('[Peminjaman] Already validating');
             return;
         }
         
         console.log('[Peminjaman] Validating member:', uid);
-        console.log('[Peminjaman] API URL:', API.validateMember);
         
         state.scanning = true;
         updateStatus('scanning', 'Memvalidasi member...');
         disableInput(true);
         
         try {
-            // Call API
             const response = await fetch(API.validateMember, {
                 method: 'POST',
-                headers: { 
-                    'Content-Type': 'application/json' 
-                },
-                body: JSON.stringify({ 
-                    no_identitas: uid 
-                })
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ no_identitas: uid })
             });
             
             console.log('[Peminjaman] Response status:', response.status);
             
-            // Check HTTP status
-            if (!response.ok) {
-                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-            }
-            
-            // Parse JSON response
             const result = await response.json();
-            console.log('[Peminjaman] Validation result:', result);
+            console.log('[Peminjaman] Result:', result);
             
-            // Handle response
-            if (result.success && result.data) {
-                // ✅ SUCCESS - Member valid
+            if (result.success && result.code === 'SUCCESS') {
                 handleValidationSuccess(result.data);
             } else {
-                // ❌ FAILED - Member tidak valid
                 handleValidationError(result);
             }
             
         } catch (error) {
-            // ⚠️ ERROR - Connection/Server error
-            console.error('[Peminjaman] Validation error:', error);
+            console.error('[Peminjaman] Error:', error);
             handleValidationException(error);
-            
         } finally {
             state.scanning = false;
             disableInput(false);
         }
     }
 
-    /**
-     * Handle validasi sukses - redirect ke biodata
-     * @param {object} memberData - Data member dari API
-     */
     function handleValidationSuccess(memberData) {
         updateStatus('success', 'Member ditemukan!');
+        showToast('success', 'Member ditemukan: ' + memberData.nama);
         
-        showToast('success', `Member ditemukan: ${memberData.nama}`);
+        console.log('[Peminjaman] Redirect to biodata:', memberData);
         
-        // Enable Step 2 (RFID Scan)
-        enableStep2();
-        
-        // Wait 500ms untuk user membaca toast, lalu redirect
-        setTimeout(() => {
-            const userId = memberData.id;
-            window.location.href = `biodata_peminjaman.php?user_id=${userId}`;
+        setTimeout(function() {
+            window.location.href = 'biodata_peminjaman.php?user_id=' + memberData.id;
         }, 500);
     }
 
-    /**
-     * Handle validasi gagal - tampilkan error
-     * @param {object} result - Response dari API
-     */
     function handleValidationError(result) {
-        updateStatus('error', 'Member tidak valid');
+        updateStatus('error', 'Validasi gagal');
         
-        // Ambil pesan error dari API
-        const errors = result.validation?.errors || ['Member tidak ditemukan atau tidak valid'];
+        const code = result.code || 'UNKNOWN';
+        const errors = result.validation && result.validation.errors 
+            ? result.validation.errors 
+            : [result.message || 'Terjadi kesalahan'];
         
-        // Tampilkan error dengan SweetAlert2 (dark mode support)
-        showError('Validasi Gagal', errors.join('<br>'));
+        console.log('[Peminjaman] Error code:', code);
+        console.log('[Peminjaman] Errors:', errors);
         
-        // Reset input setelah 2 detik
-        setTimeout(() => {
+        switch (code) {
+            case 'NOT_REGISTERED':
+                handleNotRegistered(errors);
+                break;
+                
+            case 'ADMIN_STAFF_NOT_ALLOWED':
+                handleAdminStaffError(errors);
+                break;
+                
+            case 'VALIDATION_FAILED':
+                handleValidationFailed(errors);
+                break;
+                
+            case 'EMPTY_NO_IDENTITAS':
+            case 'EMPTY_INPUT':
+                showToast('warning', 'No identitas tidak boleh kosong');
+                break;
+                
+            case 'INVALID_JSON':
+                showError('Error Format', 'Format data tidak valid');
+                break;
+                
+            case 'DB_ERROR':
+            case 'SERVER_ERROR':
+                showError('Error Server', errors.join('<br>'));
+                break;
+                
+            default:
+                showError('Validasi Gagal', errors.join('<br>'));
+                break;
+        }
+        
+        setTimeout(function() {
             resetInput();
         }, 2000);
     }
 
-    /**
-     * Handle exception (network/server error)
-     * @param {Error} error - Exception object
-     */
+    function handleNotRegistered(errors) {
+        console.log('[Peminjaman] Not registered');
+        
+        const htmlContent = '<div class="text-center py-3">' +
+            '<i class="fas fa-user-times fa-3x text-danger mb-3"></i>' +
+            '<p class="mb-0">' + errors.join('<br>') + '</p>' +
+            '<small class="text-muted mt-2 d-block">' +
+            'Silakan mendaftar terlebih dahulu atau hubungi admin' +
+            '</small>' +
+            '</div>';
+        
+        if (window.DarkModeUtils && typeof window.DarkModeUtils.getSwalConfig === 'function') {
+            const config = window.DarkModeUtils.getSwalConfig({
+                title: 'No Identitas Belum Terdaftar',
+                html: htmlContent,
+                icon: 'error',
+                confirmButtonText: '<i class="fas fa-times me-2"></i>Tutup',
+                buttonsStyling: false,
+                customClass: {
+                    confirmButton: 'btn btn-secondary'
+                }
+            });
+            Swal.fire(config);
+        } else {
+            Swal.fire({
+                title: 'No Identitas Belum Terdaftar',
+                html: htmlContent,
+                icon: 'error',
+                confirmButtonText: 'Tutup'
+            });
+        }
+    }
+
+    function handleAdminStaffError(errors) {
+        console.log('[Peminjaman] Admin/Staff not allowed');
+        
+        const htmlContent = '<div class="text-center py-3">' +
+            '<i class="fas fa-user-shield fa-3x text-warning mb-3"></i>' +
+            '<p class="mb-0">' + errors.join('<br>') + '</p>' +
+            '<small class="text-muted mt-2 d-block">' +
+            'Hanya akun dengan role <strong>Member</strong> yang dapat meminjam buku' +
+            '</small>' +
+            '</div>';
+        
+        if (window.DarkModeUtils && typeof window.DarkModeUtils.getSwalConfig === 'function') {
+            const config = window.DarkModeUtils.getSwalConfig({
+                title: 'Admin dan Staff Tidak Dapat Meminjam Buku',
+                html: htmlContent,
+                icon: 'warning',
+                confirmButtonText: '<i class="fas fa-times me-2"></i>Tutup',
+                buttonsStyling: false,
+                customClass: {
+                    confirmButton: 'btn btn-secondary'
+                }
+            });
+            Swal.fire(config);
+        } else {
+            Swal.fire({
+                title: 'Admin dan Staff Tidak Dapat Meminjam Buku',
+                html: htmlContent,
+                icon: 'warning',
+                confirmButtonText: 'Tutup'
+            });
+        }
+    }
+
+    function handleValidationFailed(errors) {
+        console.log('[Peminjaman] Validation failed:', errors);
+        
+        const errorList = errors.map(function(err) {
+            return '<li>' + err + '</li>';
+        }).join('');
+        
+        const htmlContent = '<div class="text-start py-2">' +
+            '<p class="mb-2"><strong>Member tidak dapat meminjam karena:</strong></p>' +
+            '<ul class="text-danger mb-0">' + errorList + '</ul>' +
+            '</div>';
+        
+        if (window.DarkModeUtils && typeof window.DarkModeUtils.getSwalConfig === 'function') {
+            const config = window.DarkModeUtils.getSwalConfig({
+                title: 'Member Tidak Memenuhi Syarat',
+                html: htmlContent,
+                icon: 'error',
+                confirmButtonText: '<i class="fas fa-times me-2"></i>Tutup',
+                buttonsStyling: false,
+                customClass: {
+                    confirmButton: 'btn btn-secondary'
+                }
+            });
+            Swal.fire(config);
+        } else {
+            Swal.fire({
+                title: 'Member Tidak Memenuhi Syarat',
+                html: htmlContent,
+                icon: 'error',
+                confirmButtonText: 'Tutup'
+            });
+        }
+    }
+
     function handleValidationException(error) {
+        console.error('[Peminjaman] Exception:', error);
+        
         updateStatus('error', 'Error koneksi');
         
-        showError('Error Koneksi', `Gagal memvalidasi member: ${error.message}`);
+        showError('Error Koneksi', 
+            'Gagal terhubung ke server.<br><small>Detail: ' + error.message + '</small>');
         
-        // Reset input setelah 2 detik
-        setTimeout(() => {
+        setTimeout(function() {
             resetInput();
         }, 2000);
     }
 
-    // ============================================
-    // UI HELPER FUNCTIONS
-    // ============================================
+    // ========================================
+    // UI HELPERS
+    // ========================================
     
-    /**
-     * Update status indicator
-     * @param {string} status - idle, scanning, success, error
-     * @param {string} text - Status text
-     */
     function updateStatus(status, text) {
         const indicator = document.getElementById('status-indicator');
         const statusText = document.getElementById('status-text');
         
-        if (indicator) {
-            indicator.className = `status-indicator ${status}`;
-        }
-        
-        if (statusText) {
-            statusText.textContent = text;
-        }
+        if (indicator) indicator.className = 'status-indicator ' + status;
+        if (statusText) statusText.textContent = text;
     }
 
-    /**
-     * Reset input field ke kondisi awal
-     */
     function resetInput() {
         const inputUid = document.getElementById('input-member-uid');
-        
         if (inputUid) {
             inputUid.value = '';
             inputUid.focus();
         }
-        
         updateStatus('idle', 'Siap Menerima Input');
     }
 
-    /**
-     * Disable/enable input dan button saat validasi
-     * @param {boolean} disabled - True untuk disable
-     */
     function disableInput(disabled) {
         const inputUid = document.getElementById('input-member-uid');
         const btnValidate = document.getElementById('btn-validate-member');
         
-        if (inputUid) {
-            inputUid.disabled = disabled;
-        }
-        
-        if (btnValidate) {
-            btnValidate.disabled = disabled;
-        }
+        if (inputUid) inputUid.disabled = disabled;
+        if (btnValidate) btnValidate.disabled = disabled;
     }
 
-    /**
-     * Enable Step 2 (RFID Scan) setelah validasi member berhasil
-     */
-    function enableStep2() {
+    function enableStep2(memberData) {
         const step2Container = document.getElementById('step-2-container');
         const inputRfid = document.getElementById('input-rfid-card');
         const btnScan = document.getElementById('btn-scan-rfid');
         
-        // Remove disabled class dari container
         if (step2Container) {
             step2Container.classList.remove('step-disabled');
+            step2Container.classList.add('step-enabled');
         }
         
-        // Enable input dan button
         if (inputRfid) {
             inputRfid.disabled = false;
+            inputRfid.placeholder = 'Scan kartu untuk ' + memberData.nama;
         }
         
         if (btnScan) {
             btnScan.disabled = false;
         }
         
-        console.log('[Peminjaman] Step 2 enabled');
+        const helperText = step2Container ? step2Container.querySelector('.form-text') : null;
+        if (helperText) {
+            helperText.innerHTML = '<i class="fas fa-check-circle me-1 text-success"></i>' +
+                'Step ini sudah aktif. Dekatkan kartu RFID ke scanner.';
+        }
+        
+        console.log('[Peminjaman] Step 2 enabled:', memberData.nama);
     }
 
-    // ============================================
+    // ========================================
     // MONITORING TABLE
-    // ============================================
+    // ========================================
     
-    /**
-     * Refresh monitoring table
-     * Load peminjaman aktif dari API
-     */
     async function refreshMonitoringTable() {
-        console.log('[Peminjaman] Refreshing monitoring table...');
+        console.log('[Peminjaman] Refreshing table...');
         
         const tableBody = document.getElementById('monitoring-table-body');
         const emptyState = document.getElementById('monitoring-empty');
@@ -402,265 +439,186 @@ const PeminjamanApp = (function() {
         if (!tableBody) return;
         
         try {
-            // Show loading state
             if (loadingState) loadingState.classList.remove('d-none');
             if (emptyState) emptyState.classList.add('d-none');
             tableBody.innerHTML = '';
             
-            // Get filter value
-            const status = document.getElementById('filter-status')?.value || 'all';
+            const filterStatus = document.getElementById('filter-status');
+            const status = filterStatus ? filterStatus.value : 'all';
+            const apiUrl = API.getMonitoring + '?status=' + status + '&date=today';
             
-            // FIXED: URL API yang benar
-            const apiUrl = `${API.getMonitoring}?status=${status}&date=today`;
-            console.log('[Peminjaman] Fetching from:', apiUrl);
-            
-            // Fetch data dari API
             const response = await fetch(apiUrl);
-            
-            console.log('[Peminjaman] Monitoring response status:', response.status);
-            
-            if (!response.ok) {
-                throw new Error(`HTTP ${response.status}`);
-            }
-            
             const result = await response.json();
-            console.log('[Peminjaman] Monitoring data:', result);
             
-            // Hide loading state
             if (loadingState) loadingState.classList.add('d-none');
             
-            // Render data
             if (result.success && result.data && result.data.length > 0) {
                 renderMonitoringRows(result.data, tableBody);
             } else {
-                // Show empty state
                 if (emptyState) emptyState.classList.remove('d-none');
             }
             
         } catch (error) {
             console.error('[Peminjaman] Monitoring error:', error);
-            
             if (loadingState) loadingState.classList.add('d-none');
-            
-            tableBody.innerHTML = `
-                <tr>
-                    <td colspan="7" class="text-center text-danger py-4">
-                        <i class="fas fa-exclamation-triangle fa-2x mb-2"></i><br>
-                        Error: ${error.message}
-                    </td>
-                </tr>
-            `;
+            tableBody.innerHTML = '<tr>' +
+                '<td colspan="7" class="text-center text-danger py-4">' +
+                '<i class="fas fa-exclamation-triangle fa-2x mb-2"></i><br>' +
+                'Error: ' + error.message +
+                '</td>' +
+                '</tr>';
         }
     }
 
-    /**
-     * Render monitoring table rows
-     * @param {array} data - Array of peminjaman data
-     * @param {HTMLElement} tableBody - Table body element
-     */
     function renderMonitoringRows(data, tableBody) {
-        const html = data.map((row, index) => {
-            // Tentukan class untuk urgency (high = danger, medium = warning)
-            const urgencyClass = {
+        const rows = data.map(function(row, index) {
+            const urgencyMap = {
                 high: 'table-danger',
                 medium: 'table-warning',
                 low: ''
-            }[row.urgency] || '';
+            };
+            const urgencyClass = urgencyMap[row.urgency] || '';
             
-            // Mapping kategori member untuk badge
             const kategoriMap = {
                 'mahasiswa': { badge: 'primary', icon: 'fa-user-graduate' },
                 'dosen': { badge: 'success', icon: 'fa-chalkboard-teacher' },
                 'umum': { badge: 'info', icon: 'fa-user' }
             };
             
-            const kategori = kategoriMap[row.kategori_member?.toLowerCase()] || 
-                           { badge: 'secondary', icon: 'fa-user' };
+            const kategoriLower = row.kategori_member ? row.kategori_member.toLowerCase() : '';
+            const kategori = kategoriMap[kategoriLower] || { badge: 'secondary', icon: 'fa-user' };
             
-            return `
-                <tr class="${urgencyClass}">
-                    <td>${index + 1}</td>
-                    <td>
-                        <strong>${row.kode_peminjaman}</strong><br>
-                        <small class="text-muted">${row.tanggal_pinjam_formatted || '-'}</small>
-                    </td>
-                    <td>
-                        <strong>${row.nama_peminjam}</strong><br>
-                        <small class="text-muted">${row.no_identitas}</small>
-                    </td>
-                    <td>
-                        <span class="badge bg-${kategori.badge}">
-                            <i class="fas ${kategori.icon} me-1"></i>
-                            ${row.kategori_member || 'Umum'}
-                        </span>
-                    </td>
-                    <td>
-                        ${row.judul_buku}<br>
-                        <small class="text-muted">Kode: ${row.kode_eksemplar}</small>
-                    </td>
-                    <td>
-                        <span class="badge bg-${row.waktu_badge || 'secondary'}">
-                            ${row.status_waktu || 'N/A'}
-                        </span><br>
-                        <small>${row.hari_tersisa} hari</small>
-                    </td>
-                    <td>${row.due_date_formatted || '-'}</td>
-                </tr>
-            `;
-        }).join('');
+            return '<tr class="' + urgencyClass + '">' +
+                '<td>' + (index + 1) + '</td>' +
+                '<td>' +
+                    '<strong>' + row.kode_peminjaman + '</strong><br>' +
+                    '<small class="text-muted">' + (row.tanggal_pinjam_formatted || '-') + '</small>' +
+                '</td>' +
+                '<td>' +
+                    '<strong>' + row.nama_peminjam + '</strong><br>' +
+                    '<small class="text-muted">' + row.no_identitas + '</small>' +
+                '</td>' +
+                '<td>' +
+                    '<span class="badge bg-' + kategori.badge + '">' +
+                        '<i class="fas ' + kategori.icon + ' me-1"></i>' +
+                        (row.kategori_member || 'Umum') +
+                    '</span>' +
+                '</td>' +
+                '<td>' +
+                    row.judul_buku + '<br>' +
+                    '<small class="text-muted">Kode: ' + row.kode_eksemplar + '</small>' +
+                '</td>' +
+                '<td>' +
+                    '<span class="badge bg-' + (row.waktu_badge || 'secondary') + '">' +
+                        (row.status_waktu || 'N/A') +
+                    '</span><br>' +
+                    '<small>' + row.hari_tersisa + ' hari</small>' +
+                '</td>' +
+                '<td>' + (row.due_date_formatted || '-') + '</td>' +
+                '</tr>';
+        });
         
-        tableBody.innerHTML = html;
+        tableBody.innerHTML = rows.join('');
     }
 
-    // ============================================
-    // STATISTICS UPDATE
-    // ============================================
+    // ========================================
+    // STATISTICS
+    // ========================================
     
-    /**
-     * Update statistics cards dari API
-     */
     async function updateStatistics() {
-        console.log('[Peminjaman] Updating statistics...');
-        console.log('[Peminjaman] Stats API URL:', API.getStats);
-        
         try {
             const response = await fetch(API.getStats);
-            
-            console.log('[Peminjaman] Stats response status:', response.status);
-            
-            if (!response.ok) {
-                throw new Error(`HTTP ${response.status}`);
-            }
-            
             const result = await response.json();
-            console.log('[Peminjaman] Stats data:', result);
             
             if (result.success && result.data) {
                 const stats = result.data;
-                
-                // Update each stat card dengan animasi
                 updateStatCard('stat-today', stats.total_today || 0);
                 updateStatCard('stat-will-overdue', stats.will_overdue || 0);
                 updateStatCard('stat-overdue', stats.overdue_now || 0);
                 updateStatCard('stat-fines', stats.member_with_fines || 0);
             }
-            
         } catch (error) {
             console.error('[Peminjaman] Stats error:', error);
         }
     }
 
-    /**
-     * Update individual stat card dengan animasi
-     * @param {string} elementId - ID element stat card
-     * @param {number} value - Nilai baru
-     */
     function updateStatCard(elementId, value) {
         const element = document.getElementById(elementId);
         if (!element) return;
         
-        const currentValue = parseInt(element.textContent.replace(/\D/g, '')) || 0;
+        const currentText = element.textContent.replace(/\D/g, '');
+        const currentValue = parseInt(currentText) || 0;
         
-        // Hanya update jika nilai berubah
         if (currentValue !== value) {
-            // Animasi scale up
             element.style.transition = 'all 0.3s ease';
             element.style.transform = 'scale(1.15)';
             
-            // Update value dan scale down
-            setTimeout(() => {
+            setTimeout(function() {
                 element.textContent = value.toLocaleString('id-ID');
                 element.style.transform = 'scale(1)';
             }, 150);
         }
     }
 
-    // ============================================
-    // SWEETALERT2 HELPERS (Dark Mode Support)
-    // ============================================
+    // ========================================
+    // SWEETALERT HELPERS
+    // ========================================
     
-    /**
-     * Show toast notification
-     * @param {string} type - success, error, warning, info
-     * @param {string} message - Toast message
-     * @param {number} timer - Auto-close timer (ms)
-     */
-    function showToast(type, message, timer = 3000) {
-        // Gunakan DarkModeUtils jika tersedia (dari dark-mode-utils.js)
+    function showToast(type, message, timer) {
+        timer = timer || 3000;
+        
         if (window.DarkModeUtils && typeof window.DarkModeUtils.showToast === 'function') {
             window.DarkModeUtils.showToast(type, message, timer);
         } else {
-            // Fallback ke console jika DarkModeUtils tidak tersedia
-            console.log(`[Toast] ${type}: ${message}`);
+            console.log('[Toast] ' + type + ': ' + message);
         }
     }
 
-    /**
-     * Show error alert dengan SweetAlert2
-     * @param {string} title - Alert title
-     * @param {string} message - Alert message (support HTML)
-     */
     function showError(title, message) {
-        // Gunakan DarkModeUtils jika tersedia
         if (window.DarkModeUtils && typeof window.DarkModeUtils.showError === 'function') {
             window.DarkModeUtils.showError(title, message);
         } else {
-            // Fallback ke alert browser
-            alert(`${title}: ${message}`);
+            alert(title + ': ' + message);
         }
     }
 
-    // ============================================
+    // ========================================
     // CLEANUP
-    // ============================================
+    // ========================================
     
-    /**
-     * Cleanup saat page unload
-     * Clear semua intervals dan timeouts
-     */
     function cleanup() {
         if (state.autoRefreshInterval) {
             clearInterval(state.autoRefreshInterval);
-            console.log('[Peminjaman] Auto-refresh stopped');
         }
-        
         if (state.rfidTimeout) {
             clearTimeout(state.rfidTimeout);
         }
     }
 
-    // Attach cleanup ke window unload
     window.addEventListener('beforeunload', cleanup);
 
-    // ============================================
-    // EXPOSE PUBLIC API
-    // ============================================
+    // ========================================
+    // PUBLIC API
+    // ========================================
     
-    // Expose functions ke global scope untuk dipanggil dari HTML
     window.refreshMonitoringTable = refreshMonitoringTable;
     window.updateStatistics = updateStatistics;
 
-    // Return public API
     return {
-        init,
-        state,
-        refreshMonitoringTable,
-        updateStatistics
+        init: init,
+        state: state,
+        refreshMonitoringTable: refreshMonitoringTable,
+        updateStatistics: updateStatistics
     };
 })();
 
-// ============================================
-// AUTO-INITIALIZE ON DOM READY
-// ============================================
-
+// Auto-initialize
 if (document.readyState === 'loading') {
-    // DOM belum ready, tunggu DOMContentLoaded event
-    document.addEventListener('DOMContentLoaded', () => {
-        console.log('[Peminjaman] DOM ready, initializing...');
+    document.addEventListener('DOMContentLoaded', function() {
+        console.log('[Peminjaman] DOM ready');
         PeminjamanApp.init();
     });
 } else {
-    // DOM sudah ready, langsung initialize
-    console.log('[Peminjaman] DOM already ready, initializing...');
+    console.log('[Peminjaman] DOM already ready');
     PeminjamanApp.init();
 }

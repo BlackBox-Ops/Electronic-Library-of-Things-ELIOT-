@@ -432,6 +432,11 @@ include_once '../../includes/header.php';
 <script src="../../assets/js/dark-mode-utils.js"></script>
 
 <script>
+    // ============================================
+    // BIODATA PEMINJAMAN - JavaScript Section
+    // Path: biodata_peminjaman.php <script> section
+    // ============================================
+
     const MEMBER_DATA = {
         id: <?= json_encode($member['id']) ?>,
         nama: <?= json_encode($member['nama']) ?>,
@@ -440,7 +445,13 @@ include_once '../../includes/header.php';
         total_denda: <?= json_encode((float)$member['total_denda']) ?>
     };
 
+    /**
+     * Konfirmasi member dan redirect ke index.php dengan enable Step 2
+     */
     function confirmMember() {
+        console.log('[Biodata] Confirming member:', MEMBER_DATA);
+        
+        // Double check validasi
         if (MEMBER_DATA.kuota_tersisa <= 0) {
             showError('Kuota Habis', 'Member sudah mencapai batas maksimal peminjaman.');
             return;
@@ -451,6 +462,7 @@ include_once '../../includes/header.php';
             return;
         }
         
+        // Show confirmation dialog
         const config = window.DarkModeUtils.getSwalConfig({
             title: 'Konfirmasi Data Member',
             html: `
@@ -469,31 +481,69 @@ include_once '../../includes/header.php';
             cancelButtonText: '<i class="fas fa-times me-2"></i>Batal',
             buttonsStyling: false,
             customClass: {
-                confirmButton: 'btn btn-primary me-2',
+                confirmButton: 'btn btn-success me-2',
                 cancelButton: 'btn btn-secondary'
             }
         });
 
         Swal.fire(config).then((result) => {
             if (result.isConfirmed) {
-                showSuccess('Fitur Scan Buku', 'Halaman scan buku akan segera dibuat pada fase berikutnya.');
+                console.log('[Biodata] User confirmed, redirecting to index.php');
+                
+                // Simpan member data ke sessionStorage untuk enable Step 2
+                const memberTemp = {
+                    id: MEMBER_DATA.id,
+                    nama: MEMBER_DATA.nama,
+                    no_identitas: MEMBER_DATA.no_identitas,
+                    kuota_tersisa: MEMBER_DATA.kuota_tersisa,
+                    total_denda: MEMBER_DATA.total_denda,
+                    timestamp: Date.now()
+                };
+                
+                sessionStorage.setItem('member_verified', JSON.stringify(memberTemp));
+                console.log('[Biodata] Member data saved to sessionStorage');
+                
+                // Show loading toast
+                showSuccess('Berhasil!', 'Member berhasil diverifikasi. Redirecting...');
+                
+                // Redirect ke index.php setelah 500ms
+                setTimeout(() => {
+                    window.location.href = 'index.php';
+                }, 500);
             }
         });
     }
 
+    /**
+     * Show error alert
+     */
     function showError(title, message) {
         if (window.DarkModeUtils) {
             window.DarkModeUtils.showError(title, message);
         } else {
-            Swal.fire({ title: title, text: message, icon: 'error' });
+            Swal.fire({ 
+                title: title, 
+                text: message, 
+                icon: 'error',
+                confirmButtonText: 'OK'
+            });
         }
     }
 
+    /**
+     * Show success toast
+     */
     function showSuccess(title, message) {
         if (window.DarkModeUtils) {
-            window.DarkModeUtils.showToast('info', message, 5000);
+            window.DarkModeUtils.showToast('success', message, 2000);
         } else {
-            Swal.fire({ title: title, text: message, icon: 'info', timer: 5000 });
+            Swal.fire({ 
+                title: title, 
+                text: message, 
+                icon: 'success', 
+                timer: 2000,
+                showConfirmButton: false
+            });
         }
     }
 </script>

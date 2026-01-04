@@ -4,8 +4,8 @@
  * Path: web/apps/includes/api/validate_member.php
  * 
  * @author ELIOT System
- * @version 1.1.0 - FINAL
- * @date 2026-01-02
+ * @version 1.4.0 - Fixed HTTP Status Code Issue
+ * @date 2026-01-04
  */
 
 // ============================================
@@ -44,11 +44,13 @@ debugLog('Config path: ' . $configPath);
 
 if (!file_exists($configPath)) {
     debugLog('ERROR: Config not found at ' . $configPath);
-    http_response_code(500);
+    http_response_code(200); // Always 200, error in JSON
     echo json_encode([
         'success' => false,
+        'code' => 'CONFIG_ERROR',
         'message' => 'Configuration file not found',
-        'debug' => ['config_path' => $configPath, 'exists' => false]
+        'data' => null,
+        'timestamp' => date('Y-m-d H:i:s')
     ]);
     exit;
 }
@@ -59,19 +61,23 @@ debugLog('Config loaded');
 // ============================================
 // HELPER FUNCTIONS
 // ============================================
-function sendResponse($success, $data = null, $message = '', $errors = [], $httpCode = 200) {
-    http_response_code($httpCode);
+function sendResponse($success, $data = null, $message = '', $errors = [], $code = null) {
+    http_response_code(200); // ✅ ALWAYS 200 - Error differentiation by JSON
+    
     $response = [
         'success' => $success,
+        'code' => $code,
         'message' => $message,
         'data' => $data,
         'timestamp' => date('Y-m-d H:i:s')
     ];
+    
     if (!empty($errors)) {
         $response['validation'] = ['errors' => $errors];
     }
+    
     echo json_encode($response, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
-    debugLog('Response sent: ' . $message);
+    debugLog('Response sent: ' . $message . ' (Code: ' . $code . ')');
     exit;
 }
 
@@ -80,7 +86,8 @@ function sendResponse($success, $data = null, $message = '', $errors = [], $http
 // ============================================
 if (!isset($conn) || !$conn) {
     debugLog('ERROR: No database connection');
-    sendResponse(false, null, 'Database connection failed', ['Cannot connect to database'], 500);
+    sendResponse(false, null, 'Database connection failed', 
+        ['Cannot connect to database'], 'DB_ERROR');
 }
 
 debugLog('Database connected');
@@ -89,7 +96,8 @@ debugLog('Database connected');
 // VALIDATE METHOD
 // ============================================
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-    sendResponse(false, null, 'Method not allowed', ['Only POST allowed'], 405);
+    sendResponse(false, null, 'Method not allowed', 
+        ['Only POST allowed'], 'METHOD_NOT_ALLOWED');
 }
 
 // ============================================
@@ -99,13 +107,15 @@ $rawInput = file_get_contents('php://input');
 debugLog('Raw input: ' . substr($rawInput, 0, 100));
 
 if (empty($rawInput)) {
-    sendResponse(false, null, 'Empty request body', ['No data received'], 400);
+    sendResponse(false, null, 'Empty request body', 
+        ['No data received'], 'EMPTY_INPUT');
 }
 
 $input = json_decode($rawInput, true);
 if (json_last_error() !== JSON_ERROR_NONE) {
     debugLog('JSON error: ' . json_last_error_msg());
-    sendResponse(false, null, 'Invalid JSON', ['JSON decode failed: ' . json_last_error_msg()], 400);
+    sendResponse(false, null, 'Invalid JSON', 
+        ['JSON decode failed: ' . json_last_error_msg()], 'INVALID_JSON');
 }
 
 $noIdentitas = isset($input['no_identitas']) ? trim(strip_tags($input['no_identitas'])) : '';
@@ -115,7 +125,8 @@ debugLog('no_identitas: ' . $noIdentitas);
 // VALIDATE INPUT
 // ============================================
 if (empty($noIdentitas)) {
-    sendResponse(false, null, 'Validation failed', ['No identitas tidak boleh kosong'], 400);
+    sendResponse(false, null, 'Validation failed', 
+        ['No identitas tidak boleh kosong'], 'EMPTY_NO_IDENTITAS');
 }
 
 // ============================================
@@ -132,7 +143,6 @@ try {
              WHERE d.user_id = u.id AND d.status_pembayaran = 'belum_dibayar' AND d.is_deleted = 0) as total_denda
         FROM users u
         WHERE u.no_identitas = ? 
-          AND u.role IN ('member', 'admin', 'staff') 
           AND u.is_deleted = 0
         LIMIT 1
     ";
@@ -150,24 +160,45 @@ try {
     $result = $stmt->get_result();
     debugLog('Query executed, rows: ' . $result->num_rows);
     
+    // ============================================
+    // CHECK IF USER EXISTS
+    // ============================================
     if ($result->num_rows === 0) {
         $stmt->close();
-        sendResponse(false, null, 'Member tidak ditemukan', 
-            ['No identitas tidak terdaftar atau sudah dihapus'], 404);
+        debugLog('User not found');
+        
+        // ✅ HTTP 200 dengan error code NOT_REGISTERED
+        sendResponse(false, null, 'No identitas belum terdaftar', 
+            ['Nomor identitas tidak ditemukan dalam sistem'], 
+            'NOT_REGISTERED'
+        );
     }
     
     $member = $result->fetch_assoc();
     $stmt->close();
     
-    debugLog('Member found: ' . $member['nama']);
+    debugLog('Member found: ' . $member['nama'] . ' (Role: ' . $member['role'] . ')');
     
     // ============================================
-    // BUSINESS VALIDATION
+    // ROLE CHECK: HANYA MEMBER YANG BOLEH PINJAM
+    // ============================================
+    if ($member['role'] !== 'member') {
+        debugLog('ERROR: User is not member (Role: ' . $member['role'] . ')');
+        
+        // ✅ HTTP 200 dengan error code ADMIN_STAFF_NOT_ALLOWED
+        sendResponse(false, null, 'Admin dan Staff tidak dapat meminjam buku', 
+            ['Hanya member yang dapat meminjam buku'], 
+            'ADMIN_STAFF_NOT_ALLOWED'
+        );
+    }
+    
+    // ============================================
+    // BUSINESS VALIDATION - HANYA UNTUK MEMBER
     // ============================================
     $errors = [];
     $kuotaTersisa = $member['max_peminjaman'] - $member['total_pinjam_aktif'];
     
-    // 1. Status
+    // 1. Status Check
     if ($member['status'] !== 'aktif') {
         $statusMap = [
             'nonaktif' => 'User tidak aktif',
@@ -177,31 +208,34 @@ try {
         $errors[] = ($statusMap[$member['status']] ?? 'Status invalid') . '. Hubungi admin.';
     }
     
-    // 2. Kuota (skip check untuk admin/staff - mereka unlimited)
-    if ($member['role'] === 'member' && $kuotaTersisa <= 0) {
-        $errors[] = "Kuota peminjaman habis ({$member['total_pinjam_aktif']}/{$member['max_peminjaman']}). Kembalikan buku dulu.";
+    // 2. Kuota Check
+    if ($kuotaTersisa <= 0) {
+        $errors[] = "Kuota peminjaman habis ({$member['total_pinjam_aktif']}/{$member['max_peminjaman']}). Kembalikan buku terlebih dahulu.";
     }
     
-    // 3. Denda (skip untuk admin/staff)
-    if ($member['role'] === 'member') {
-        $maxDendaResult = $conn->query("SELECT setting_value FROM system_settings WHERE setting_key = 'max_denda_block'");
-        $maxDenda = 50000;
-        if ($maxDendaResult && $row = $maxDendaResult->fetch_assoc()) {
-            $maxDenda = (int)$row['setting_value'];
-        }
-        
-        if ($member['total_denda'] >= $maxDenda) {
-            $errors[] = "Denda Rp " . number_format($member['total_denda'], 0, ',', '.') . 
-                        ". Bayar dulu (max Rp " . number_format($maxDenda, 0, ',', '.') . ").";
-        }
+    // 3. Denda Check
+    $maxDendaResult = $conn->query("SELECT setting_value FROM system_settings WHERE setting_key = 'max_denda_block'");
+    $maxDenda = 50000;
+    if ($maxDendaResult && $row = $maxDendaResult->fetch_assoc()) {
+        $maxDenda = (int)$row['setting_value'];
     }
     
+    if ($member['total_denda'] >= $maxDenda) {
+        $errors[] = "Total denda Rp " . number_format($member['total_denda'], 0, ',', '.') . 
+                    ". Bayar denda terlebih dahulu (maksimal Rp " . number_format($maxDenda, 0, ',', '.') . ").";
+    }
+    
+    // Jika ada error validasi
     if (!empty($errors)) {
-        sendResponse(false, null, 'Member tidak memenuhi syarat', $errors, 400);
+        debugLog('Validation failed: ' . implode(', ', $errors));
+        
+        // ✅ HTTP 200 dengan error code VALIDATION_FAILED
+        sendResponse(false, null, 'Member tidak memenuhi syarat', 
+            $errors, 'VALIDATION_FAILED');
     }
     
     // ============================================
-    // SUCCESS
+    // SUCCESS RESPONSE
     // ============================================
     $memberData = [
         'id' => (int)$member['id'],
@@ -225,11 +259,18 @@ try {
         ]
     ];
     
-    sendResponse(true, $memberData, 'Member valid', [], 200);
+    debugLog('SUCCESS: Member valid and ready to borrow');
+    
+    // ✅ HTTP 200 dengan success code
+    sendResponse(true, $memberData, 'Member valid dan siap meminjam', 
+        [], 'SUCCESS');
     
 } catch (Exception $e) {
     debugLog('EXCEPTION: ' . $e->getMessage());
-    sendResponse(false, null, 'Server error', ['Internal error: ' . $e->getMessage()], 500);
+    
+    // ✅ HTTP 200 dengan error code SERVER_ERROR
+    sendResponse(false, null, 'Server error', 
+        ['Internal error: ' . $e->getMessage()], 'SERVER_ERROR');
 }
 
 if (isset($conn)) $conn->close();

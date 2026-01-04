@@ -1,12 +1,13 @@
 /**
- * SweetAlert2 Dark Mode Support
+ * SweetAlert2 Dark Mode Support + Custom Modals
  * Path: web/apps/assets/css/swal-dark-mode.css
  * 
  * Custom styling untuk SweetAlert2 di dark mode
- * Update: Modal bantuan lebih lebar & lega
+ * Termasuk styling untuk modal konfirmasi registrasi
  * 
  * @author ELIOT System
- * @version 1.0.1
+ * @version 2.0.0
+ * @date 2026-01-02
  */
 
 /* ============================================
@@ -18,7 +19,6 @@
     background: #1e1e1e !important;
     color: #e0e0e0 !important;
     border: 1px solid #333333 !important;
-    /* Perbaikan utama: modal bantuan lebih lebar */
     width: 680px !important;
     max-width: 90vw !important;
     padding: 2rem 1.8rem !important;
@@ -139,19 +139,38 @@
 }
 
 /* Icons tetap cerah */
-[data-theme="dark"] .swal2-icon.swal2-success [class^='swal2-success-line'] { background-color: #10b981 !important; }
-[data-theme="dark"] .swal2-icon.swal2-success .swal2-success-ring { border-color: rgba(16, 185, 129, 0.3) !important; }
-[data-theme="dark"] .swal2-icon.swal2-error [class^='swal2-x-mark-line'] { background-color: #ef4444 !important; }
-[data-theme="dark"] .swal2-icon.swal2-warning { border-color: #f59e0b !important; color: #f59e0b !important; }
-[data-theme="dark"] .swal2-icon.swal2-info { border-color: #06b6d4 !important; color: #06b6d4 !important; }
-[data-theme="dark"] .swal2-icon.swal2-question { border-color: #8b5cf6 !important; color: #8b5cf6 !important; }
+[data-theme="dark"] .swal2-icon.swal2-success [class^='swal2-success-line'] { 
+    background-color: #10b981 !important; 
+}
+[data-theme="dark"] .swal2-icon.swal2-success .swal2-success-ring { 
+    border-color: rgba(16, 185, 129, 0.3) !important; 
+}
+[data-theme="dark"] .swal2-icon.swal2-error [class^='swal2-x-mark-line'] { 
+    background-color: #ef4444 !important; 
+}
+[data-theme="dark"] .swal2-icon.swal2-warning { 
+    border-color: #f59e0b !important; 
+    color: #f59e0b !important; 
+}
+[data-theme="dark"] .swal2-icon.swal2-info { 
+    border-color: #06b6d4 !important; 
+    color: #06b6d4 !important; 
+}
+[data-theme="dark"] .swal2-icon.swal2-question { 
+    border-color: #8b5cf6 !important; 
+    color: #8b5cf6 !important; 
+}
 
 /* Loader & backdrop */
-[data-theme="dark"] .swal2-loader { border-color: #41644A transparent #41644A transparent !important; }
-[data-theme="dark"] .swal2-container.swal2-backdrop-show { background: rgba(0, 0, 0, 0.7) !important; }
+[data-theme="dark"] .swal2-loader { 
+    border-color: #41644A transparent #41644A transparent !important; 
+}
+[data-theme="dark"] .swal2-container.swal2-backdrop-show { 
+    background: rgba(0, 0, 0, 0.7) !important; 
+}
 
 /* ============================================
-   CUSTOM HELP MODAL STYLES (Perbaikan utama)
+   CUSTOM HELP MODAL STYLES
    ============================================ */
 
 [data-theme="dark"] .help-step {
@@ -195,6 +214,175 @@
     border-color: #333333 !important;
 }
 
+/* ============================================
+   CUSTOM MODAL: NOT REGISTERED
+   ============================================ */
+
+/* Modal container */
+.modal-not-registered {
+    text-align: center;
+    padding: 1rem 0;
+}
+
+.modal-not-registered .modal-icon {
+    margin-bottom: 1.5rem;
+    animation: bounceIn 0.6s ease-out;
+}
+
+.modal-not-registered .modal-icon i {
+    filter: drop-shadow(0 4px 8px rgba(245, 158, 11, 0.3));
+}
+
+.modal-not-registered .modal-content-text {
+    margin-bottom: 1.5rem;
+}
+
+.modal-not-registered .modal-content-text p {
+    font-size: 1.05rem;
+    line-height: 1.6;
+}
+
+.modal-not-registered .modal-content-text strong {
+    color: #f59e0b;
+    font-weight: 600;
+}
+
+.modal-not-registered .modal-question {
+    background: linear-gradient(135deg, rgba(65, 100, 74, 0.1), rgba(156, 171, 132, 0.1));
+    border: 2px dashed rgba(65, 100, 74, 0.3);
+    border-radius: 12px;
+    padding: 1.25rem;
+    margin: 1.5rem 0;
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: #41644A;
+}
+
+[data-theme="dark"] .modal-not-registered .modal-question {
+    background: linear-gradient(135deg, rgba(65, 100, 74, 0.15), rgba(156, 171, 132, 0.15));
+    border-color: rgba(156, 171, 132, 0.4);
+    color: #9CAB84;
+}
+
+/* Modal popup styling */
+.swal-modal-not-registered {
+    width: 600px !important;
+    max-width: 92vw !important;
+    padding: 2.5rem 2rem !important;
+}
+
+[data-theme="dark"] .swal-modal-not-registered {
+    background: #1e1e1e !important;
+    border: 1px solid #333333 !important;
+}
+
+/* ============================================
+   CUSTOM MODAL: ADMIN ERROR
+   ============================================ */
+
+.modal-admin-error {
+    text-align: center;
+    padding: 1rem 0;
+}
+
+.modal-admin-error .modal-icon {
+    margin-bottom: 1.5rem;
+    animation: shakeX 0.6s ease-out;
+}
+
+.modal-admin-error .modal-icon i {
+    filter: drop-shadow(0 4px 8px rgba(239, 68, 68, 0.3));
+}
+
+.modal-admin-error .modal-content-text {
+    margin-bottom: 1.5rem;
+}
+
+.modal-admin-error .modal-content-text p {
+    font-size: 1.05rem;
+    line-height: 1.6;
+    margin-bottom: 1rem;
+}
+
+.modal-admin-error .alert-info {
+    background: rgba(6, 182, 212, 0.1);
+    border: 1px solid rgba(6, 182, 212, 0.3);
+    border-radius: 10px;
+    padding: 1rem;
+    text-align: left;
+    color: #06b6d4;
+}
+
+[data-theme="dark"] .modal-admin-error .alert-info {
+    background: rgba(6, 182, 212, 0.15);
+    border-color: rgba(6, 182, 212, 0.4);
+    color: #67e8f9;
+}
+
+.modal-admin-error .alert-info strong {
+    font-weight: 600;
+}
+
+/* Modal popup styling */
+.swal-modal-admin-error {
+    width: 600px !important;
+    max-width: 92vw !important;
+    padding: 2.5rem 2rem !important;
+}
+
+[data-theme="dark"] .swal-modal-admin-error {
+    background: #1e1e1e !important;
+    border: 1px solid #333333 !important;
+}
+
+/* ============================================
+   ANIMATIONS
+   ============================================ */
+
+@keyframes bounceIn {
+    0% {
+        opacity: 0;
+        transform: scale(0.3) translateY(-30px);
+    }
+    50% {
+        opacity: 1;
+        transform: scale(1.05);
+    }
+    70% {
+        transform: scale(0.9);
+    }
+    100% {
+        transform: scale(1);
+    }
+}
+
+@keyframes shakeX {
+    0%, 100% {
+        transform: translateX(0);
+    }
+    10%, 30%, 50%, 70%, 90% {
+        transform: translateX(-10px);
+    }
+    20%, 40%, 60%, 80% {
+        transform: translateX(10px);
+    }
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* ============================================
+   SCROLLBAR
+   ============================================ */
+
 /* Scrollbar cantik di dalam modal */
 [data-theme="dark"] .swal2-html-container::-webkit-scrollbar {
     width: 8px;
@@ -215,17 +403,88 @@
 }
 
 /* ============================================
+   BUTTON SIZES
+   ============================================ */
+
+/* Large buttons */
+.btn-lg {
+    padding: 0.875rem 2rem !important;
+    font-size: 1.05rem !important;
+    border-radius: 10px !important;
+    font-weight: 500 !important;
+    transition: all 0.3s ease !important;
+}
+
+.btn-lg:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.btn-lg:active {
+    transform: translateY(0);
+}
+
+/* Primary button colors */
+.btn-primary {
+    background: #41644A !important;
+    border-color: #41644A !important;
+    color: #ffffff !important;
+}
+
+.btn-primary:hover {
+    background: #9CAB84 !important;
+    border-color: #9CAB84 !important;
+}
+
+/* Warning button colors */
+.btn-warning {
+    background: #f59e0b !important;
+    border-color: #f59e0b !important;
+    color: #ffffff !important;
+}
+
+.btn-warning:hover {
+    background: #fbbf24 !important;
+    border-color: #fbbf24 !important;
+}
+
+/* Secondary button colors */
+.btn-secondary {
+    background: #424242 !important;
+    border-color: #424242 !important;
+    color: #e0e0e0 !important;
+}
+
+.btn-secondary:hover {
+    background: #616161 !important;
+    border-color: #616161 !important;
+}
+
+/* ============================================
    RESPONSIVE
    ============================================ */
 
 @media (max-width: 768px) {
-    [data-theme="dark"] .swal2-popup {
+    [data-theme="dark"] .swal2-popup,
+    .swal-modal-not-registered,
+    .swal-modal-admin-error {
         width: 95vw !important;
         padding: 2rem 1.5rem !important;
     }
     
     [data-theme="dark"] .swal2-title {
         font-size: 1.3rem !important;
+    }
+    
+    .modal-not-registered .modal-question,
+    .modal-admin-error .alert-info {
+        font-size: 1rem !important;
+        padding: 1rem !important;
+    }
+    
+    .btn-lg {
+        padding: 0.75rem 1.5rem !important;
+        font-size: 1rem !important;
     }
 }
 
@@ -234,12 +493,52 @@
         padding: 1.5rem !important;
     }
     
-    [data-theme="dark"] .help-step {
+    .help-step {
         flex-direction: column;
         text-align: center;
     }
     
-    [data-theme="dark"] .help-step-icon {
+    .help-step-icon {
         margin-bottom: 1rem;
     }
+    
+    .modal-not-registered .modal-icon i,
+    .modal-admin-error .modal-icon i {
+        font-size: 3rem !important;
+    }
+    
+    .btn-lg {
+        width: 100%;
+        margin-bottom: 0.5rem !important;
+    }
+}
+
+/* ============================================
+   LIGHT MODE SUPPORT
+   ============================================ */
+
+/* Modal Not Registered - Light Mode */
+[data-theme="light"] .modal-not-registered .modal-question {
+    background: linear-gradient(135deg, rgba(65, 100, 74, 0.08), rgba(156, 171, 132, 0.08));
+    border-color: rgba(65, 100, 74, 0.25);
+    color: #41644A;
+}
+
+/* Modal Admin Error - Light Mode */
+[data-theme="light"] .modal-admin-error .alert-info {
+    background: rgba(6, 182, 212, 0.08);
+    border-color: rgba(6, 182, 212, 0.25);
+    color: #0891b2;
+}
+
+/* Buttons Light Mode */
+[data-theme="light"] .btn-secondary {
+    background: #e5e7eb !important;
+    border-color: #e5e7eb !important;
+    color: #374151 !important;
+}
+
+[data-theme="light"] .btn-secondary:hover {
+    background: #d1d5db !important;
+    border-color: #d1d5db !important;
 }
