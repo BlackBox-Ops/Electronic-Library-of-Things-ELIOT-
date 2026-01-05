@@ -42,3 +42,118 @@
 2026-01-04 22:56:22,714 [INFO] Subscribed to topic: libre_flow/rfid/read
 2026-01-04 23:09:01,311 [INFO] Bridge stopped by user
 2026-01-04 23:09:01,313 [INFO] Database connection closed
+2026-01-05 16:38:28,992 [ERROR] DB connection failed (attempt 1/3): 2003: Can't connect to MySQL server on 'localhost:3306' (111 Connection refused)
+2026-01-05 16:38:31,995 [ERROR] DB connection failed (attempt 2/3): 2003: Can't connect to MySQL server on 'localhost:3306' (111 Connection refused)
+2026-01-05 16:38:34,997 [ERROR] DB connection failed (attempt 3/3): 2003: Can't connect to MySQL server on 'localhost:3306' (111 Connection refused)
+2026-01-05 16:38:37,998 [CRITICAL] Cannot start bridge: Database connection failed
+2026-01-05 16:39:13,861 [INFO] Connected to MySQL Server v5.5.5-10.4.32-MariaDB
+2026-01-05 16:39:13,865 [INFO] Active database: perpustakaan_db
+2026-01-05 16:39:14,548 [INFO] MQTT Bridge started
+2026-01-05 16:39:14,757 [INFO] Connected to MQTT broker
+2026-01-05 16:39:14,757 [INFO] Subscribed to topic: libre_flow/rfid/read
+2026-01-05 16:39:17,395 [INFO] ✅ UID inserted: A148DB9B (jenis: pending)
+2026-01-05 16:39:29,351 [INFO] ✅ UID inserted: 11ED4EA2 (jenis: pending)
+2026-01-05 16:39:59,701 [INFO] ✅ UID inserted: E1D9C4A3 (jenis: pending)
+2026-01-05 16:40:16,408 [INFO] ✅ UID inserted: 5A3427CD (jenis: pending)
+2026-01-05 16:40:22,851 [INFO] ✅ UID inserted: 47C1F994 (jenis: pending)
+2026-01-05 16:40:36,741 [INFO] ✅ UID inserted: 6A6775B1 (jenis: pending)
+2026-01-05 16:42:19,291 [INFO] 🔄 UID timestamp updated: 5A3427CD
+2026-01-05 16:42:19,382 [INFO] 🔄 UID timestamp updated: 5A3427CD
+2026-01-05 16:42:27,906 [INFO] 🔄 UID timestamp updated: 5A3427CD
+2026-01-05 16:43:45,385 [INFO] Bridge stopped by user
+2026-01-05 16:43:45,387 [INFO] Database connection closed
+2026-01-05 16:59:56,188 [INFO] Connected to MySQL Server v5.5.5-10.4.32-MariaDB
+2026-01-05 16:59:56,190 [INFO] Active database: perpustakaan_db
+2026-01-05 16:59:57,016 [INFO] MQTT Bridge started
+2026-01-05 16:59:57,310 [INFO] Connected to MQTT broker
+2026-01-05 16:59:57,311 [INFO] Subscribed to topic: libre_flow/rfid/read
+2026-01-05 17:00:00,511 [INFO] 🔄 UID timestamp updated: 47C1F994
+2026-01-05 17:00:15,891 [INFO] 🔄 UID timestamp updated: 47C1F994
+2026-01-05 17:00:46,783 [INFO] 🔄 UID timestamp updated: 6A6775B1
+2026-01-05 17:00:54,373 [INFO] 🔄 UID timestamp updated: 6A6775B1
+2026-01-05 17:01:20,343 [INFO] 🔄 UID timestamp updated: 5A3427CD
+2026-01-05 17:01:23,396 [INFO] 🔄 UID timestamp updated: 47C1F994
+2026-01-05 17:01:26,471 [INFO] 🔄 UID timestamp updated: 47C1F994
+2026-01-05 17:01:29,854 [INFO] 🔄 UID timestamp updated: 5A3427CD
+2026-01-05 17:01:32,846 [INFO] 🔄 UID timestamp updated: 47C1F994
+2026-01-05 17:01:52,527 [INFO] 🔄 UID timestamp updated: 5A3427CD
+2026-01-05 17:01:55,481 [INFO] 🔄 UID timestamp updated: 47C1F994
+2026-01-05 17:01:59,584 [INFO] 🔄 UID timestamp updated: 47C1F994
+2026-01-05 17:02:05,689 [INFO] 🔄 UID timestamp updated: 5A3427CD
+2026-01-05 17:02:14,981 [INFO] 🔄 UID timestamp updated: E1D9C4A3
+2026-01-05 17:02:20,189 [INFO] 🔄 UID timestamp updated: F1FCB1A3
+2026-01-05 17:02:28,553 [INFO] 🔄 UID timestamp updated: 5A3427CD
+2026-01-05 17:02:31,937 [INFO] 🔄 UID timestamp updated: 47C1F994
+2026-01-05 17:02:35,626 [INFO] 🔄 UID timestamp updated: 5A3427CD
+2026-01-05 17:02:45,934 [INFO] 🔄 UID timestamp updated: 47C1F994
+2026-01-05 17:02:59,267 [INFO] Bridge stopped by user
+2026-01-05 17:02:59,268 [INFO] Database connection closed
+2026-01-05 17:04:38,457 [INFO] Connected to MySQL Server v5.5.5-10.4.32-MariaDB
+2026-01-05 17:04:38,459 [INFO] Active database: perpustakaan_db
+2026-01-05 17:04:39,107 [INFO] MQTT Bridge started
+2026-01-05 17:04:39,357 [INFO] Connected to MQTT broker
+2026-01-05 17:04:39,358 [INFO] Subscribed to topic: libre_flow/rfid/read
+2026-01-05 17:04:44,511 [INFO] 🔄 UID timestamp updated: 47C1F994
+2026-01-05 17:04:52,935 [INFO] 🔄 UID timestamp updated: 5A3427CD
+2026-01-05 17:05:00,645 [INFO] 🔄 UID timestamp updated: 5A3427CD
+2026-01-05 17:05:05,016 [INFO] 🔄 UID timestamp updated: 5A3427CD
+2026-01-05 17:05:25,728 [INFO] 🔄 UID timestamp updated: 47C1F994
+2026-01-05 17:05:28,578 [INFO] 🔄 UID timestamp updated: 5A3427CD
+2026-01-05 17:05:42,100 [INFO] 🔄 UID timestamp updated: F1FCB1A3
+2026-01-05 17:05:51,665 [INFO] 🔄 UID timestamp updated: 6A6775B1
+2026-01-05 17:05:57,512 [INFO] ✅ UID inserted: E1407CA3 (jenis: pending)
+2026-01-05 17:06:03,366 [INFO] 🔄 UID timestamp updated: 11ED4EA2
+2026-01-05 17:06:40,315 [INFO] 🔄 UID timestamp updated: E1D9C4A3
+2026-01-05 17:13:41,427 [INFO] 🔄 UID timestamp updated: 5A3427CD
+2026-01-05 17:20:18,992 [INFO] 🔄 UID timestamp updated: 6A6775B1
+2026-01-05 17:20:22,993 [INFO] 🔄 UID timestamp updated: 5A3427CD
+2026-01-05 17:20:29,278 [INFO] 🔄 UID timestamp updated: 47C1F994
+2026-01-05 17:20:32,422 [INFO] 🔄 UID timestamp updated: 47C1F994
+2026-01-05 17:20:35,599 [INFO] 🔄 UID timestamp updated: 5A3427CD
+2026-01-05 17:21:01,213 [INFO] 🔄 UID timestamp updated: A148DB9B
+2026-01-05 17:21:09,063 [INFO] 🔄 UID timestamp updated: A148DB9B
+2026-01-05 17:21:14,325 [INFO] 🔄 UID timestamp updated: 47C1F994
+2026-01-05 17:21:17,432 [INFO] 🔄 UID timestamp updated: 11ED4EA2
+2026-01-05 17:21:25,750 [INFO] 🔄 UID timestamp updated: 5A3427CD
+2026-01-05 17:21:28,959 [INFO] 🔄 UID timestamp updated: A148DB9B
+2026-01-05 17:21:35,072 [INFO] 🔄 UID timestamp updated: F1FCB1A3
+2026-01-05 17:21:39,234 [INFO] 🔄 UID timestamp updated: 47C1F994
+2026-01-05 17:21:43,199 [INFO] 🔄 UID timestamp updated: 6A6775B1
+2026-01-05 17:21:46,863 [INFO] 🔄 UID timestamp updated: 5A3427CD
+2026-01-05 17:21:49,838 [INFO] 🔄 UID timestamp updated: 47C1F994
+2026-01-05 17:22:14,962 [INFO] 🔄 UID timestamp updated: 47C1F994
+2026-01-05 17:22:25,125 [INFO] 🔄 UID timestamp updated: 47C1F994
+2026-01-05 17:22:31,882 [INFO] 🔄 UID timestamp updated: 47C1F994
+2026-01-05 17:22:39,082 [INFO] 🔄 UID timestamp updated: 47C1F994
+2026-01-05 17:22:44,468 [INFO] 🔄 UID timestamp updated: 5A3427CD
+2026-01-05 17:22:48,636 [INFO] 🔄 UID timestamp updated: 47C1F994
+2026-01-05 17:23:24,558 [INFO] 🔄 UID timestamp updated: 5A3427CD
+2026-01-05 17:23:49,682 [INFO] ✅ UID inserted: A13FB3A3 (jenis: pending)
+2026-01-05 17:24:14,637 [INFO] 🔄 UID timestamp updated: A13FB3A3
+2026-01-05 17:24:25,639 [INFO] 🔄 UID timestamp updated: 93420006
+2026-01-05 17:24:56,436 [INFO] 🔄 UID timestamp updated: 47C1F994
+2026-01-05 17:25:00,704 [INFO] 🔄 UID timestamp updated: 93420006
+2026-01-05 17:25:06,013 [INFO] 🔄 UID timestamp updated: 47C1F994
+2026-01-05 17:25:08,991 [INFO] 🔄 UID timestamp updated: 5A3427CD
+2026-01-05 17:25:14,248 [INFO] 🔄 UID timestamp updated: A148DB9B
+2026-01-05 17:25:49,993 [INFO] 🔄 UID timestamp updated: A13FB3A3
+2026-01-05 17:25:53,105 [INFO] 🔄 UID timestamp updated: A13FB3A3
+2026-01-05 17:26:01,599 [INFO] 🔄 UID timestamp updated: 909BC779
+2026-01-05 17:26:13,710 [INFO] 🔄 UID timestamp updated: 5A3427CD
+2026-01-05 17:26:29,671 [INFO] 🔄 UID timestamp updated: 47C1F994
+2026-01-05 17:26:33,815 [INFO] 🔄 UID timestamp updated: 6A6775B1
+2026-01-05 17:26:38,623 [INFO] 🔄 UID timestamp updated: 93420006
+2026-01-05 17:26:41,594 [INFO] 🔄 UID timestamp updated: E1D9C4A3
+2026-01-05 17:26:46,992 [INFO] 🔄 UID timestamp updated: 11ED4EA2
+2026-01-05 17:26:53,485 [INFO] 🔄 UID timestamp updated: E1D9C4A3
+2026-01-05 17:26:58,600 [INFO] 🔄 UID timestamp updated: F1FCB1A3
+2026-01-05 17:27:07,194 [INFO] 🔄 UID timestamp updated: 5A3427CD
+2026-01-05 17:27:12,607 [INFO] 🔄 UID timestamp updated: E1D9C4A3
+2026-01-05 17:27:26,252 [INFO] 🔄 UID timestamp updated: E1D9C4A3
+2026-01-05 17:27:31,183 [INFO] 🔄 UID timestamp updated: E1D9C4A3
+2026-01-05 17:28:13,143 [INFO] 🔄 UID timestamp updated: 6A6775B1
+2026-01-05 17:28:44,086 [INFO] 🔄 UID timestamp updated: 47C1F994
+2026-01-05 17:29:23,674 [INFO] 🔄 UID timestamp updated: 93420006
+2026-01-05 17:29:30,025 [INFO] 🔄 UID timestamp updated: 5A3427CD
+2026-01-05 17:31:58,808 [INFO] Bridge stopped by user
+2026-01-05 17:31:58,810 [INFO] Database connection closed

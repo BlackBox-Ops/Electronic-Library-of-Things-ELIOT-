@@ -225,8 +225,8 @@ include_once '../includes/header.php';
                                 <table class="table table-sm mb-0 table-hover">
                                     <thead class="table-light">
                                         <tr>
-                                            <th>Kode Unit</th>
-                                            <th>RFID UID</th>
+                                            <th>Kode Unit  Buku</th>
+                                            <th>Kode RFID Buku</th>
                                             <th>Kondisi</th>
                                             <th>Tgl Registrasi</th>
                                             <th>Status</th>

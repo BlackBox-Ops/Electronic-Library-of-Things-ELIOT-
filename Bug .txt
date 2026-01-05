@@ -1,0 +1,19 @@
+Bug
+source ~/.virtualenvs/streamlit_env/bin/activate
+Bug List untuk edit inventory proses scan di tab 3:
+1.UID Tersimpan Meskipun Klik Batal 
+     problem:    
+        - Saat user buka modal tambah eksemplar → scan UID → klik "Batal"
+        - UID sudah terlanjur tersimpan di rt_book_uid dan uid_buffer sudah terupdate jadi jenis='book'
+     root cause:
+        - Submit terjadi di button "Simpan", bukan di button "Scan"
+        - Tapi sepertinya ada logic yang salah sehingga save terjadi sebelum user konfirmasi
+2. Kode Eksemplar Tidak Unik / Tidak Follow Update Terakhir 
+     problem:
+        - Kode eksemplar yang digenerate tidak follow nomor terakhir dari buku yang sama
+        - Contoh: Buku "Sistem Digital" sudah punya SIS-011, tapi scan baru malah generate SIST-0001 lagi (duplicate)
+     Root Cause:
+        - Query MAX() di controller tidak spesifik ke book_id tertentu
+        - Prefix generation mungkin inconsistent
+3.Auto redirect tab → Nice to have, improve UX saat sudah scan di tab 3 maka akan otomatis redirect ke tab 3 langsung 
+

@@ -622,6 +622,13 @@ function updateEksemplarCount() {
 // ADD NEW EKSEMPLAR FUNCTIONS
 // ========================================
 
+// ========================================
+// REPLACE THESE FUNCTIONS IN edit_inventory.js
+// ========================================
+
+/**
+ * FIXED: Open Modal untuk Bulk Add dengan scanning otomatis
+ */
 function openAddEksemplarModal(reset = true) {
     const bookId = document.querySelector('input[name="book_id"]').value;
     const isDarkMode = document.documentElement.getAttribute('data-theme') === 'dark';
@@ -637,17 +644,17 @@ function openAddEksemplarModal(reset = true) {
             <div class="text-start">
                 <div class="alert alert-info border-0 mb-3">
                     <i class="fas fa-info-circle me-2"></i>
-                    <strong>Panduan:</strong> Scan RFID untuk unit baru yang akan ditambahkan
+                    <strong>Panduan:</strong> Sistem akan otomatis scan sesuai jumlah yang diinput. Jika UID tidak cukup, akan ambil yang tersedia saja.
                 </div>
                 
                 <div class="mb-3">
-                    <label class="form-label fw-bold">Jumlah Unit Baru</label>
+                    <label class="form-label fw-bold">Jumlah Unit Baru <span class="text-danger">*</span></label>
                     <input type="number" id="swal_jumlah_unit" class="form-control" value="1" min="1" max="50">
                     <small class="text-muted">Maksimal 50 unit per sekali tambah</small>
                 </div>
                 
                 <div class="text-center mb-3">
-                    <button type="button" class="btn btn-primary btn-lg px-4" onclick="startScanNewEksemplar()">
+                    <button type="button" class="btn btn-primary btn-lg px-4" onclick="startBulkScanRFID()">
                         <i class="fas fa-qrcode me-2"></i>MULAI SCAN RFID
                     </button>
                 </div>
@@ -659,8 +666,11 @@ function openAddEksemplarModal(reset = true) {
                     </div>
                 </div>
                 
-                <div class="mt-3">
+                <div class="mt-3 d-flex justify-content-between align-items-center">
                     <span class="badge bg-info" id="scan_count_badge">0 UID Terscan</span>
+                    <button type="button" class="btn btn-sm btn-warning" onclick="clearAllScans()">
+                        <i class="fas fa-redo me-1"></i>Reset Scan
+                    </button>
                 </div>
             </div>
         `,
@@ -680,6 +690,400 @@ function openAddEksemplarModal(reset = true) {
         allowOutsideClick: () => !Swal.isLoading()
     });
 }
+
+/**
+ * FIXED: Bulk scan RFID dengan retry logic dan handling partial success
+ */
+function startBulkScanRFID() {
+    const jumlahUnit = parseInt(document.getElementById('swal_jumlah_unit').value) || 1;
+    const isDarkMode = document.documentElement.getAttribute('data-theme') === 'dark';
+    
+    if (jumlahUnit < 1 || jumlahUnit > 50) {
+        Swal.fire({
+            icon: 'warning',
+            title: 'Input Tidak Valid',
+            text: 'Jumlah unit harus antara 1-50',
+            confirmButtonColor: '#ffc107'
+        }).then(() => openAddEksemplarModal(false));
+        return;
+    }
+    
+    // Show scanning progress
+    Swal.fire({
+        title: 'Memulai Scan...',
+        html: `
+            <div class="text-center">
+                <i class="fas fa-spinner fa-spin fa-3x mb-3 text-primary"></i>
+                <p class="mb-2">Mencari UID yang tersedia...</p>
+                <div class="progress mt-3" style="height: 25px;">
+                    <div id="scan_progress" class="progress-bar progress-bar-striped progress-bar-animated" 
+                         role="progressbar" style="width: 0%">0 / ${jumlahUnit}</div>
+                </div>
+                <small class="text-muted mt-2 d-block">Ini mungkin memakan waktu beberapa detik...</small>
+            </div>
+        `,
+        allowOutsideClick: false,
+        showConfirmButton: false,
+        customClass: {
+            popup: isDarkMode ? 'swal-dark' : ''
+        }
+    });
+    
+    // Fetch UIDs dari server
+    fetch(`../includes/api/check_latest_uid.php?limit=${jumlahUnit}`)
+        .then(res => {
+            if (!res.ok) {
+                throw new Error(`HTTP error! status: ${res.status}`);
+            }
+            return res.text(); // Get as text first to debug
+        })
+        .then(text => {
+            console.log('[BULK SCAN] Raw response:', text);
+            
+            // Try parse JSON
+            let data;
+            try {
+                data = JSON.parse(text);
+            } catch (e) {
+                console.error('[BULK SCAN] JSON parse error:', e);
+                console.error('[BULK SCAN] Response text:', text);
+                throw new Error('Invalid JSON response from server: ' + text.substring(0, 100));
+            }
+            
+            return data;
+        })
+        .then(data => {
+            console.log('[BULK SCAN] Parsed data:', data);
+            
+            Swal.close();
+            
+            if (!data.success) {
+                throw new Error(data.message || 'Gagal mengambil UID dari server');
+            }
+            
+            if (!data.uids || data.uids.length === 0) {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Tidak Ada UID Tersedia',
+                    html: `
+                        <p>Tidak ada UID yang terdeteksi dalam 5 menit terakhir.</p>
+                        <hr>
+                        <small class="text-muted">
+                            <strong>Troubleshooting:</strong><br>
+                            • Pastikan RFID reader sudah aktif<br>
+                            • Scan beberapa tag RFID terlebih dahulu<br>
+                            • Tunggu beberapa detik dan coba lagi
+                        </small>
+                    `,
+                    confirmButtonColor: '#ffc107'
+                }).then(() => openAddEksemplarModal(false));
+                return;
+            }
+            
+            // Process found UIDs
+            const foundCount = data.uids.length;
+            const requestedCount = jumlahUnit;
+            
+            // Check for duplicates before adding
+            const validUIDs = [];
+            const duplicateUIDs = [];
+            
+            data.uids.forEach(uid => {
+                const isDuplicate = scannedNewUIDs.some(u => u.id === uid.id);
+                if (!isDuplicate) {
+                    validUIDs.push(uid);
+                } else {
+                    duplicateUIDs.push(uid);
+                }
+            });
+            
+            // Add valid UIDs to scanned list
+            scannedNewUIDs.push(...validUIDs);
+            
+            // Update UI
+            updateScanResultsUI();
+            
+            // Show result
+            let resultIcon = 'success';
+            let resultTitle = 'Scan Berhasil!';
+            let resultText = `${validUIDs.length} UID berhasil ditambahkan`;
+            
+            if (validUIDs.length < requestedCount) {
+                resultIcon = 'warning';
+                resultTitle = 'Scan Partial';
+                resultText = `Hanya ${validUIDs.length} dari ${requestedCount} UID yang tersedia`;
+            }
+            
+            if (duplicateUIDs.length > 0) {
+                resultText += `\n${duplicateUIDs.length} UID duplicate diabaikan`;
+            }
+            
+            Swal.fire({
+                icon: resultIcon,
+                title: resultTitle,
+                text: resultText,
+                confirmButtonColor: resultIcon === 'success' ? '#28a745' : '#ffc107',
+                timer: 2000
+            }).then(() => {
+                openAddEksemplarModal(false);
+            });
+            
+        })
+        .catch(err => {
+            Swal.close();
+            console.error('[BULK SCAN ERROR]', err);
+            
+            Swal.fire({
+                icon: 'error',
+                title: 'Error Scan',
+                html: `
+                    <p>${err.message}</p>
+                    <hr>
+                    <small class="text-muted">
+                        <strong>Detail Error:</strong><br>
+                        ${err.stack ? err.stack.split('\n')[0] : 'Unknown error'}
+                    </small>
+                `,
+                confirmButtonColor: '#dc3545'
+            }).then(() => {
+                openAddEksemplarModal(false);
+            });
+        });
+}
+
+/**
+ * NEW: Clear all scanned UIDs
+ */
+function clearAllScans() {
+    if (scannedNewUIDs.length === 0) {
+        Swal.fire({
+            icon: 'info',
+            title: 'Tidak Ada Scan',
+            text: 'Belum ada UID yang di-scan',
+            timer: 1500,
+            showConfirmButton: false
+        });
+        return;
+    }
+    
+    Swal.fire({
+        title: 'Reset Semua Scan?',
+        text: `${scannedNewUIDs.length} UID akan dihapus`,
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonText: 'Ya, Reset',
+        cancelButtonText: 'Batal',
+        confirmButtonColor: '#ffc107'
+    }).then(result => {
+        if (result.isConfirmed) {
+            scannedNewUIDs = [];
+            updateScanResultsUI();
+            
+            Swal.fire({
+                icon: 'success',
+                title: 'Direset!',
+                text: 'Semua scan telah dihapus',
+                timer: 1500,
+                showConfirmButton: false
+            }).then(() => {
+                openAddEksemplarModal(false);
+            });
+        } else {
+            openAddEksemplarModal(false);
+        }
+    });
+}
+
+/**
+ * FIXED: Update scan results UI
+ */
+function updateScanResultsUI() {
+    const container = document.getElementById('scan_results_container');
+    const badge = document.getElementById('scan_count_badge');
+    
+    if (!container) return;
+    
+    if (scannedNewUIDs.length === 0) {
+        container.innerHTML = `
+            <div class="text-center text-muted py-4">
+                <i class="fas fa-barcode fa-3x opacity-50 mb-2"></i>
+                <p class="mb-0">Belum ada scan</p>
+            </div>
+        `;
+    } else {
+        let html = '<div class="list-group">';
+        
+        scannedNewUIDs.forEach((uid, index) => {
+            html += `
+                <div class="list-group-item d-flex justify-content-between align-items-center">
+                    <div class="flex-grow-1">
+                        <strong>#${index + 1}</strong>
+                        <code class="ms-2 text-primary">${uid.uid}</code>
+                        <small class="text-muted d-block">ID: ${uid.id} • ${uid.timestamp}</small>
+                    </div>
+                    <button type="button" class="btn btn-sm btn-danger" onclick="removeScannedUID(${index})">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+            `;
+        });
+        
+        html += '</div>';
+        container.innerHTML = html;
+    }
+    
+    if (badge) {
+        badge.textContent = `${scannedNewUIDs.length} UID Terscan`;
+        badge.className = scannedNewUIDs.length > 0 ? 'badge bg-success' : 'badge bg-info';
+    }
+}
+
+/**
+ * FIXED: Remove scanned UID
+ */
+function removeScannedUID(index) {
+    const uid = scannedNewUIDs[index];
+    
+    Swal.fire({
+        title: 'Hapus UID?',
+        text: `UID: ${uid.uid}`,
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonText: 'Ya, Hapus',
+        cancelButtonText: 'Batal',
+        confirmButtonColor: '#dc3545'
+    }).then(result => {
+        if (result.isConfirmed) {
+            scannedNewUIDs.splice(index, 1);
+            updateScanResultsUI();
+            
+            Swal.fire({
+                icon: 'success',
+                title: 'Terhapus!',
+                timer: 1000,
+                showConfirmButton: false
+            }).then(() => {
+                openAddEksemplarModal(false);
+            });
+        } else {
+            openAddEksemplarModal(false);
+        }
+    });
+}
+
+/**
+ * FIXED: Submit new eksemplar dengan error handling lebih baik
+ */
+function submitNewEksemplar(bookId) {
+    if (scannedNewUIDs.length === 0) {
+        Swal.showValidationMessage('Belum ada UID yang di-scan!');
+        return false;
+    }
+    
+    console.log('[SUBMIT] Starting submission with', scannedNewUIDs.length, 'UIDs');
+    
+    // Get existing max number
+    const existingRows = document.querySelectorAll('#eksemplar-container tr[id^="row-eks-"]');
+    let maxNumber = 0;
+    
+    existingRows.forEach(row => {
+        const kodeCell = row.querySelector('td:nth-child(2) strong');
+        if (kodeCell) {
+            const match = kodeCell.textContent.match(/(\d+)/);
+            if (match) {
+                maxNumber = Math.max(maxNumber, parseInt(match[1]));
+            }
+        }
+    });
+    
+    console.log('[SUBMIT] Max existing number:', maxNumber);
+    
+    // Prepare new eksemplar data
+    const newEksemplar = scannedNewUIDs.map((uid, idx) => {
+        return {
+            uid_buffer_id: uid.id,
+            kondisi: 'baik'
+        };
+    });
+    
+    const payload = {
+        book_id: parseInt(bookId),
+        new_eksemplar: newEksemplar
+    };
+    
+    console.log('[SUBMIT] Payload:', JSON.stringify(payload, null, 2));
+    
+    // Submit to controller
+    return fetch('../controllers/AddEksemplarController.php', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json; charset=utf-8'
+        },
+        body: JSON.stringify(payload)
+    })
+    .then(res => {
+        console.log('[SUBMIT] Response status:', res.status);
+        
+        if (!res.ok) {
+            throw new Error(`HTTP error! status: ${res.status}`);
+        }
+        
+        return res.text(); // Get as text first for debugging
+    })
+    .then(text => {
+        console.log('[SUBMIT] Raw response:', text);
+        
+        // Try parse JSON
+        let data;
+        try {
+            data = JSON.parse(text);
+        } catch (e) {
+            console.error('[SUBMIT] JSON parse error:', e);
+            console.error('[SUBMIT] Response text:', text);
+            throw new Error('Invalid JSON response: ' + text.substring(0, 200));
+        }
+        
+        console.log('[SUBMIT] Parsed data:', data);
+        
+        if (data.success) {
+            Swal.fire({
+                icon: 'success',
+                title: 'Berhasil!',
+                html: `
+                    <p>${data.message}</p>
+                    ${data.warnings ? `<hr><small class="text-warning">${data.warnings.length} UID gagal diproses</small>` : ''}
+                `,
+                confirmButtonColor: '#28a745',
+                timer: 3000
+            }).then(() => {
+                location.reload();
+            });
+        } else {
+            throw new Error(data.message || 'Unknown error');
+        }
+    })
+    .catch(err => {
+        console.error('[SUBMIT ERROR]', err);
+        
+        Swal.showValidationMessage(`
+            <div class="text-start">
+                <strong>Gagal menambahkan eksemplar:</strong><br>
+                ${err.message}<br>
+                <hr>
+                <small class="text-muted">
+                    Periksa console browser (F12) untuk detail lengkap
+                </small>
+            </div>
+        `);
+        
+        return false;
+    });
+}
+
+// ========================================
+// REPLACE THESE FUNCTIONS ABOVE IN YOUR edit_inventory.js
+// Keep all other functions unchanged
+// ========================================
 
 function startScanNewEksemplar() {
     const jumlahUnit = parseInt(document.getElementById('swal_jumlah_unit').value) || 1;
