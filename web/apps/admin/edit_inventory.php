@@ -80,7 +80,7 @@ include_once '../includes/header.php';
 ?>
 
 <link rel="stylesheet" href="../assets/css/inventory.css">
-<link rel="stylesheet" href="../assets/css/modal-dark-mode.css">
+<link rel="stylesheet" href="../assets/css/modal_dark_mode.css">
 
 <div class="container-fluid py-4">
     <!-- Page Header -->

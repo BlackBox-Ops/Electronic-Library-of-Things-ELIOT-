@@ -1,0 +1,44 @@
+2026-01-04 20:59:16,501 [INFO] Connected to MySQL Server v5.5.5-10.4.32-MariaDB
+2026-01-04 20:59:16,504 [INFO] Active database: perpustakaan_db
+2026-01-04 20:59:17,213 [INFO] MQTT Bridge started
+2026-01-04 20:59:17,460 [INFO] Connected to MQTT broker
+2026-01-04 20:59:17,461 [INFO] Subscribed to topic: libre_flow/rfid/read
+2026-01-04 20:59:24,878 [INFO] ✅ UID inserted: 0103B5A3 (jenis: pending)
+2026-01-04 20:59:40,690 [INFO] ✅ UID inserted: 909BC779 (jenis: pending)
+2026-01-04 20:59:51,576 [INFO] 🔄 UID timestamp updated: 909BC779
+2026-01-04 21:00:01,311 [INFO] 🔄 UID timestamp updated: 0103B5A3
+2026-01-04 21:04:10,162 [INFO] 🔄 UID timestamp updated: 909BC779
+2026-01-04 21:04:17,365 [INFO] 🔄 UID timestamp updated: 0103B5A3
+2026-01-04 21:04:31,497 [INFO] 🔄 UID timestamp updated: 0103B5A3
+2026-01-04 21:04:44,789 [INFO] 🔄 UID timestamp updated: 0103B5A3
+2026-01-04 21:05:52,974 [INFO] 🔄 UID timestamp updated: 0103B5A3
+2026-01-04 21:06:39,122 [INFO] Bridge stopped by user
+2026-01-04 21:06:39,126 [INFO] Database connection closed
+2026-01-04 21:06:44,032 [INFO] Connected to MySQL Server v5.5.5-10.4.32-MariaDB
+2026-01-04 21:06:44,035 [INFO] Active database: perpustakaan_db
+2026-01-04 21:06:44,695 [INFO] MQTT Bridge started
+2026-01-04 21:06:44,893 [INFO] Connected to MQTT broker
+2026-01-04 21:06:44,894 [INFO] Subscribed to topic: libre_flow/rfid/read
+2026-01-04 21:06:56,834 [INFO] 🔄 UID timestamp updated: 0103B5A3
+2026-01-04 21:07:08,354 [INFO] 🔄 UID timestamp updated: 909BC779
+2026-01-04 21:07:38,167 [INFO] ✅ UID inserted: F1FCB1A3 (jenis: pending)
+2026-01-04 21:09:14,382 [INFO] ✅ UID inserted: 2132D1A3 (jenis: pending)
+2026-01-04 21:09:33,912 [INFO] 🔄 UID timestamp updated: 0103B5A3
+2026-01-04 21:09:37,318 [INFO] 🔄 UID timestamp updated: F1FCB1A3
+2026-01-04 21:10:05,085 [INFO] 🔄 UID timestamp updated: F1FCB1A3
+2026-01-04 21:10:08,995 [INFO] 🔄 UID timestamp updated: 0103B5A3
+2026-01-04 21:11:18,946 [INFO] ✅ UID inserted: 816389A3 (jenis: pending)
+2026-01-04 21:11:43,294 [INFO] 🔄 UID timestamp updated: 816389A3
+2026-01-04 21:12:32,825 [INFO] 🔄 UID timestamp updated: 0103B5A3
+2026-01-04 21:13:29,404 [INFO] 🔄 UID timestamp updated: 0103B5A3
+2026-01-04 21:13:42,487 [INFO] 🔄 UID timestamp updated: 2132D1A3
+2026-01-04 21:13:49,221 [INFO] 🔄 UID timestamp updated: 816389A3
+2026-01-04 21:13:52,499 [INFO] 🔄 UID timestamp updated: 0103B5A3
+2026-01-04 21:20:16,192 [INFO] 🔄 UID timestamp updated: 0103B5A3
+2026-01-04 22:56:21,682 [INFO] Connected to MySQL Server v5.5.5-10.4.32-MariaDB
+2026-01-04 22:56:21,684 [INFO] Active database: perpustakaan_db
+2026-01-04 22:56:22,463 [INFO] MQTT Bridge started
+2026-01-04 22:56:22,713 [INFO] Connected to MQTT broker
+2026-01-04 22:56:22,714 [INFO] Subscribed to topic: libre_flow/rfid/read
+2026-01-04 23:09:01,311 [INFO] Bridge stopped by user
+2026-01-04 23:09:01,313 [INFO] Database connection closed
