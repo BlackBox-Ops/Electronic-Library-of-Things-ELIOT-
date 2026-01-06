@@ -1,10 +1,10 @@
 /**
- * Peminjaman App - Step 1: Member Validation
+ * Peminjaman App - Fixed Step 2 RFID Handler
  * Path: web/apps/assets/js/peminjaman.js
- * 
+ *
  * @author ELIOT System
- * @version 2.4.0 - FIXED
- * @date 2026-01-04
+ * @version 2.5.1 - Fixed redirect issue
+ * @date 2026-01-06
  */
 
 const PeminjamanApp = (function() {
@@ -19,11 +19,13 @@ const PeminjamanApp = (function() {
         memberVerified: null
     };
 
-    // API Endpoints
+    // API Endpoints - Adjusted for actual server structure
     const API = {
-        validateMember: '/eliot/apps/includes/api/validate_member.php',
-        getStats: '/eliot/apps/includes/api/get_dashboard_stats.php',
-        getMonitoring: '/eliot/apps/includes/api/get_peminjaman_aktif.php'
+        validateMember: '../../includes/api/validate_member.php',
+        validateBookUid: '../../includes/api/validate_book_uid.php',
+        getLatestRfid: '../../includes/api/get_latest_rfid.php',
+        getStats: '../../includes/api/get_dashboard_stats.php',
+        getMonitoring: '../../includes/api/get_peminjaman_aktif.php'
     };
 
     // ========================================
@@ -36,6 +38,7 @@ const PeminjamanApp = (function() {
         checkMemberVerified();
         setupInputHandlers();
         setupRFIDListener();
+        setupStep2RFIDListener();
         setupMonitoring();
         
         refreshMonitoringTable();
@@ -62,7 +65,11 @@ const PeminjamanApp = (function() {
                 const now = Date.now();
                 const elapsed = (now - member.timestamp) / 1000 / 60;
                 
+                console.log('[Peminjaman] Member from session:', member);
+                console.log('[Peminjaman] Time elapsed:', elapsed.toFixed(2), 'minutes');
+                
                 if (elapsed > 5) {
+                    console.log('[Peminjaman] Session expired (>5 min)');
                     sessionStorage.removeItem('member_verified');
                     return;
                 }
@@ -75,6 +82,8 @@ const PeminjamanApp = (function() {
                 console.error('[Peminjaman] Error parsing member:', error);
                 sessionStorage.removeItem('member_verified');
             }
+        } else {
+            console.log('[Peminjaman] No member in session');
         }
     }
 
@@ -129,6 +138,327 @@ const PeminjamanApp = (function() {
                 }
             }, 100);
         });
+    }
+
+    // ========================================
+    // STEP 2: RFID BOOK SCAN HANDLER (FIXED - AUTO FETCH)
+    // ========================================
+    function setupStep2RFIDListener() {
+        const inputRfid = document.getElementById('input-rfid-card');
+        const btnScan = document.getElementById('btn-scan-rfid');
+       
+        if (!inputRfid || !btnScan) {
+            console.log('[Peminjaman] Step 2 elements not found');
+            return;
+        }
+       
+        console.log('[Peminjaman] Setting up Step 2 listeners');
+       
+        // ✅ DISABLE INPUT - Hanya sistem yang bisa isi
+        inputRfid.disabled = true;
+        inputRfid.placeholder = 'Klik tombol Scan untuk ambil UID terbaru dari sistem';
+        inputRfid.readOnly = true;
+       
+        // ✅ Scan button - Ambil UID terbaru dari database
+        btnScan.addEventListener('click', async function() {
+            console.log('[Peminjaman] Scan button clicked - fetching latest UID from system...');
+            await fetchLatestRfidAndProcess();
+        });
+        
+        console.log('[Peminjaman] Step 2 listeners ready (AUTO FETCH MODE)');
+    }
+    
+    // ========================================
+    // FETCH LATEST RFID FROM DATABASE
+    // ========================================
+    async function fetchLatestRfidAndProcess() {
+        console.log('[Peminjaman] Fetching latest RFID from database...');
+        
+        updateStatus('scanning', 'Mengambil scan terbaru...');
+        disableStep2Input(true);
+        
+        try {
+            const response = await fetch(API.getLatestRfid, {
+                method: 'GET'
+            });
+            
+            const result = await response.json();
+            console.log('[Peminjaman] Latest RFID response:', result);
+            
+            if (!result.success) {
+                console.error('[Peminjaman] Failed to get latest RFID:', result.message);
+                
+                // Tampilkan pesan khusus
+                const config = window.DarkModeUtils ? window.DarkModeUtils.getSwalConfig({
+                    title: 'Tidak Ada Scan Baru',
+                    html: `
+                        <div class="text-center py-3">
+                            <i class="fas fa-wifi fa-3x text-muted mb-3"></i>
+                            <p class="mb-3">${result.message}</p>
+                            <div class="alert alert-info text-start">
+                                <strong>Cara simulasi scan:</strong><br>
+                                <small>
+                                1. Buka phpMyAdmin<br>
+                                2. Jalankan query:<br>
+                                <code style="display: block; background: #f5f5f5; padding: 8px; margin-top: 5px;">
+                                UPDATE uid_buffer<br>
+                                SET timestamp = NOW()<br>
+                                WHERE uid = 'A3B944F2';
+                                </code>
+                                3. Klik tombol Scan lagi
+                                </small>
+                            </div>
+                        </div>
+                    `,
+                    icon: 'info',
+                    confirmButtonText: 'OK',
+                    buttonsStyling: false,
+                    customClass: { confirmButton: 'btn btn-primary' }
+                }) : {
+                    title: 'Tidak Ada Scan Baru',
+                    text: result.message,
+                    icon: 'info'
+                };
+                
+                Swal.fire(config);
+                
+                resetStep2Input();
+                updateStatus('idle', 'Siap scan buku');
+                return;
+            }
+            
+            // ✅ SUCCESS - Ada UID terbaru
+            const bookData = result.data;
+            console.log('[Peminjaman] Latest book UID:', bookData.uid);
+            console.log('[Peminjaman] Scanned', bookData.scan_info.seconds_ago, 'seconds ago');
+            
+            // Tampilkan di input (read-only)
+            const inputRfid = document.getElementById('input-rfid-card');
+            if (inputRfid) {
+                inputRfid.value = `${bookData.uid} (${bookData.scan_info.seconds_ago}s ago)`;
+            }
+            
+            // Process book scan
+            await handleBookScanFromData(bookData);
+            
+        } catch (error) {
+            console.error('[Peminjaman] Error fetching latest RFID:', error);
+            showError('Error', 'Gagal mengambil data scan: ' + error.message);
+            resetStep2Input();
+            updateStatus('idle', 'Siap scan buku');
+        }
+    }
+
+    // ========================================
+    // HANDLE BOOK SCAN FROM DATA (NEW)
+    // ========================================
+    async function handleBookScanFromData(bookData) {
+        console.log('[Peminjaman] ===== PROCESSING BOOK DATA =====');
+        console.log('[Peminjaman] Book:', bookData.judul_buku);
+        console.log('[Peminjaman] UID Buffer ID:', bookData.uid_buffer_id);
+       
+        // Validate member still in session
+        const memberData = sessionStorage.getItem('member_verified');
+        console.log('[Peminjaman] Session data:', memberData ? 'EXISTS' : 'NOT FOUND');
+        
+        if (!memberData) {
+            console.error('[Peminjaman] No member in session');
+            showError('Session Expired', 'Member verification expired. Silakan scan ulang member.');
+            setTimeout(function() {
+                window.location.href = 'index.php';
+            }, 2000);
+            return;
+        }
+       
+        let member;
+        try {
+            member = JSON.parse(memberData);
+            console.log('[Peminjaman] Member:', member.nama, 'ID:', member.id);
+            
+            const now = Date.now();
+            const elapsed = (now - member.timestamp) / 1000 / 60;
+            console.log('[Peminjaman] Session age:', elapsed.toFixed(2), 'minutes');
+           
+            if (elapsed > 5) {
+                console.error('[Peminjaman] Session expired (>5 min)');
+                sessionStorage.removeItem('member_verified');
+                showError('Session Expired', 'Member verification expired (>5 menit). Silakan scan ulang member.');
+                setTimeout(function() {
+                    window.location.href = 'index.php';
+                }, 2000);
+                return;
+            }
+        } catch (err) {
+            console.error('[Peminjaman] Error parsing member:', err);
+            sessionStorage.removeItem('member_verified');
+            window.location.href = 'index.php';
+            return;
+        }
+       
+        updateStatus('scanning', 'Memvalidasi buku...');
+        
+        // Check if book is available
+        if (bookData.is_borrowed) {
+            console.error('[Peminjaman] Book already borrowed');
+            handleBookScanError('Buku ini sedang dipinjam oleh member lain');
+            return;
+        }
+       
+        if (bookData.kondisi !== 'baik') {
+            console.error('[Peminjaman] Book condition not good:', bookData.kondisi);
+            handleBookScanError(`Kondisi buku: ${bookData.kondisi.toUpperCase()}. Tidak dapat dipinjam.`);
+            return;
+        }
+       
+        // ✅ SUCCESS - Build redirect URL
+        const redirectUrl = `peminjaman.php?uid=${bookData.uid_buffer_id}&user_id=${member.id}`;
+        console.log('[Peminjaman] ===== VALIDATION SUCCESS =====');
+        console.log('[Peminjaman] Redirect URL:', redirectUrl);
+        
+        showToast('success', 'Buku ditemukan! Redirecting...', 1500);
+       
+        setTimeout(function() {
+            console.log('[Peminjaman] Redirecting now...');
+            window.location.href = redirectUrl;
+        }, 1500);
+    }
+
+    // ========================================
+    // HANDLE BOOK SCAN (LEGACY - Keep for real RFID)
+    // ========================================
+    async function handleBookScan(rfidUid) {
+        console.log('[Peminjaman] ===== BOOK SCAN STARTED (Legacy) =====');
+        console.log('[Peminjaman] RFID UID:', rfidUid);
+       
+        // Validate member still in session
+        const memberData = sessionStorage.getItem('member_verified');
+        console.log('[Peminjaman] Session data:', memberData ? 'EXISTS' : 'NOT FOUND');
+        
+        if (!memberData) {
+            console.error('[Peminjaman] No member in session');
+            showError('Session Expired', 'Member verification expired. Silakan scan ulang member.');
+            setTimeout(function() {
+                window.location.href = 'index.php';
+            }, 2000);
+            return;
+        }
+       
+        let member;
+        try {
+            member = JSON.parse(memberData);
+            console.log('[Peminjaman] Member parsed:', member.nama, 'ID:', member.id);
+            
+            const now = Date.now();
+            const elapsed = (now - member.timestamp) / 1000 / 60;
+            console.log('[Peminjaman] Time elapsed:', elapsed.toFixed(2), 'minutes');
+           
+            if (elapsed > 5) {
+                console.error('[Peminjaman] Session expired (>5 min)');
+                sessionStorage.removeItem('member_verified');
+                showError('Session Expired', 'Member verification expired (>5 menit). Silakan scan ulang member.');
+                setTimeout(function() {
+                    window.location.href = 'index.php';
+                }, 2000);
+                return;
+            }
+        } catch (err) {
+            console.error('[Peminjaman] Error parsing member:', err);
+            sessionStorage.removeItem('member_verified');
+            window.location.href = 'index.php';
+            return;
+        }
+       
+        // Show loading
+        updateStatus('scanning', 'Memvalidasi buku...');
+        disableStep2Input(true);
+       
+        showToast('info', 'Memvalidasi buku...', 2000);
+       
+        try {
+            console.log('[Peminjaman] Calling API:', API.validateBookUid);
+            console.log('[Peminjaman] Request body:', { rfid_uid: rfidUid });
+            
+            // Validate RFID UID exists in database
+            const validateResponse = await fetch(API.validateBookUid, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ rfid_uid: rfidUid })
+            });
+            
+            console.log('[Peminjaman] API response status:', validateResponse.status);
+           
+            const validateResult = await validateResponse.json();
+            console.log('[Peminjaman] API response data:', validateResult);
+           
+            if (!validateResult.success) {
+                console.error('[Peminjaman] Validation failed:', validateResult.message);
+                handleBookScanError(validateResult.message || 'UID tidak valid');
+                return;
+            }
+           
+            const bookData = validateResult.data;
+            console.log('[Peminjaman] Book data:', bookData);
+           
+            // Check if book is available
+            if (bookData.is_borrowed) {
+                console.error('[Peminjaman] Book already borrowed');
+                handleBookScanError('Buku ini sedang dipinjam oleh member lain');
+                return;
+            }
+           
+            if (bookData.kondisi !== 'baik') {
+                console.error('[Peminjaman] Book condition not good:', bookData.kondisi);
+                handleBookScanError(`Kondisi buku: ${bookData.kondisi.toUpperCase()}. Tidak dapat dipinjam.`);
+                return;
+            }
+           
+            // ✅ SUCCESS - Build redirect URL
+            const redirectUrl = `peminjaman.php?uid=${bookData.uid_buffer_id}&user_id=${member.id}`;
+            console.log('[Peminjaman] ===== VALIDATION SUCCESS =====');
+            console.log('[Peminjaman] Redirect URL:', redirectUrl);
+            console.log('[Peminjaman] Book:', bookData.judul_buku);
+            console.log('[Peminjaman] Member:', member.nama);
+            
+            showToast('success', 'Buku ditemukan! Redirecting...', 1500);
+           
+            setTimeout(function() {
+                console.log('[Peminjaman] Redirecting now...');
+                window.location.href = redirectUrl;
+            }, 1500);
+           
+        } catch (error) {
+            console.error('[Peminjaman] EXCEPTION in handleBookScan:', error);
+            console.error('[Peminjaman] Error stack:', error.stack);
+            handleBookScanError('Error: ' + error.message);
+        }
+    }
+
+    function handleBookScanError(message) {
+        console.error('[Peminjaman] Book scan error:', message);
+        updateStatus('error', 'Scan gagal');
+        showError('Book Scan Error', message);
+       
+        setTimeout(function() {
+            resetStep2Input();
+            updateStatus('idle', 'Siap scan buku');
+        }, 2000);
+    }
+
+    function resetStep2Input() {
+        const inputRfid = document.getElementById('input-rfid-card');
+        if (inputRfid) {
+            inputRfid.value = '';
+            inputRfid.focus();
+        }
+        disableStep2Input(false);
+    }
+
+    function disableStep2Input(disabled) {
+        const inputRfid = document.getElementById('input-rfid-card');
+        const btnScan = document.getElementById('btn-scan-rfid');
+       
+        if (inputRfid) inputRfid.disabled = disabled;
+        if (btnScan) btnScan.disabled = disabled;
     }
 
     function setupMonitoring() {
@@ -402,27 +732,31 @@ const PeminjamanApp = (function() {
         const inputRfid = document.getElementById('input-rfid-card');
         const btnScan = document.getElementById('btn-scan-rfid');
         
+        console.log('[Peminjaman] Enabling Step 2 for:', memberData.nama);
+        
         if (step2Container) {
             step2Container.classList.remove('step-disabled');
             step2Container.classList.add('step-enabled');
         }
         
         if (inputRfid) {
-            inputRfid.disabled = false;
-            inputRfid.placeholder = 'Scan kartu untuk ' + memberData.nama;
+            inputRfid.disabled = true; // ✅ DISABLED - Tidak bisa diketik
+            inputRfid.readOnly = true;
+            inputRfid.placeholder = 'Klik tombol Scan untuk ambil UID terbaru';
+            inputRfid.value = '';
         }
         
         if (btnScan) {
-            btnScan.disabled = false;
+            btnScan.disabled = false; // ✅ Button aktif
         }
         
         const helperText = step2Container ? step2Container.querySelector('.form-text') : null;
         if (helperText) {
             helperText.innerHTML = '<i class="fas fa-check-circle me-1 text-success"></i>' +
-                'Step ini sudah aktif. Dekatkan kartu RFID ke scanner.';
+                'Step aktif untuk <strong>' + memberData.nama + '</strong>. Klik tombol <strong>Scan</strong> untuk ambil UID terbaru dari sistem.';
         }
         
-        console.log('[Peminjaman] Step 2 enabled:', memberData.nama);
+        console.log('[Peminjaman] Step 2 enabled successfully (AUTO FETCH MODE)');
     }
 
     // ========================================

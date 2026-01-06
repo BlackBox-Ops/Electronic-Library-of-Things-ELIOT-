@@ -1,0 +1,412 @@
+/**
+ * Peminjaman Form Styles
+ * Path: web/apps/assets/css/peminjaman_form.css
+ * 
+ * @author ELIOT System
+ * @version 1.0.0
+ * @date 2026-01-06
+ */
+
+/* ============================================
+   GENERAL STYLES
+   ============================================ */
+.text-gradient {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+/* ============================================
+   BOOK PLACEHOLDER
+   ============================================ */
+.book-placeholder {
+    background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+    border-radius: 8px;
+    padding: 40px 20px;
+    text-align: center;
+}
+
+/* ============================================
+   BOOK INFO GRID
+   ============================================ */
+.book-info-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 12px;
+}
+
+.info-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    padding: 10px;
+    background: #f8f9fa;
+    border-radius: 6px;
+    border-left: 3px solid #667eea;
+}
+
+[data-theme="dark"] .info-item {
+    background: #2d3748;
+    border-left-color: #9f7aea;
+}
+
+.info-label {
+    font-weight: 600;
+    color: #4a5568;
+    font-size: 0.9rem;
+    min-width: 140px;
+}
+
+[data-theme="dark"] .info-label {
+    color: #cbd5e0;
+}
+
+.info-value {
+    text-align: right;
+    color: #2d3748;
+    font-size: 0.9rem;
+}
+
+[data-theme="dark"] .info-value {
+    color: #e2e8f0;
+}
+
+/* ============================================
+   RATING OVERVIEW
+   ============================================ */
+.rating-overview {
+    padding: 20px;
+}
+
+.rating-number {
+    color: #f59e0b;
+    line-height: 1;
+}
+
+.rating-stars i {
+    font-size: 1.5rem;
+}
+
+.rating-breakdown .progress {
+    background-color: #e2e8f0;
+}
+
+[data-theme="dark"] .rating-breakdown .progress {
+    background-color: #4a5568;
+}
+
+/* ============================================
+   REVIEW LIST
+   ============================================ */
+.reviews-list {
+    max-height: 400px;
+    overflow-y: auto;
+    padding-right: 10px;
+}
+
+.reviews-list::-webkit-scrollbar {
+    width: 6px;
+}
+
+.reviews-list::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 10px;
+}
+
+[data-theme="dark"] .reviews-list::-webkit-scrollbar-track {
+    background: #2d3748;
+}
+
+.reviews-list::-webkit-scrollbar-thumb {
+    background: #888;
+    border-radius: 10px;
+}
+
+.reviews-list::-webkit-scrollbar-thumb:hover {
+    background: #555;
+}
+
+.review-item:last-child {
+    border-bottom: none !important;
+}
+
+.review-stars i {
+    font-size: 0.85rem;
+}
+
+/* ============================================
+   MEMBER INFO BOX
+   ============================================ */
+.member-info-box {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-radius: 12px;
+    padding: 20px;
+    color: white;
+}
+
+.member-info-box h6 {
+    color: white;
+}
+
+.info-grid {
+    display: grid;
+    gap: 10px;
+}
+
+.info-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 12px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 6px;
+    backdrop-filter: blur(10px);
+}
+
+.info-row .label {
+    font-weight: 500;
+    font-size: 0.9rem;
+}
+
+.info-row .value {
+    font-size: 0.95rem;
+}
+
+/* ============================================
+   LOAN SETTINGS BOX
+   ============================================ */
+.loan-settings-box {
+    background: #f8f9fa;
+    border-radius: 12px;
+    padding: 20px;
+    border: 2px solid #e2e8f0;
+}
+
+[data-theme="dark"] .loan-settings-box {
+    background: #2d3748;
+    border-color: #4a5568;
+}
+
+.loan-settings-box .form-label {
+    font-weight: 600;
+    color: #4a5568;
+    margin-bottom: 8px;
+}
+
+[data-theme="dark"] .loan-settings-box .form-label {
+    color: #cbd5e0;
+}
+
+/* ============================================
+   FORM CONTROLS
+   ============================================ */
+.form-select,
+.form-control {
+    border-radius: 8px;
+    border: 2px solid #e2e8f0;
+    padding: 10px 14px;
+    font-size: 0.95rem;
+    transition: all 0.3s ease;
+}
+
+[data-theme="dark"] .form-select,
+[data-theme="dark"] .form-control {
+    background-color: #1a202c;
+    border-color: #4a5568;
+    color: #e2e8f0;
+}
+
+.form-select:focus,
+.form-control:focus {
+    border-color: #667eea;
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+[data-theme="dark"] .form-select:focus,
+[data-theme="dark"] .form-control:focus {
+    border-color: #9f7aea;
+    box-shadow: 0 0 0 3px rgba(159, 122, 234, 0.1);
+}
+
+/* ============================================
+   BUTTONS
+   ============================================ */
+.btn-success {
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    border: none;
+    font-weight: 600;
+    padding: 12px 24px;
+    transition: all 0.3s ease;
+}
+
+.btn-success:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 20px rgba(16, 185, 129, 0.3);
+}
+
+.btn-secondary {
+    font-weight: 600;
+    padding: 10px 24px;
+}
+
+/* ============================================
+   ALERT WARNING
+   ============================================ */
+.alert-warning {
+    background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+    border: 2px solid #f59e0b;
+    border-radius: 12px;
+}
+
+[data-theme="dark"] .alert-warning {
+    background: linear-gradient(135deg, #78350f 0%, #92400e 100%);
+    border-color: #d97706;
+    color: #fde68a;
+}
+
+.alert-warning .alert-heading {
+    color: #92400e;
+}
+
+[data-theme="dark"] .alert-warning .alert-heading {
+    color: #fde68a;
+}
+
+/* ============================================
+   STICKY CARD
+   ============================================ */
+@media (min-width: 992px) {
+    .sticky-top {
+        position: sticky;
+        top: 20px;
+        z-index: 1020;
+    }
+}
+
+/* ============================================
+   CARD HEADERS
+   ============================================ */
+.card-header {
+    border-radius: 12px 12px 0 0 !important;
+    padding: 15px 20px;
+}
+
+.card-body {
+    border-radius: 0 0 12px 12px;
+}
+
+/* ============================================
+   BREADCRUMB
+   ============================================ */
+.breadcrumb {
+    background: transparent;
+    padding: 10px 0;
+    margin: 0;
+}
+
+.breadcrumb-item + .breadcrumb-item::before {
+    content: "›";
+    font-size: 1.2rem;
+}
+
+.breadcrumb-item a {
+    color: #667eea;
+    text-decoration: none;
+    font-weight: 500;
+    transition: all 0.2s;
+}
+
+.breadcrumb-item a:hover {
+    color: #764ba2;
+}
+
+[data-theme="dark"] .breadcrumb-item a {
+    color: #9f7aea;
+}
+
+[data-theme="dark"] .breadcrumb-item a:hover {
+    color: #b794f6;
+}
+
+.breadcrumb-item.active {
+    color: #6b7280;
+    font-weight: 500;
+}
+
+[data-theme="dark"] .breadcrumb-item.active {
+    color: #9ca3af;
+}
+
+/* ============================================
+   RESPONSIVE
+   ============================================ */
+@media (max-width: 768px) {
+    .book-info-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .info-item {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 5px;
+    }
+    
+    .info-value {
+        text-align: left;
+    }
+    
+    .rating-overview {
+        border-right: none !important;
+        border-bottom: 2px solid #e2e8f0;
+        padding-bottom: 20px;
+        margin-bottom: 20px;
+    }
+    
+    [data-theme="dark"] .rating-overview {
+        border-bottom-color: #4a5568;
+    }
+}
+
+/* ============================================
+   ANIMATIONS
+   ============================================ */
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.card {
+    animation: fadeInUp 0.5s ease-out;
+}
+
+/* ============================================
+   BADGE STYLES
+   ============================================ */
+.badge {
+    padding: 6px 12px;
+    font-weight: 600;
+    font-size: 0.85rem;
+}
+
+/* ============================================
+   SWAL CUSTOMIZATION
+   ============================================ */
+.swal2-popup {
+    border-radius: 16px;
+}
+
+.swal2-title {
+    font-size: 1.5rem;
+    font-weight: 700;
+}
+
+.swal2-html-container {
+    font-size: 0.95rem;
+}
