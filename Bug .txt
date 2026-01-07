@@ -17,3 +17,24 @@ Bug List untuk edit inventory proses scan di tab 3:
         - Prefix generation mungkin inconsistent
 3.Auto redirect tab → Nice to have, improve UX saat sudah scan di tab 3 maka akan otomatis redirect ke tab 3 langsung 
 
+
+UPDATE uid_buffer SET timestamp = NOW() WHERE uid = 'A3B944F2';
+
+-- 1. Cek UID ada di uid_buffer
+SELECT * FROM uid_buffer WHERE uid = 'A3B944F2';
+
+-- 2. Cek UID sudah terlabel ke buku
+SELECT 
+    ub.id AS uid_buffer_id,
+    ub.uid,
+    ub.is_labeled,
+    rt.book_id,
+    rt.kode_eksemplar,
+    b.judul_buku
+FROM uid_buffer ub
+LEFT JOIN rt_book_uid rt ON ub.id = rt.uid_buffer_id
+LEFT JOIN books b ON rt.book_id = b.id
+WHERE ub.uid = 'A3B944F2';
+
+-- 3. Cek member di session (ganti dengan user_id yang sebenarnya)
+SELECT id, nama, status FROM users WHERE id = 1;
