@@ -1,0 +1,468 @@
+/**
+ * Detail Peminjaman Styles
+ * Path: web/apps/assets/css/detail_peminjaman.css
+ * 
+ * Features:
+ * - Dark mode & Light mode support
+ * - Timeline design
+ * - Profile cards
+ * - Responsive layout
+ * 
+ * @author ELIOT System
+ * @version 1.0.0
+ * @date 2026-01-09
+ */
+
+/* ============================================
+   BREADCRUMB STYLING
+   ============================================ */
+.breadcrumb {
+    background: transparent;
+    padding: 0;
+    margin-bottom: 0.5rem;
+}
+
+.breadcrumb-item a {
+    color: var(--colorGreenPrimary);
+    text-decoration: none;
+    transition: color 0.2s ease;
+}
+
+.breadcrumb-item a:hover {
+    color: var(--colorGreenHover);
+    text-decoration: underline;
+}
+
+.breadcrumb-item.active {
+    color: var(--textSecondary);
+}
+
+.breadcrumb-item + .breadcrumb-item::before {
+    color: var(--textSecondary);
+}
+
+/* ============================================
+   TIMELINE DESIGN
+   ============================================ */
+.timeline-container {
+    position: relative;
+    padding: 1.5rem 0;
+}
+
+.timeline-item {
+    position: relative;
+    display: flex;
+    gap: 1rem;
+    margin-bottom: 2rem;
+}
+
+.timeline-item:last-child {
+    margin-bottom: 0;
+}
+
+.timeline-item::before {
+    content: '';
+    position: absolute;
+    left: 23px;
+    top: 48px;
+    bottom: -24px;
+    width: 2px;
+    background: var(--borderColor);
+}
+
+.timeline-item:last-child::before {
+    display: none;
+}
+
+.timeline-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    color: white;
+    font-size: 1.25rem;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    position: relative;
+    z-index: 1;
+}
+
+.timeline-icon.bg-success {
+    background: linear-gradient(135deg, #10b981, #059669);
+}
+
+.timeline-icon.bg-warning {
+    background: linear-gradient(135deg, #f59e0b, #d97706);
+}
+
+.timeline-icon.bg-danger {
+    background: linear-gradient(135deg, #ef4444, #dc2626);
+}
+
+.timeline-content {
+    flex: 1;
+    padding-top: 0.5rem;
+}
+
+.timeline-content strong {
+    display: block;
+    color: var(--textPrimary);
+    font-size: 1rem;
+    margin-bottom: 0.25rem;
+}
+
+.timeline-content p {
+    color: var(--textSecondary);
+    font-size: 0.9rem;
+    margin: 0;
+}
+
+/* ============================================
+   BOOK COVER & PROFILE IMAGE
+   ============================================ */
+.book-cover {
+    max-width: 100%;
+    height: auto;
+    max-height: 250px;
+    object-fit: cover;
+    border: 3px solid var(--borderColor);
+}
+
+.book-cover-placeholder {
+    width: 100%;
+    max-width: 180px;
+    margin: 0 auto;
+    aspect-ratio: 2/3;
+    background: var(--bgDetailContainer);
+    border: 2px dashed var(--borderColor);
+    border-radius: 8px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    color: var(--textSecondary);
+}
+
+.profile-img {
+    width: 120px;
+    height: 120px;
+    object-fit: cover;
+    border: 4px solid var(--borderColor);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.profile-placeholder {
+    width: 120px;
+    height: 120px;
+    margin: 0 auto;
+    background: var(--bgDetailContainer);
+    border: 3px solid var(--borderColor);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--textSecondary);
+}
+
+/* ============================================
+   DETAIL ITEM
+   ============================================ */
+.detail-item {
+    display: flex;
+    gap: 0.75rem;
+    align-items: start;
+}
+
+.detail-item i {
+    font-size: 1.1rem;
+    margin-top: 0.25rem;
+    flex-shrink: 0;
+}
+
+.detail-item small {
+    font-size: 0.8rem;
+    color: var(--textSecondary);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    font-weight: 600;
+}
+
+.detail-item strong {
+    color: var(--textPrimary);
+    font-size: 0.95rem;
+    word-break: break-word;
+}
+
+/* ============================================
+   BADGES & STATUS
+   ============================================ */
+.badge {
+    padding: 0.5rem 0.75rem;
+    font-size: 0.85rem;
+    font-weight: 600;
+    border-radius: 6px;
+}
+
+.badge i {
+    font-size: 0.875rem;
+}
+
+/* ============================================
+   ALERT STYLING
+   ============================================ */
+.alert {
+    border-radius: 8px;
+    border: none;
+}
+
+.alert-info {
+    background: rgba(6, 182, 212, 0.1);
+    color: var(--textPrimary);
+    border-left: 4px solid #06b6d4;
+}
+
+[data-theme="dark"] .alert-info {
+    background: rgba(6, 182, 212, 0.15);
+}
+
+.alert strong {
+    color: #06b6d4;
+}
+
+/* ============================================
+   CARD HEADER
+   ============================================ */
+.card-header h5 {
+    margin: 0;
+    color: var(--textPrimary);
+}
+
+.card-header h5 i {
+    color: var(--colorGreenPrimary);
+}
+
+/* ============================================
+   BACK BUTTON
+   ============================================ */
+.btn-outline-secondary {
+    border-width: 2px;
+    font-weight: 600;
+    transition: all 0.2s ease;
+}
+
+.btn-outline-secondary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+[data-theme="dark"] .btn-outline-secondary {
+    border-color: var(--borderColor);
+    color: var(--textPrimary);
+}
+
+[data-theme="dark"] .btn-outline-secondary:hover {
+    background: var(--borderColor);
+    border-color: var(--borderColor);
+    color: var(--textPrimary);
+}
+
+/* ============================================
+   RESPONSIVE DESIGN
+   ============================================ */
+
+/* Tablet */
+@media (max-width: 991px) {
+    .timeline-container {
+        padding: 1rem 0;
+    }
+    
+    .timeline-icon {
+        width: 40px;
+        height: 40px;
+        font-size: 1rem;
+    }
+    
+    .timeline-item::before {
+        left: 19px;
+        top: 40px;
+    }
+    
+    .profile-img,
+    .profile-placeholder {
+        width: 100px;
+        height: 100px;
+    }
+}
+
+/* Mobile */
+@media (max-width: 576px) {
+    /* Stack status badges */
+    .d-flex.gap-2.flex-wrap {
+        flex-direction: column;
+        align-items: flex-start !important;
+    }
+    
+    .badge {
+        display: inline-flex;
+        width: fit-content;
+    }
+    
+    /* Smaller timeline */
+    .timeline-icon {
+        width: 36px;
+        height: 36px;
+        font-size: 0.9rem;
+    }
+    
+    .timeline-item::before {
+        left: 17px;
+        top: 36px;
+    }
+    
+    .timeline-content strong {
+        font-size: 0.9rem;
+    }
+    
+    .timeline-content p {
+        font-size: 0.85rem;
+    }
+    
+    /* Profile */
+    .profile-img,
+    .profile-placeholder {
+        width: 80px;
+        height: 80px;
+    }
+    
+    /* Book cover */
+    .book-cover {
+        max-height: 200px;
+    }
+    
+    .book-cover-placeholder {
+        max-width: 150px;
+    }
+    
+    /* Detail items */
+    .detail-item {
+        gap: 0.5rem;
+    }
+    
+    .detail-item i {
+        font-size: 1rem;
+    }
+    
+    .detail-item strong {
+        font-size: 0.9rem;
+    }
+    
+    /* Card padding on mobile */
+    .card-body {
+        padding: 1.5rem !important;
+    }
+    
+    .card-header {
+        padding: 1.5rem 1.5rem 0 1.5rem !important;
+    }
+}
+
+/* Extra small mobile */
+@media (max-width: 375px) {
+    .stat-value {
+        font-size: 1.5rem;
+    }
+    
+    .timeline-item {
+        gap: 0.75rem;
+    }
+    
+    .book-cover-placeholder {
+        max-width: 120px;
+    }
+    
+    .profile-img,
+    .profile-placeholder {
+        width: 70px;
+        height: 70px;
+    }
+}
+
+/* ============================================
+   PRINT STYLES (OPTIONAL)
+   ============================================ */
+@media print {
+    .btn,
+    .breadcrumb,
+    nav,
+    footer {
+        display: none !important;
+    }
+    
+    .card {
+        border: 1px solid #ddd !important;
+        box-shadow: none !important;
+        page-break-inside: avoid;
+    }
+    
+    .timeline-icon {
+        box-shadow: none !important;
+    }
+}
+
+/* ============================================
+   ANIMATIONS
+   ============================================ */
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.card {
+    animation: fadeInUp 0.5s ease;
+}
+
+.card:nth-child(2) {
+    animation-delay: 0.1s;
+}
+
+.card:nth-child(3) {
+    animation-delay: 0.2s;
+}
+
+/* ============================================
+   DARK MODE SPECIFIC ADJUSTMENTS
+   ============================================ */
+[data-theme="dark"] .timeline-item::before {
+    background: var(--borderColor);
+}
+
+[data-theme="dark"] .book-cover,
+[data-theme="dark"] .profile-img {
+    border-color: var(--borderColor);
+}
+
+[data-theme="dark"] .book-cover-placeholder,
+[data-theme="dark"] .profile-placeholder {
+    background: var(--bgDetailContainer);
+    border-color: var(--borderColor);
+}
+
+/* ============================================
+   UTILITY CLASSES
+   ============================================ */
+.text-green-primary {
+    color: var(--colorGreenPrimary) !important;
+}
+
+hr {
+    border-color: var(--borderColor);
+    opacity: 1;
+}
