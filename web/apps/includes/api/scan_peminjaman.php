@@ -1,18 +1,13 @@
 <?php
 /**
- * API: Scan RFID untuk Peminjaman Buku
+ * API: Scan RFID untuk Peminjaman Buku (Updated)
  * Path: web/apps/includes/api/scan_peminjaman.php
  * 
- * Flow:
- * 1. Scan RFID buku
- * 2. Get book info lengkap
- * 3. Validate member dari session
- * 4. Proses peminjaman via stored procedure
- * 5. Return response dengan detail lengkap
+ * Updated to support direct uid_buffer_id param
  * 
  * @author ELIOT System
- * @version 1.0.0
- * @date 2026-01-05
+ * @version 1.1.0
+ * @date 2026-01-06
  */
 
 // ============================================
@@ -110,17 +105,18 @@ if (json_last_error() !== JSON_ERROR_NONE) {
 $rfidUid = isset($input['rfid_uid']) ? trim($input['rfid_uid']) : '';
 $userId = isset($input['user_id']) ? (int)$input['user_id'] : 0;
 $staffId = isset($input['staff_id']) ? (int)$input['staff_id'] : 0;
-$durasiHari = isset($input['durasi_hari']) ? (int)$input['durasi_hari'] : 7; // Default 7 hari kerja
+$durasiHari = isset($input['durasi_hari']) ? (int)$input['durasi_hari'] : 7;
+$catatan = isset($input['catatan']) ? trim($input['catatan']) : '';
 
-debugLog("Input - RFID: $rfidUid, User: $userId, Staff: $staffId, Durasi: $durasiHari");
+// ✅ NEW: Support direct uid_buffer_id and book_id
+$directUidBufferId = isset($input['uid_buffer_id']) ? (int)$input['uid_buffer_id'] : 0;
+$directBookId = isset($input['book_id']) ? (int)$input['book_id'] : 0;
+
+debugLog("Input - RFID: $rfidUid, User: $userId, Staff: $staffId, Durasi: $durasiHari, Direct UID: $directUidBufferId");
 
 // ============================================
 // VALIDATE INPUT
 // ============================================
-if (empty($rfidUid)) {
-    sendResponse(false, null, 'RFID UID tidak boleh kosong', 'EMPTY_RFID');
-}
-
 if ($userId <= 0) {
     sendResponse(false, null, 'User ID tidak valid', 'INVALID_USER_ID');
 }
@@ -130,49 +126,62 @@ if ($staffId <= 0) {
 }
 
 // ============================================
-// 1. VALIDATE RFID UID
+// DETERMINE UID BUFFER ID
 // ============================================
-try {
-    $sql = "SELECT id, uid, jenis, is_labeled 
-            FROM uid_buffer 
-            WHERE uid = ? AND is_deleted = 0 
-            LIMIT 1";
+$uidBufferId = 0;
+
+if ($directUidBufferId > 0) {
+    // ✅ Direct call from peminjaman.php
+    debugLog('Using direct uid_buffer_id: ' . $directUidBufferId);
+    $uidBufferId = $directUidBufferId;
     
-    $stmt = $conn->prepare($sql);
-    $stmt->bind_param('s', $rfidUid);
-    $stmt->execute();
-    $result = $stmt->get_result();
+} elseif (!empty($rfidUid)) {
+    // Original RFID scan flow
+    debugLog('Looking up RFID: ' . $rfidUid);
     
-    if ($result->num_rows === 0) {
-        debugLog('ERROR: RFID not found');
-        sendResponse(false, null, 'RFID tidak terdaftar dalam sistem', 'RFID_NOT_FOUND');
+    try {
+        $sql = "SELECT id, uid, jenis, is_labeled 
+                FROM uid_buffer 
+                WHERE uid = ? AND is_deleted = 0 
+                LIMIT 1";
+        
+        $stmt = $conn->prepare($sql);
+        $stmt->bind_param('s', $rfidUid);
+        $stmt->execute();
+        $result = $stmt->get_result();
+        
+        if ($result->num_rows === 0) {
+            debugLog('ERROR: RFID not found');
+            sendResponse(false, null, 'RFID tidak terdaftar dalam sistem', 'RFID_NOT_FOUND');
+        }
+        
+        $uidData = $result->fetch_assoc();
+        $stmt->close();
+        
+        debugLog('UID found: ' . json_encode($uidData));
+        
+        if ($uidData['jenis'] !== 'book') {
+            debugLog('ERROR: UID is not a book');
+            sendResponse(false, null, 'RFID ini bukan untuk buku', 'RFID_NOT_BOOK');
+        }
+        
+        $uidBufferId = (int)$uidData['id'];
+        
+    } catch (Exception $e) {
+        debugLog('EXCEPTION in UID validation: ' . $e->getMessage());
+        sendResponse(false, null, 'Error validasi RFID', 'UID_VALIDATION_ERROR');
     }
     
-    $uidData = $result->fetch_assoc();
-    $stmt->close();
-    
-    debugLog('UID found: ' . json_encode($uidData));
-    
-    // Check if UID is for book
-    if ($uidData['jenis'] !== 'book') {
-        debugLog('ERROR: UID is not a book');
-        sendResponse(false, null, 'RFID ini bukan untuk buku', 'RFID_NOT_BOOK');
-    }
-    
-    $uidBufferId = (int)$uidData['id'];
-    
-} catch (Exception $e) {
-    debugLog('EXCEPTION in UID validation: ' . $e->getMessage());
-    sendResponse(false, null, 'Error validasi RFID', 'UID_VALIDATION_ERROR');
+} else {
+    sendResponse(false, null, 'RFID UID atau UID Buffer ID diperlukan', 'MISSING_UID');
 }
 
 // ============================================
-// 2. GET BOOK INFO LENGKAP
+// GET BOOK INFO LENGKAP
 // ============================================
 try {
     $sql = "
         SELECT 
-            -- Book Info
             b.id AS book_id,
             b.judul_buku,
             b.isbn,
@@ -186,26 +195,22 @@ try {
             b.jumlah_eksemplar,
             b.eksemplar_tersedia,
             
-            -- Eksemplar Info
             rt.id AS rt_id,
             rt.kode_eksemplar,
             rt.kondisi,
             rt.tanggal_registrasi,
             
-            -- Publisher Info
             p.id AS publisher_id,
             p.nama_penerbit,
             p.alamat AS publisher_alamat,
             p.no_telepon AS publisher_telepon,
             
-            -- Authors (GROUP_CONCAT)
             GROUP_CONCAT(
                 DISTINCT CONCAT(
                     a.nama_pengarang, '|', rba.peran
                 ) SEPARATOR ';;'
             ) AS authors_data,
             
-            -- Check if sudah dipinjam
             (SELECT COUNT(*) FROM ts_peminjaman tp 
              WHERE tp.uid_buffer_id = rt.uid_buffer_id 
              AND tp.status = 'dipinjam' 
@@ -230,8 +235,8 @@ try {
     $result = $stmt->get_result();
     
     if ($result->num_rows === 0) {
-        debugLog('ERROR: Book not found for this RFID');
-        sendResponse(false, null, 'Buku tidak ditemukan untuk RFID ini', 'BOOK_NOT_FOUND');
+        debugLog('ERROR: Book not found for this UID');
+        sendResponse(false, null, 'Buku tidak ditemukan untuk UID ini', 'BOOK_NOT_FOUND');
     }
     
     $bookData = $result->fetch_assoc();
@@ -245,10 +250,8 @@ try {
 }
 
 // ============================================
-// 3. VALIDASI BUKU
+// VALIDASI BUKU
 // ============================================
-
-// Check kondisi buku
 if ($bookData['kondisi'] !== 'baik') {
     debugLog('ERROR: Book condition is not good: ' . $bookData['kondisi']);
     sendResponse(false, null, 
@@ -257,7 +260,6 @@ if ($bookData['kondisi'] !== 'baik') {
     );
 }
 
-// Check eksemplar tersedia
 if ($bookData['eksemplar_tersedia'] <= 0) {
     debugLog('ERROR: No available copies');
     sendResponse(false, null, 
@@ -266,7 +268,6 @@ if ($bookData['eksemplar_tersedia'] <= 0) {
     );
 }
 
-// Check if this specific copy is already borrowed
 if ($bookData['is_borrowed'] > 0) {
     debugLog('ERROR: This copy is already borrowed');
     sendResponse(false, null, 
@@ -276,7 +277,7 @@ if ($bookData['is_borrowed'] > 0) {
 }
 
 // ============================================
-// 4. PROCESS AUTHORS DATA
+// PROCESS AUTHORS DATA
 // ============================================
 $authors = [];
 if (!empty($bookData['authors_data'])) {
@@ -293,7 +294,7 @@ if (!empty($bookData['authors_data'])) {
 }
 
 // ============================================
-// 5. CALL STORED PROCEDURE
+// CALL STORED PROCEDURE
 // ============================================
 try {
     $sql = "CALL sp_process_peminjaman_v2(?, ?, ?, ?, ?, @result, @peminjaman_id)";
@@ -321,16 +322,22 @@ try {
     debugLog('SP Result: ' . $spResult['result']);
     debugLog('Peminjaman ID: ' . $spResult['peminjaman_id']);
     
-    // Check if success
     if (strpos($spResult['result'], 'SUCCESS') !== 0) {
-        // Error dari stored procedure
         $errorMsg = str_replace('ERROR: ', '', $spResult['result']);
         debugLog('SP Error: ' . $errorMsg);
         sendResponse(false, null, $errorMsg, 'SP_ERROR');
     }
     
-    // Success
     $peminjamanId = (int)$spResult['peminjaman_id'];
+    
+    // ✅ Update catatan if provided
+    if (!empty($catatan)) {
+        $updateSql = "UPDATE ts_peminjaman SET catatan = ? WHERE id = ?";
+        $updateStmt = $conn->prepare($updateSql);
+        $updateStmt->bind_param('si', $catatan, $peminjamanId);
+        $updateStmt->execute();
+        $updateStmt->close();
+    }
     
 } catch (Exception $e) {
     debugLog('EXCEPTION in SP call: ' . $e->getMessage());
@@ -338,7 +345,7 @@ try {
 }
 
 // ============================================
-// 6. GET PEMINJAMAN DETAIL
+// GET PEMINJAMAN DETAIL
 // ============================================
 try {
     $sql = "
@@ -350,13 +357,12 @@ try {
             DATE_FORMAT(p.tanggal_pinjam, '%d/%m/%Y %H:%i') AS tanggal_pinjam_formatted,
             DATE_FORMAT(p.due_date, '%d/%m/%Y') AS due_date_formatted,
             p.status,
+            p.catatan,
             
-            -- User info
             u.nama AS nama_peminjam,
             u.email AS email_peminjam,
             u.no_identitas,
             
-            -- Staff info
             s.nama AS nama_staff
             
         FROM ts_peminjaman p
@@ -374,12 +380,11 @@ try {
     
 } catch (Exception $e) {
     debugLog('EXCEPTION getting peminjaman detail: ' . $e->getMessage());
-    // Continue anyway, we have the ID
     $peminjamanDetail = ['id' => $peminjamanId];
 }
 
 // ============================================
-// 7. BUILD RESPONSE DATA
+// BUILD RESPONSE DATA
 // ============================================
 $responseData = [
     'peminjaman' => [
@@ -390,7 +395,8 @@ $responseData = [
         'tanggal_pinjam_formatted' => $peminjamanDetail['tanggal_pinjam_formatted'] ?? '',
         'due_date_formatted' => $peminjamanDetail['due_date_formatted'] ?? '',
         'status' => $peminjamanDetail['status'] ?? 'dipinjam',
-        'durasi_hari_kerja' => $durasiHari
+        'durasi_hari_kerja' => $durasiHari,
+        'catatan' => $peminjamanDetail['catatan'] ?? null
     ],
     
     'buku' => [
@@ -439,7 +445,7 @@ $responseData = [
 ];
 
 // ============================================
-// 8. SUCCESS RESPONSE
+// SUCCESS RESPONSE
 // ============================================
 debugLog('SUCCESS: Peminjaman completed');
 sendResponse(
