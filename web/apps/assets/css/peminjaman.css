@@ -10,8 +10,8 @@
  * - SweetAlert2 dark mode integration
  * 
  * @author ELIOT System
- * @version 2.2.0
- * @date 2026-01-02
+ * @version 2.2.1
+ * @date 2026-01-09
  */
 
 /* ============================================
@@ -213,7 +213,7 @@
 }
 
 /* ============================================
-   MINIMALIST INPUT BOX (Step 1)
+   STATUS INDICATOR
    ============================================ */
 .status-indicator {
     display: inline-flex;
@@ -272,17 +272,20 @@
 /* ============================================
    MINIMALIST INPUT BOX
    ============================================ */
-.member-input-box {
+.member-input-box,
+.rfid-input-box {
     max-width: 600px;
     margin: 0 auto;
 }
 
-.member-input-box .input-group-lg {
+.member-input-box .input-group-lg,
+.rfid-input-box .input-group-lg {
     height: 52px;
 }
 
 /* Icon di kiri */
-.member-input-box .input-group-text {
+.member-input-box .input-group-text,
+.rfid-input-box .input-group-text {
     background: var(--bgCard);
     border: 2px solid var(--borderColor);
     border-right: none;
@@ -290,13 +293,15 @@
     padding: 0 1rem;
 }
 
-.member-input-box .input-group-text i {
+.member-input-box .input-group-text i,
+.rfid-input-box .input-group-text i {
     font-size: 1.25rem;
     color: var(--colorGreenPrimary);
 }
 
 /* Input Field */
-.member-input-box .form-control-lg {
+.member-input-box .form-control-lg,
+.rfid-input-box .form-control-lg {
     height: 52px;
     font-size: 1rem;
     padding: 0.75rem 1rem;
@@ -308,20 +313,23 @@
     transition: all 0.3s ease;
 }
 
-.member-input-box .form-control-lg:focus {
+.member-input-box .form-control-lg:focus,
+.rfid-input-box .form-control-lg:focus {
     border-color: var(--colorGreenPrimary);
     box-shadow: none;
     z-index: 2;
 }
 
-.member-input-box .form-control-lg::placeholder {
+.member-input-box .form-control-lg::placeholder,
+.rfid-input-box .form-control-lg::placeholder {
     font-size: 0.9rem;
     color: var(--textSecondary);
     opacity: 0.7;
 }
 
 /* Validate Button */
-.member-input-box .btn-lg {
+.member-input-box .btn-lg,
+.rfid-input-box .btn-lg {
     height: 52px;
     font-size: 1rem;
     padding: 0.75rem 1.5rem;
@@ -356,14 +364,27 @@
 }
 
 /* Helper Text */
-.member-input-box .form-text {
+.member-input-box .form-text,
+.rfid-input-box .form-text {
     font-size: 0.875rem;
     color: var(--textSecondary);
     margin-top: 1rem;
 }
 
-.member-input-box .form-text i {
+.member-input-box .form-text i,
+.rfid-input-box .form-text i {
     color: var(--colorGreenPrimary);
+}
+
+/* Dark mode: pastikan form-text tetap readable */
+[data-theme="dark"] .member-input-box .form-text,
+[data-theme="dark"] .rfid-input-box .form-text {
+    color: var(--textSecondary);
+}
+
+[data-theme="dark"] .member-input-box .form-text strong,
+[data-theme="dark"] .rfid-input-box .form-text strong {
+    color: var(--textPrimary);
 }
 
 /* ============================================
@@ -508,7 +529,8 @@
         font-size: 1.5rem; 
     }
     
-    .member-input-box .input-group {
+    .member-input-box .input-group,
+    .rfid-input-box .input-group {
         max-width: 100%;
     }
 }
@@ -560,4 +582,232 @@
         border: 2px solid var(--borderColor) !important;
         margin-bottom: 0.5rem;
     }
+}
+
+
+/* ============================================
+   UID BADGE - Copy to Clipboard
+   ============================================ */
+.badge-uid {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    padding: 0.375rem 0.75rem;
+    font-family: 'Courier New', Consolas, monospace;
+    font-size: 0.875rem;
+    font-weight: 600;
+    background: #495057;
+    color: #ffffff;
+    border-radius: 6px;
+    border: 2px solid transparent;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    user-select: none;
+}
+
+[data-theme="dark"] .badge-uid {
+    background: #2d2d2d;
+    color: #e0e0e0;
+}
+
+.badge-uid:hover {
+    background: #343a40;
+    border-color: var(--colorGreenPrimary);
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+[data-theme="dark"] .badge-uid:hover {
+    background: #3d3d3d;
+    border-color: var(--colorGreenPrimary);
+}
+
+.badge-uid .copy-icon {
+    opacity: 0;
+    font-size: 0.75rem;
+    transition: opacity 0.2s ease;
+}
+
+.badge-uid:hover .copy-icon {
+    opacity: 1;
+}
+
+.badge-uid.copied {
+    background: var(--statusSuccess);
+    border-color: var(--statusSuccess);
+    animation: copySuccess 0.3s ease;
+}
+
+@keyframes copySuccess {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+    100% { transform: scale(1); }
+}
+
+/* ============================================
+   STAFF INFO COLUMN
+   ============================================ */
+.staff-info {
+    line-height: 1.4;
+}
+
+.staff-info strong {
+    color: var(--textPrimary);
+    font-weight: 600;
+    font-size: 0.9rem;
+}
+
+.staff-info small {
+    color: var(--textSecondary);
+    font-size: 0.8rem;
+    display: block;
+    margin-top: 0.15rem;
+}
+
+.staff-info small i {
+    color: var(--colorGreenPrimary);
+    margin-right: 0.25rem;
+}
+
+/* ============================================
+   ACTION BUTTON
+   ============================================ */
+.btn-view-detail {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.375rem 0.75rem;
+    font-size: 0.875rem;
+    font-weight: 500;
+    border-radius: 6px;
+    transition: all 0.2s ease;
+}
+
+.btn-view-detail:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(37, 99, 235, 0.2);
+}
+
+.btn-view-detail i {
+    font-size: 0.875rem;
+}
+
+/* Dark mode button adjustments */
+[data-theme="dark"] .btn-outline-primary {
+    border-color: #4a7fcc;
+    color: #6ea8fe;
+}
+
+[data-theme="dark"] .btn-outline-primary:hover {
+    background: #4a7fcc;
+    border-color: #4a7fcc;
+    color: white;
+}
+
+/* ============================================
+   TABLE COLUMN WIDTHS (OPTIMIZED)
+   ============================================ */
+.table-monitoring th:nth-child(1) { width: 50px; }   /* No */
+.table-monitoring th:nth-child(2) { width: 150px; }  /* Kode */
+.table-monitoring th:nth-child(3) { width: 150px; }  /* Peminjam */
+.table-monitoring th:nth-child(4) { width: 120px; }  /* UID Buku */
+.table-monitoring th:nth-child(5) { width: 200px; }  /* Judul Buku */
+.table-monitoring th:nth-child(6) { width: 140px; }  /* Staff */
+.table-monitoring th:nth-child(7) { width: 120px; }  /* Status */
+.table-monitoring th:nth-child(8) { width: 80px; }   /* Aksi */
+
+/* ============================================
+   RESPONSIVE - HIDE COLUMNS ON SMALL SCREENS
+   ============================================ */
+@media (max-width: 1200px) {
+    /* Hide UID column on tablets */
+    .table-monitoring th:nth-child(4),
+    .table-monitoring td:nth-child(4) {
+        display: none;
+    }
+}
+
+@media (max-width: 991px) {
+    /* Hide Staff column on small tablets */
+    .table-monitoring th:nth-child(6),
+    .table-monitoring td:nth-child(6) {
+        display: none;
+    }
+}
+
+@media (max-width: 768px) {
+    /* Stack table on mobile - convert to cards */
+    .table-responsive {
+        overflow-x: auto;
+    }
+    
+    .table-monitoring {
+        font-size: 0.85rem;
+    }
+    
+    .badge-uid {
+        font-size: 0.75rem;
+        padding: 0.25rem 0.5rem;
+    }
+    
+    .btn-view-detail {
+        padding: 0.25rem 0.5rem;
+        font-size: 0.75rem;
+    }
+}
+
+/* ============================================
+   TOOLTIP FOR UID COPY (OPTIONAL)
+   ============================================ */
+.uid-tooltip {
+    position: relative;
+}
+
+.uid-tooltip::after {
+    content: 'Click to copy';
+    position: absolute;
+    top: -30px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(0, 0, 0, 0.8);
+    color: white;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    white-space: nowrap;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s ease;
+}
+
+.badge-uid:hover .uid-tooltip::after {
+    opacity: 1;
+}
+
+/* ============================================
+   LOADING & EMPTY STATE IMPROVEMENTS
+   ============================================ */
+#monitoring-loading .spinner-border {
+    width: 2rem;
+    height: 2rem;
+}
+
+#monitoring-empty {
+    padding: 3rem 1rem;
+}
+
+#monitoring-empty i {
+    color: var(--textSecondary);
+    opacity: 0.3;
+}
+
+#monitoring-empty p {
+    font-size: 1.1rem;
+    font-weight: 500;
+    margin-top: 1rem;
+}
+
+#monitoring-empty small {
+    color: var(--textSecondary);
+    font-size: 0.9rem;
 }

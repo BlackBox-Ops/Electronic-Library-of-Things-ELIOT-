@@ -740,14 +740,14 @@ const PeminjamanApp = (function() {
         }
         
         if (inputRfid) {
-            inputRfid.disabled = true; // ✅ DISABLED - Tidak bisa diketik
+            inputRfid.disabled = true; // ISABLED - Tidak bisa diketik
             inputRfid.readOnly = true;
             inputRfid.placeholder = 'Klik tombol Scan untuk ambil UID terbaru';
             inputRfid.value = '';
         }
         
         if (btnScan) {
-            btnScan.disabled = false; // ✅ Button aktif
+            btnScan.disabled = false; // Button aktif
         }
         
         const helperText = step2Container ? step2Container.querySelector('.form-text') : null;
@@ -804,6 +804,9 @@ const PeminjamanApp = (function() {
         }
     }
 
+   // ========================================
+    // RENDER MONITORING ROWS (UPDATED)
+    // ========================================
     function renderMonitoringRows(data, tableBody) {
         const rows = data.map(function(row, index) {
             const urgencyMap = {
@@ -813,46 +816,134 @@ const PeminjamanApp = (function() {
             };
             const urgencyClass = urgencyMap[row.urgency] || '';
             
-            const kategoriMap = {
-                'mahasiswa': { badge: 'primary', icon: 'fa-user-graduate' },
-                'dosen': { badge: 'success', icon: 'fa-chalkboard-teacher' },
-                'umum': { badge: 'info', icon: 'fa-user' }
-            };
-            
-            const kategoriLower = row.kategori_member ? row.kategori_member.toLowerCase() : '';
-            const kategori = kategoriMap[kategoriLower] || { badge: 'secondary', icon: 'fa-user' };
-            
             return '<tr class="' + urgencyClass + '">' +
+                // No
                 '<td>' + (index + 1) + '</td>' +
+                
+                // Kode Peminjaman
                 '<td>' +
                     '<strong>' + row.kode_peminjaman + '</strong><br>' +
                     '<small class="text-muted">' + (row.tanggal_pinjam_formatted || '-') + '</small>' +
                 '</td>' +
+                
+                // Peminjam (Nama + No Identitas)
                 '<td>' +
                     '<strong>' + row.nama_peminjam + '</strong><br>' +
                     '<small class="text-muted">' + row.no_identitas + '</small>' +
                 '</td>' +
+                
+                // UID Buku (NEW - Clickable Badge)
                 '<td>' +
-                    '<span class="badge bg-' + kategori.badge + '">' +
-                        '<i class="fas ' + kategori.icon + ' me-1"></i>' +
-                        (row.kategori_member || 'Umum') +
+                    '<span class="badge-uid" data-uid="' + row.uid_buku + '" onclick="copyUID(this)" title="Click to copy">' +
+                        '<i class="fas fa-wifi"></i>' +
+                        row.uid_buku +
+                        '<i class="fas fa-copy copy-icon"></i>' +
                     '</span>' +
                 '</td>' +
+                
+                // Judul Buku + Kode Eksemplar
                 '<td>' +
                     row.judul_buku + '<br>' +
                     '<small class="text-muted">Kode: ' + row.kode_eksemplar + '</small>' +
                 '</td>' +
+                
+                // Staff (NEW - Nama + Timestamp)
+                '<td>' +
+                    '<div class="staff-info">' +
+                        '<strong>' + row.nama_staff + '</strong><br>' +
+                        '<small class="text-muted">' +
+                            '<i class="fas fa-calendar-alt"></i>' + row.tanggal_pinjam_compact +
+                        '</small>' +
+                    '</div>' +
+                '</td>' +
+                
+                // Status (Badge + Hari Tersisa)
                 '<td>' +
                     '<span class="badge bg-' + (row.waktu_badge || 'secondary') + '">' +
                         (row.status_waktu || 'N/A') +
                     '</span><br>' +
                     '<small>' + row.hari_tersisa + ' hari</small>' +
                 '</td>' +
-                '<td>' + (row.due_date_formatted || '-') + '</td>' +
-                '</tr>';
+                
+                // Aksi (NEW - View Detail Button)
+                '<td>' +
+                    '<button class="btn btn-sm btn-outline-primary btn-view-detail" ' +
+                            'onclick="viewDetail(' + row.id + ')" ' +
+                            'title="Lihat Detail">' +
+                        '<i class="fas fa-eye"></i>' +
+                    '</button>' +
+                '</td>' +
+                
+            '</tr>';
         });
         
         tableBody.innerHTML = rows.join('');
+    }
+
+    // ========================================
+    // COPY UID TO CLIPBOARD (NEW)
+    // ========================================
+    function copyUID(element) {
+        const uid = element.getAttribute('data-uid');
+        const tempInput = document.createElement('textarea');
+        tempInput.value = uid;
+        tempInput.style.position = 'absolute';
+        tempInput.style.left = '-9999px';
+        document.body.appendChild(tempInput);
+        tempInput.select();
+        tempInput.setSelectionRange(0, 99999);
+        
+        try {
+            document.execCommand('copy');
+            element.classList.add('copied');
+            showToast('success', 'UID ' + uid + ' copied to clipboard!', 2000);
+            setTimeout(() => element.classList.remove('copied'), 300);
+        } catch (err) {
+            console.error('[Copy] Failed to copy UID:', err);
+            showToast('error', 'Failed to copy UID', 2000);
+        } finally {
+            document.body.removeChild(tempInput);
+        }
+    }
+
+    // ========================================
+    // VIEW DETAIL (NEW)
+    // ========================================
+    function viewDetail(peminjamanId) {
+        console.log('[View Detail] Peminjaman ID:', peminjamanId);
+        window.location.href = 'detail_peminjaman.php?id=' + peminjamanId;
+    }
+
+    // ========================================
+    // UTILITY: Show Toast (Ensure this exists)
+    // ========================================
+    function showToast(type, message, timer = 3000) {
+        if (window.DarkModeUtils && typeof window.DarkModeUtils.showToast === 'function') {
+            window.DarkModeUtils.showToast(type, message, timer);
+        } else if (typeof Swal !== 'undefined') {
+            const Toast = Swal.mixin({
+                toast: true,
+                position: 'top-end',
+                showConfirmButton: false,
+                timer: timer,
+                timerProgressBar: true,
+                didOpen: (toast) => {
+                    toast.addEventListener('mouseenter', Swal.stopTimer);
+                    toast.addEventListener('mouseleave', Swal.resumeTimer);
+                }
+            });
+            Toast.fire({ icon: type, title: message });
+        } else {
+            console.log('[Toast] ' + type + ': ' + message);
+        }
+    }
+
+    function showError(title, message) {
+        if (window.DarkModeUtils && typeof window.DarkModeUtils.showError === 'function') {
+            window.DarkModeUtils.showError(title, message);
+        } else {
+            alert(title + ': ' + message);
+        }
     }
 
     // ========================================
@@ -921,20 +1012,19 @@ const PeminjamanApp = (function() {
     // ========================================
     
     function cleanup() {
-        if (state.autoRefreshInterval) {
-            clearInterval(state.autoRefreshInterval);
-        }
-        if (state.rfidTimeout) {
-            clearTimeout(state.rfidTimeout);
-        }
+        if (state.autoRefreshInterval) clearInterval(state.autoRefreshInterval);
+        if (state.rfidTimeout) clearTimeout(state.rfidTimeout);
     }
 
     window.addEventListener('beforeunload', cleanup);
 
     // ========================================
-    // PUBLIC API
+    // PUBLIC API & GLOBAL EXPORTS
     // ========================================
     
+    // Ekspor fungsi yang dibutuhkan secara global
+    window.copyUID = copyUID;
+    window.viewDetail = viewDetail;
     window.refreshMonitoringTable = refreshMonitoringTable;
     window.updateStatistics = updateStatistics;
 
@@ -948,7 +1038,7 @@ const PeminjamanApp = (function() {
 
 // Auto-initialize
 if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', function() {
+    document.addEventListener('DOMContentLoaded', () => {
         console.log('[Peminjaman] DOM ready');
         PeminjamanApp.init();
     });
@@ -956,3 +1046,5 @@ if (document.readyState === 'loading') {
     console.log('[Peminjaman] DOM already ready');
     PeminjamanApp.init();
 }
+
+console.log('[Peminjaman] Version 2.5.2 - Global functions fixed & loaded');

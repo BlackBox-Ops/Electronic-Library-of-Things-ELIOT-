@@ -7,11 +7,11 @@
  * - Return data peminjaman aktif untuk monitoring table
  * - Support filter by status
  * - Support filter by date
- * - Include kategori member (mahasiswa/dosen/umum)
+ * - Include UID buku dan staff info
  * 
  * @author ELIOT System
- * @version 1.0.0
- * @date 2026-01-02
+ * @version 2.0.0
+ * @date 2026-01-09
  */
 
 // ============================================
@@ -79,13 +79,16 @@ try {
             u.id as user_id,
             u.nama as nama_peminjam,
             u.no_identitas,
-            u.role as kategori_member,
             
             -- Book info
             b.judul_buku,
             rb.kode_eksemplar,
             
-            -- Staff info
+            -- UID Buku (NEW)
+            ub.uid as uid_buku,
+            
+            -- Staff info (NEW)
+            s.id as staff_id,
             s.nama as nama_staff,
             
             -- Calculated fields
@@ -96,6 +99,7 @@ try {
         INNER JOIN users u ON p.user_id = u.id AND u.is_deleted = 0
         INNER JOIN books b ON p.book_id = b.id AND b.is_deleted = 0
         INNER JOIN rt_book_uid rb ON p.uid_buffer_id = rb.uid_buffer_id AND rb.is_deleted = 0
+        INNER JOIN uid_buffer ub ON p.uid_buffer_id = ub.id AND ub.is_deleted = 0
         INNER JOIN users s ON p.staff_id = s.id AND s.is_deleted = 0
         WHERE p.is_deleted = 0
     ";
@@ -149,22 +153,15 @@ try {
         
         // Format dates
         $tanggalPinjam = date('d/m/Y H:i', strtotime($row['tanggal_pinjam']));
+        $tanggalPinjamCompact = date('d/m H:i', strtotime($row['tanggal_pinjam'])); // NEW: Compact format untuk staff
         $dueDate = date('d/m/Y', strtotime($row['due_date']));
-        
-        // Mapping kategori member
-        $kategoriMember = 'Umum';
-        if (stripos($row['no_identitas'], '113') === 0) {
-            $kategoriMember = 'Mahasiswa';
-        } elseif (stripos($row['no_identitas'], '111') === 0 || 
-                  stripos($row['no_identitas'], '112') === 0) {
-            $kategoriMember = 'Dosen';
-        }
         
         $data[] = [
             'id' => (int)$row['id'],
             'kode_peminjaman' => $row['kode_peminjaman'],
             'tanggal_pinjam' => $row['tanggal_pinjam'],
             'tanggal_pinjam_formatted' => $tanggalPinjam,
+            'tanggal_pinjam_compact' => $tanggalPinjamCompact, // NEW
             'due_date' => $row['due_date'],
             'due_date_formatted' => $dueDate,
             'status' => $row['status'],
@@ -173,13 +170,14 @@ try {
             'user_id' => (int)$row['user_id'],
             'nama_peminjam' => $row['nama_peminjam'],
             'no_identitas' => $row['no_identitas'],
-            'kategori_member' => $kategoriMember,
             
             // Book
             'judul_buku' => $row['judul_buku'],
             'kode_eksemplar' => $row['kode_eksemplar'],
+            'uid_buku' => $row['uid_buku'], // NEW
             
-            // Staff
+            // Staff (NEW)
+            'staff_id' => (int)$row['staff_id'],
             'nama_staff' => $row['nama_staff'],
             
             // Status

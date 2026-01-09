@@ -122,7 +122,7 @@ include_once '../../includes/header.php';
                 <i class="fas fa-hand-holding-heart me-2"></i>Peminjaman Buku
             </h4>
             <p class="text-secondary small mb-0">
-                Sistem peminjaman dengan teknologi RFID - Step 1: Validasi Peminjam
+                Sistem peminjaman dengan teknologi RFID 
             </p>
         </div>
         <div>
@@ -333,16 +333,17 @@ include_once '../../includes/header.php';
         
         <div class="card-body p-4 pt-0">
             <div class="table-responsive">
-                <table class="table table-hover align-middle">
+                <table class="table table-hover align-middle table-monitoring">
                     <thead class="table-light">
                         <tr>
                             <th width="50">No</th>
-                            <th>Kode Peminjaman</th>
-                            <th>Nama Peminjam</th>
-                            <th>Kategori</th>
-                            <th>Buku</th>
+                            <th>Kode</th>
+                            <th>Peminjam</th>
+                            <th>UID Buku</th>
+                            <th>Judul Buku</th>
+                            <th>Staff</th>
                             <th>Status</th>
-                            <th>Jatuh Tempo</th>
+                            <th width="80">Aksi</th>
                         </tr>
                     </thead>
                     <tbody id="monitoring-table-body">
