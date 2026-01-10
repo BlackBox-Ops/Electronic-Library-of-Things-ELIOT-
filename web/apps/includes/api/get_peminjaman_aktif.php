@@ -5,13 +5,14 @@
  * 
  * Fungsi:
  * - Return data peminjaman aktif untuk monitoring table
- * - Support filter by status
- * - Support filter by date
+ * - Support filter by status (all/dipinjam/telat)
+ * - Support filter by date (today/7days/30days/all)
  * - Include UID buku dan staff info
+ * - Support client-side search
  * 
  * @author ELIOT System
- * @version 2.0.0
- * @date 2026-01-09
+ * @version 2.1.0 - Enhanced Date Filters
+ * @date 2026-01-10
  */
 
 // ============================================
@@ -45,7 +46,8 @@ function sendResponse($success, $data = null, $message = '', $httpCode = 200) {
         'success' => $success,
         'message' => $message,
         'data' => $data,
-        'timestamp' => date('Y-m-d H:i:s')
+        'timestamp' => date('Y-m-d H:i:s'),
+        'filters_applied' => $_GET
     ], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
     exit;
 }
@@ -62,6 +64,18 @@ if ($_SERVER['REQUEST_METHOD'] !== 'GET') {
 // ============================================
 $status = isset($_GET['status']) ? $_GET['status'] : 'all';
 $date = isset($_GET['date']) ? $_GET['date'] : 'today';
+
+// Validate status
+$validStatuses = ['all', 'dipinjam', 'telat'];
+if (!in_array($status, $validStatuses)) {
+    $status = 'all';
+}
+
+// Validate date filter
+$validDates = ['today', '7days', '30days', 'all'];
+if (!in_array($date, $validDates)) {
+    $date = 'today';
+}
 
 // ============================================
 // BUILD QUERY
@@ -84,10 +98,10 @@ try {
             b.judul_buku,
             rb.kode_eksemplar,
             
-            -- UID Buku (NEW)
+            -- UID Buku
             ub.uid as uid_buku,
             
-            -- Staff info (NEW)
+            -- Staff info
             s.id as staff_id,
             s.nama as nama_staff,
             
@@ -104,22 +118,47 @@ try {
         WHERE p.is_deleted = 0
     ";
     
-    // Filter by status
+    // ============================================
+    // FILTER BY STATUS
+    // ============================================
     if ($status !== 'all') {
         if ($status === 'dipinjam') {
+            // Hanya yang masih dipinjam dan belum telat
             $sql .= " AND p.status = 'dipinjam' AND DATEDIFF(p.due_date, CURDATE()) >= 0";
         } elseif ($status === 'telat') {
+            // Hanya yang telat
             $sql .= " AND p.status = 'dipinjam' AND DATEDIFF(CURDATE(), p.due_date) > 0";
         }
     } else {
+        // Semua status dipinjam (termasuk yang telat)
         $sql .= " AND p.status IN ('dipinjam', 'telat')";
     }
     
-    // Filter by date
-    if ($date === 'today') {
-        $sql .= " AND DATE(p.tanggal_pinjam) = CURDATE()";
+    // ============================================
+    // FILTER BY DATE
+    // ============================================
+    switch ($date) {
+        case 'today':
+            // Hanya hari ini
+            $sql .= " AND DATE(p.tanggal_pinjam) = CURDATE()";
+            break;
+            
+        case '7days':
+            // 7 hari terakhir
+            $sql .= " AND DATE(p.tanggal_pinjam) >= DATE_SUB(CURDATE(), INTERVAL 7 DAY)";
+            break;
+            
+        case '30days':
+            // 30 hari terakhir
+            $sql .= " AND DATE(p.tanggal_pinjam) >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)";
+            break;
+            
+        case 'all':
+            // Tidak ada filter tanggal - semua data aktif
+            break;
     }
     
+    // Order by tanggal pinjam (terbaru dulu)
     $sql .= " ORDER BY p.tanggal_pinjam DESC, p.created_at DESC";
     
     // Execute query
@@ -133,8 +172,11 @@ try {
     // FORMAT RESPONSE
     // ============================================
     $data = [];
+    $totalRecords = 0;
     
     while ($row = $result->fetch_assoc()) {
+        $totalRecords++;
+        
         // Tentukan urgency level
         $hariTersisa = (int)$row['hari_tersisa'];
         $urgency = 'low';
@@ -153,7 +195,7 @@ try {
         
         // Format dates
         $tanggalPinjam = date('d/m/Y H:i', strtotime($row['tanggal_pinjam']));
-        $tanggalPinjamCompact = date('d/m H:i', strtotime($row['tanggal_pinjam'])); // NEW: Compact format untuk staff
+        $tanggalPinjamCompact = date('d/m H:i', strtotime($row['tanggal_pinjam']));
         $dueDate = date('d/m/Y', strtotime($row['due_date']));
         
         $data[] = [
@@ -161,7 +203,7 @@ try {
             'kode_peminjaman' => $row['kode_peminjaman'],
             'tanggal_pinjam' => $row['tanggal_pinjam'],
             'tanggal_pinjam_formatted' => $tanggalPinjam,
-            'tanggal_pinjam_compact' => $tanggalPinjamCompact, // NEW
+            'tanggal_pinjam_compact' => $tanggalPinjamCompact,
             'due_date' => $row['due_date'],
             'due_date_formatted' => $dueDate,
             'status' => $row['status'],
@@ -174,9 +216,9 @@ try {
             // Book
             'judul_buku' => $row['judul_buku'],
             'kode_eksemplar' => $row['kode_eksemplar'],
-            'uid_buku' => $row['uid_buku'], // NEW
+            'uid_buku' => $row['uid_buku'],
             
-            // Staff (NEW)
+            // Staff
             'staff_id' => (int)$row['staff_id'],
             'nama_staff' => $row['nama_staff'],
             
@@ -188,11 +230,18 @@ try {
         ];
     }
     
-    sendResponse(true, $data, 'Data fetched successfully', 200);
+    // Build success message
+    $message = "Data fetched successfully";
+    if ($totalRecords > 0) {
+        $message .= " - {$totalRecords} record(s) found";
+        $message .= " (Status: {$status}, Period: {$date})";
+    }
+    
+    sendResponse(true, $data, $message, 200);
     
 } catch (Exception $e) {
     error_log('[API Peminjaman Aktif] Error: ' . $e->getMessage());
-    sendResponse(false, null, 'Internal server error', 500);
+    sendResponse(false, null, 'Internal server error: ' . $e->getMessage(), 500);
 }
 
 // ============================================

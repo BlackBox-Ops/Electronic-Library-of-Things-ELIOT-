@@ -7,12 +7,12 @@
  * - Input NIM/NIDN/NIK member dengan desain minimalis
  * - Validasi member dan redirect ke biodata_peminjaman.php
  * - Dashboard statistics
- * - Monitoring peminjaman aktif
+ * - Monitoring peminjaman aktif dengan SEARCH & FILTER
  * - Support dark mode & light mode
  * 
  * @author ELIOT System
- * @version 2.2.0
- * @date 2026-01-02
+ * @version 2.3.0 - Added Search & Advanced Filters
+ * @date 2026-01-10
  */
 
 // ============================================
@@ -307,26 +307,80 @@ include_once '../../includes/header.php';
     </div>
 
     <!-- ============================================
-            MONITORING TABLE - PEMINJAMAN AKTIF
+        MONITORING TABLE - PEMINJAMAN AKTIF
         ============================================ -->
     <div class="card card-adaptive border-0 shadow-sm">
         <div class="card-header bg-transparent border-0 p-4 pb-0">
             <div class="d-flex justify-content-between align-items-center mb-3">
                 <h5 class="mb-0 fw-bold">
-                    <i class="fas fa-list me-2"></i>Peminjaman Aktif Hari Ini
+                    <i class="fas fa-list me-2"></i>Peminjaman Aktif
+                    <span class="badge-count ms-2" id="result-count">0</span>
                 </h5>
-                <div class="d-flex gap-2">
-                    <!-- Filter Status -->
-                    <select class="form-select form-select-sm" id="filter-status" style="width: 150px;">
-                        <option value="all">Semua Status</option>
-                        <option value="dipinjam">Dipinjam</option>
-                        <option value="telat">Telat</option>
-                    </select>
+                <button class="btn btn-sm btn-outline-primary" onclick="refreshMonitoringTable()">
+                    <i class="fas fa-sync-alt"></i> Refresh
+                </button>
+            </div>
+
+            <!-- ============================================
+                SEARCH & FILTER SECTION (NEW)
+                ============================================ -->
+            <div class="search-filter-container">
+                <div class="row g-3 align-items-end">
                     
-                    <!-- Refresh Button -->
-                    <button class="btn btn-sm btn-outline-primary" onclick="refreshMonitoringTable()">
-                        <i class="fas fa-sync-alt"></i>
-                    </button>
+                    <!-- Search Box -->
+                    <div class="col-lg-5">
+                        <label class="form-label mb-2">
+                            <i class="fas fa-search me-1"></i>Cari Peminjam
+                        </label>
+                        <div class="search-box">
+                            <i class="fas fa-search search-icon"></i>
+                            <input type="text" 
+                                    class="form-control" 
+                                    id="search-input"
+                                    placeholder="Cari nama peminjam atau NIM/NIK/NIDN..."
+                                    autocomplete="off">
+                            <button class="clear-search d-none" id="clear-search">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Filter Status -->
+                    <div class="col-lg-2 col-md-4">
+                        <div class="filter-group">
+                            <label class="form-label mb-2">
+                                <i class="fas fa-filter me-1"></i>Status
+                            </label>
+                            <select class="form-select" id="filter-status">
+                                <option value="all">Semua Status</option>
+                                <option value="dipinjam">Dipinjam</option>
+                                <option value="telat">Telat</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Filter Tanggal -->
+                    <div class="col-lg-3 col-md-4">
+                        <div class="filter-group">
+                            <label class="form-label mb-2">
+                                <i class="fas fa-calendar me-1"></i>Periode
+                            </label>
+                            <select class="form-select" id="filter-date">
+                                <option value="today">Hari Ini</option>
+                                <option value="7days">7 Hari Terakhir</option>
+                                <option value="30days">30 Hari Terakhir</option>
+                                <option value="all">Semua Data</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Reset Button -->
+                    <div class="col-lg-2 col-md-4">
+                        <button class="btn btn-outline-secondary w-100" id="btn-reset-filter">
+                            <i class="fas fa-redo me-1"></i>Reset Filter
+                        </button>
+                    </div>
+
                 </div>
             </div>
         </div>
@@ -362,17 +416,17 @@ include_once '../../includes/header.php';
                 <!-- Empty State -->
                 <div id="monitoring-empty" class="text-center py-5 text-muted d-none">
                     <i class="fas fa-inbox fa-3x mb-3 opacity-50"></i>
-                    <p class="mb-0">Belum ada peminjaman hari ini</p>
-                    <small>Data akan muncul setelah ada transaksi peminjaman</small>
+                    <p class="mb-0">Tidak ada data peminjaman</p>
+                    <small>Coba ubah filter atau lakukan pencarian lain</small>
                 </div>
             </div>
         </div>
     </div>
 </div>
 
-<!--    ============================================
-        JAVASCRIPT DEPENDENCIES
-        ============================================ -->
+<!-- ============================================
+    JAVASCRIPT DEPENDENCIES
+    ============================================ -->
 <!-- SweetAlert2 untuk modal/alert -->
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 

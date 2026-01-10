@@ -1,10 +1,10 @@
 /**
- * Peminjaman App - Fixed Step 2 RFID Handler
+ * Peminjaman App - With Search & Advanced Filters
  * Path: web/apps/assets/js/peminjaman.js
  *
  * @author ELIOT System
- * @version 2.5.1 - Fixed redirect issue
- * @date 2026-01-06
+ * @version 2.6.0 - Added Search & Filter functionality
+ * @date 2026-01-10
  */
 
 const PeminjamanApp = (function() {
@@ -16,10 +16,17 @@ const PeminjamanApp = (function() {
         rfidBuffer: '',
         rfidTimeout: null,
         autoRefreshInterval: null,
-        memberVerified: null
+        memberVerified: null,
+        searchTimeout: null,
+        currentFilters: {
+            search: '',
+            status: 'all',
+            date: 'today'
+        },
+        allData: [] // Store all fetched data for client-side filtering
     };
 
-    // API Endpoints - Adjusted for actual server structure
+    // API Endpoints
     const API = {
         validateMember: '../../includes/api/validate_member.php',
         validateBookUid: '../../includes/api/validate_book_uid.php',
@@ -33,13 +40,14 @@ const PeminjamanApp = (function() {
     // ========================================
     
     function init() {
-        console.log('[Peminjaman] Initializing...');
+        console.log('[Peminjaman] Initializing v2.6.0...');
         
         checkMemberVerified();
         setupInputHandlers();
         setupRFIDListener();
         setupStep2RFIDListener();
         setupMonitoring();
+        setupSearchAndFilters(); // NEW
         
         refreshMonitoringTable();
         updateStatistics();
@@ -49,7 +57,198 @@ const PeminjamanApp = (function() {
             updateStatistics();
         }, 30000);
         
-        console.log('[Peminjaman] Initialized');
+        console.log('[Peminjaman] Initialized with search & filters');
+    }
+
+    // ========================================
+    // SETUP SEARCH & FILTERS (NEW)
+    // ========================================
+    
+    function setupSearchAndFilters() {
+        const searchInput = document.getElementById('search-input');
+        const clearSearch = document.getElementById('clear-search');
+        const filterStatus = document.getElementById('filter-status');
+        const filterDate = document.getElementById('filter-date');
+        const btnReset = document.getElementById('btn-reset-filter');
+
+        // Search input with debounce
+        if (searchInput) {
+            searchInput.addEventListener('input', function(e) {
+                const value = e.target.value.trim();
+                
+                // Show/hide clear button
+                if (clearSearch) {
+                    if (value) {
+                        clearSearch.classList.remove('d-none');
+                    } else {
+                        clearSearch.classList.add('d-none');
+                    }
+                }
+                
+                // Debounced search
+                if (state.searchTimeout) {
+                    clearTimeout(state.searchTimeout);
+                }
+                
+                state.searchTimeout = setTimeout(() => {
+                    state.currentFilters.search = value.toLowerCase();
+                    console.log('[Search] Query:', value);
+                    applyFilters();
+                }, 300); // 300ms debounce
+            });
+        }
+
+        // Clear search button
+        if (clearSearch) {
+            clearSearch.addEventListener('click', function() {
+                if (searchInput) {
+                    searchInput.value = '';
+                    state.currentFilters.search = '';
+                    clearSearch.classList.add('d-none');
+                    applyFilters();
+                    searchInput.focus();
+                }
+            });
+        }
+
+        // Filter status
+        if (filterStatus) {
+            filterStatus.addEventListener('change', function() {
+                state.currentFilters.status = this.value;
+                console.log('[Filter] Status:', this.value);
+                refreshMonitoringTable(); // Server-side filter
+            });
+        }
+
+        // Filter date
+        if (filterDate) {
+            filterDate.addEventListener('change', function() {
+                state.currentFilters.date = this.value;
+                console.log('[Filter] Date:', this.value);
+                refreshMonitoringTable(); // Server-side filter
+            });
+        }
+
+        // Reset filters
+        if (btnReset) {
+            btnReset.addEventListener('click', function() {
+                console.log('[Filter] Resetting all filters...');
+                
+                // Reset search
+                if (searchInput) {
+                    searchInput.value = '';
+                    state.currentFilters.search = '';
+                }
+                if (clearSearch) {
+                    clearSearch.classList.add('d-none');
+                }
+                
+                // Reset filters to default
+                if (filterStatus) {
+                    filterStatus.value = 'all';
+                    state.currentFilters.status = 'all';
+                }
+                if (filterDate) {
+                    filterDate.value = 'today';
+                    state.currentFilters.date = 'today';
+                }
+                
+                // Refresh data
+                refreshMonitoringTable();
+                
+                showToast('info', 'Filter direset ke default', 1500);
+            });
+        }
+
+        console.log('[Search] Search & Filter handlers setup complete');
+    }
+
+    // ========================================
+    // APPLY CLIENT-SIDE FILTERS (NEW)
+    // ========================================
+    
+    function applyFilters() {
+        const tableBody = document.getElementById('monitoring-table-body');
+        const emptyState = document.getElementById('monitoring-empty');
+        const resultCount = document.getElementById('result-count');
+        
+        if (!tableBody || state.allData.length === 0) {
+            return;
+        }
+
+        // Filter data based on search query
+        const searchQuery = state.currentFilters.search;
+        let filteredData = state.allData;
+
+        if (searchQuery) {
+            filteredData = state.allData.filter(row => {
+                const namaPeminjam = row.nama_peminjam.toLowerCase();
+                const noIdentitas = row.no_identitas.toLowerCase();
+                const kodePeminjaman = row.kode_peminjaman.toLowerCase();
+                const judulBuku = row.judul_buku.toLowerCase();
+                
+                return namaPeminjam.includes(searchQuery) ||
+                       noIdentitas.includes(searchQuery) ||
+                       kodePeminjaman.includes(searchQuery) ||
+                       judulBuku.includes(searchQuery);
+            });
+        }
+
+        // Update result count
+        if (resultCount) {
+            resultCount.textContent = filteredData.length;
+        }
+
+        // Render filtered results
+        if (filteredData.length > 0) {
+            if (emptyState) emptyState.classList.add('d-none');
+            renderMonitoringRows(filteredData, tableBody);
+            
+            // Highlight search results
+            if (searchQuery) {
+                highlightSearchResults(searchQuery);
+            }
+        } else {
+            if (emptyState) emptyState.classList.remove('d-none');
+            tableBody.innerHTML = '';
+        }
+
+        console.log('[Filter] Applied:', {
+            total: state.allData.length,
+            filtered: filteredData.length,
+            search: searchQuery
+        });
+    }
+
+    // ========================================
+    // HIGHLIGHT SEARCH RESULTS (NEW)
+    // ========================================
+    
+    function highlightSearchResults(query) {
+        if (!query) return;
+        
+        const tableBody = document.getElementById('monitoring-table-body');
+        if (!tableBody) return;
+
+        const rows = tableBody.querySelectorAll('tr');
+        rows.forEach(row => {
+            const cells = row.querySelectorAll('td');
+            let hasMatch = false;
+            
+            cells.forEach(cell => {
+                const text = cell.textContent.toLowerCase();
+                if (text.includes(query)) {
+                    hasMatch = true;
+                }
+            });
+            
+            if (hasMatch) {
+                row.classList.add('highlight-row');
+                setTimeout(() => {
+                    row.classList.remove('highlight-row');
+                }, 2000);
+            }
+        });
     }
 
     // ========================================
@@ -141,8 +340,9 @@ const PeminjamanApp = (function() {
     }
 
     // ========================================
-    // STEP 2: RFID BOOK SCAN HANDLER (FIXED - AUTO FETCH)
+    // STEP 2: RFID BOOK SCAN HANDLER
     // ========================================
+    
     function setupStep2RFIDListener() {
         const inputRfid = document.getElementById('input-rfid-card');
         const btnScan = document.getElementById('btn-scan-rfid');
@@ -154,12 +354,10 @@ const PeminjamanApp = (function() {
        
         console.log('[Peminjaman] Setting up Step 2 listeners');
        
-        // ✅ DISABLE INPUT - Hanya sistem yang bisa isi
         inputRfid.disabled = true;
         inputRfid.placeholder = 'Klik tombol Scan untuk ambil UID terbaru dari sistem';
         inputRfid.readOnly = true;
        
-        // ✅ Scan button - Ambil UID terbaru dari database
         btnScan.addEventListener('click', async function() {
             console.log('[Peminjaman] Scan button clicked - fetching latest UID from system...');
             await fetchLatestRfidAndProcess();
@@ -171,6 +369,7 @@ const PeminjamanApp = (function() {
     // ========================================
     // FETCH LATEST RFID FROM DATABASE
     // ========================================
+    
     async function fetchLatestRfidAndProcess() {
         console.log('[Peminjaman] Fetching latest RFID from database...');
         
@@ -188,7 +387,6 @@ const PeminjamanApp = (function() {
             if (!result.success) {
                 console.error('[Peminjaman] Failed to get latest RFID:', result.message);
                 
-                // Tampilkan pesan khusus
                 const config = window.DarkModeUtils ? window.DarkModeUtils.getSwalConfig({
                     title: 'Tidak Ada Scan Baru',
                     html: `
@@ -227,18 +425,15 @@ const PeminjamanApp = (function() {
                 return;
             }
             
-            // ✅ SUCCESS - Ada UID terbaru
             const bookData = result.data;
             console.log('[Peminjaman] Latest book UID:', bookData.uid);
             console.log('[Peminjaman] Scanned', bookData.scan_info.seconds_ago, 'seconds ago');
             
-            // Tampilkan di input (read-only)
             const inputRfid = document.getElementById('input-rfid-card');
             if (inputRfid) {
                 inputRfid.value = `${bookData.uid} (${bookData.scan_info.seconds_ago}s ago)`;
             }
             
-            // Process book scan
             await handleBookScanFromData(bookData);
             
         } catch (error) {
@@ -250,14 +445,14 @@ const PeminjamanApp = (function() {
     }
 
     // ========================================
-    // HANDLE BOOK SCAN FROM DATA (NEW)
+    // HANDLE BOOK SCAN FROM DATA
     // ========================================
+    
     async function handleBookScanFromData(bookData) {
         console.log('[Peminjaman] ===== PROCESSING BOOK DATA =====');
         console.log('[Peminjaman] Book:', bookData.judul_buku);
         console.log('[Peminjaman] UID Buffer ID:', bookData.uid_buffer_id);
        
-        // Validate member still in session
         const memberData = sessionStorage.getItem('member_verified');
         console.log('[Peminjaman] Session data:', memberData ? 'EXISTS' : 'NOT FOUND');
         
@@ -297,7 +492,6 @@ const PeminjamanApp = (function() {
        
         updateStatus('scanning', 'Memvalidasi buku...');
         
-        // Check if book is available
         if (bookData.is_borrowed) {
             console.error('[Peminjaman] Book already borrowed');
             handleBookScanError('Buku ini sedang dipinjam oleh member lain');
@@ -310,7 +504,6 @@ const PeminjamanApp = (function() {
             return;
         }
        
-        // ✅ SUCCESS - Build redirect URL
         const redirectUrl = `peminjaman.php?uid=${bookData.uid_buffer_id}&user_id=${member.id}`;
         console.log('[Peminjaman] ===== VALIDATION SUCCESS =====');
         console.log('[Peminjaman] Redirect URL:', redirectUrl);
@@ -321,116 +514,6 @@ const PeminjamanApp = (function() {
             console.log('[Peminjaman] Redirecting now...');
             window.location.href = redirectUrl;
         }, 1500);
-    }
-
-    // ========================================
-    // HANDLE BOOK SCAN (LEGACY - Keep for real RFID)
-    // ========================================
-    async function handleBookScan(rfidUid) {
-        console.log('[Peminjaman] ===== BOOK SCAN STARTED (Legacy) =====');
-        console.log('[Peminjaman] RFID UID:', rfidUid);
-       
-        // Validate member still in session
-        const memberData = sessionStorage.getItem('member_verified');
-        console.log('[Peminjaman] Session data:', memberData ? 'EXISTS' : 'NOT FOUND');
-        
-        if (!memberData) {
-            console.error('[Peminjaman] No member in session');
-            showError('Session Expired', 'Member verification expired. Silakan scan ulang member.');
-            setTimeout(function() {
-                window.location.href = 'index.php';
-            }, 2000);
-            return;
-        }
-       
-        let member;
-        try {
-            member = JSON.parse(memberData);
-            console.log('[Peminjaman] Member parsed:', member.nama, 'ID:', member.id);
-            
-            const now = Date.now();
-            const elapsed = (now - member.timestamp) / 1000 / 60;
-            console.log('[Peminjaman] Time elapsed:', elapsed.toFixed(2), 'minutes');
-           
-            if (elapsed > 5) {
-                console.error('[Peminjaman] Session expired (>5 min)');
-                sessionStorage.removeItem('member_verified');
-                showError('Session Expired', 'Member verification expired (>5 menit). Silakan scan ulang member.');
-                setTimeout(function() {
-                    window.location.href = 'index.php';
-                }, 2000);
-                return;
-            }
-        } catch (err) {
-            console.error('[Peminjaman] Error parsing member:', err);
-            sessionStorage.removeItem('member_verified');
-            window.location.href = 'index.php';
-            return;
-        }
-       
-        // Show loading
-        updateStatus('scanning', 'Memvalidasi buku...');
-        disableStep2Input(true);
-       
-        showToast('info', 'Memvalidasi buku...', 2000);
-       
-        try {
-            console.log('[Peminjaman] Calling API:', API.validateBookUid);
-            console.log('[Peminjaman] Request body:', { rfid_uid: rfidUid });
-            
-            // Validate RFID UID exists in database
-            const validateResponse = await fetch(API.validateBookUid, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ rfid_uid: rfidUid })
-            });
-            
-            console.log('[Peminjaman] API response status:', validateResponse.status);
-           
-            const validateResult = await validateResponse.json();
-            console.log('[Peminjaman] API response data:', validateResult);
-           
-            if (!validateResult.success) {
-                console.error('[Peminjaman] Validation failed:', validateResult.message);
-                handleBookScanError(validateResult.message || 'UID tidak valid');
-                return;
-            }
-           
-            const bookData = validateResult.data;
-            console.log('[Peminjaman] Book data:', bookData);
-           
-            // Check if book is available
-            if (bookData.is_borrowed) {
-                console.error('[Peminjaman] Book already borrowed');
-                handleBookScanError('Buku ini sedang dipinjam oleh member lain');
-                return;
-            }
-           
-            if (bookData.kondisi !== 'baik') {
-                console.error('[Peminjaman] Book condition not good:', bookData.kondisi);
-                handleBookScanError(`Kondisi buku: ${bookData.kondisi.toUpperCase()}. Tidak dapat dipinjam.`);
-                return;
-            }
-           
-            // ✅ SUCCESS - Build redirect URL
-            const redirectUrl = `peminjaman.php?uid=${bookData.uid_buffer_id}&user_id=${member.id}`;
-            console.log('[Peminjaman] ===== VALIDATION SUCCESS =====');
-            console.log('[Peminjaman] Redirect URL:', redirectUrl);
-            console.log('[Peminjaman] Book:', bookData.judul_buku);
-            console.log('[Peminjaman] Member:', member.nama);
-            
-            showToast('success', 'Buku ditemukan! Redirecting...', 1500);
-           
-            setTimeout(function() {
-                console.log('[Peminjaman] Redirecting now...');
-                window.location.href = redirectUrl;
-            }, 1500);
-           
-        } catch (error) {
-            console.error('[Peminjaman] EXCEPTION in handleBookScan:', error);
-            console.error('[Peminjaman] Error stack:', error.stack);
-            handleBookScanError('Error: ' + error.message);
-        }
     }
 
     function handleBookScanError(message) {
@@ -740,14 +823,14 @@ const PeminjamanApp = (function() {
         }
         
         if (inputRfid) {
-            inputRfid.disabled = true; // ISABLED - Tidak bisa diketik
+            inputRfid.disabled = true;
             inputRfid.readOnly = true;
             inputRfid.placeholder = 'Klik tombol Scan untuk ambil UID terbaru';
             inputRfid.value = '';
         }
         
         if (btnScan) {
-            btnScan.disabled = false; // Button aktif
+            btnScan.disabled = false;
         }
         
         const helperText = step2Container ? step2Container.querySelector('.form-text') : null;
@@ -760,7 +843,7 @@ const PeminjamanApp = (function() {
     }
 
     // ========================================
-    // MONITORING TABLE
+    // MONITORING TABLE (UPDATED WITH SEARCH)
     // ========================================
     
     async function refreshMonitoringTable() {
@@ -769,6 +852,7 @@ const PeminjamanApp = (function() {
         const tableBody = document.getElementById('monitoring-table-body');
         const emptyState = document.getElementById('monitoring-empty');
         const loadingState = document.getElementById('monitoring-loading');
+        const resultCount = document.getElementById('result-count');
         
         if (!tableBody) return;
         
@@ -778,8 +862,10 @@ const PeminjamanApp = (function() {
             tableBody.innerHTML = '';
             
             const filterStatus = document.getElementById('filter-status');
+            const filterDate = document.getElementById('filter-date');
             const status = filterStatus ? filterStatus.value : 'all';
-            const apiUrl = API.getMonitoring + '?status=' + status + '&date=today';
+            const date = filterDate ? filterDate.value : 'today';
+            const apiUrl = API.getMonitoring + '?status=' + status + '&date=' + date;
             
             const response = await fetch(apiUrl);
             const result = await response.json();
@@ -787,8 +873,19 @@ const PeminjamanApp = (function() {
             if (loadingState) loadingState.classList.add('d-none');
             
             if (result.success && result.data && result.data.length > 0) {
-                renderMonitoringRows(result.data, tableBody);
+                // Store all data for client-side filtering
+                state.allData = result.data;
+                
+                // Update result count
+                if (resultCount) {
+                    resultCount.textContent = result.data.length;
+                }
+                
+                // Apply filters (including search)
+                applyFilters();
             } else {
+                state.allData = [];
+                if (resultCount) resultCount.textContent = '0';
                 if (emptyState) emptyState.classList.remove('d-none');
             }
             
@@ -796,7 +893,7 @@ const PeminjamanApp = (function() {
             console.error('[Peminjaman] Monitoring error:', error);
             if (loadingState) loadingState.classList.add('d-none');
             tableBody.innerHTML = '<tr>' +
-                '<td colspan="7" class="text-center text-danger py-4">' +
+                '<td colspan="8" class="text-center text-danger py-4">' +
                 '<i class="fas fa-exclamation-triangle fa-2x mb-2"></i><br>' +
                 'Error: ' + error.message +
                 '</td>' +
@@ -804,9 +901,10 @@ const PeminjamanApp = (function() {
         }
     }
 
-   // ========================================
-    // RENDER MONITORING ROWS (UPDATED)
     // ========================================
+    // RENDER MONITORING ROWS
+    // ========================================
+    
     function renderMonitoringRows(data, tableBody) {
         const rows = data.map(function(row, index) {
             const urgencyMap = {
@@ -817,55 +915,40 @@ const PeminjamanApp = (function() {
             const urgencyClass = urgencyMap[row.urgency] || '';
             
             return '<tr class="' + urgencyClass + '">' +
-                // No
                 '<td>' + (index + 1) + '</td>' +
-                
-                // Kode Peminjaman
                 '<td>' +
                     '<strong>' + row.kode_peminjaman + '</strong><br>' +
                     '<small class="text-muted">' + (row.tanggal_pinjam_formatted || '-') + '</small>' +
                 '</td>' +
-                
-                // Peminjam (Nama + No Identitas)
                 '<td>' +
                     '<strong>' + row.nama_peminjam + '</strong><br>' +
                     '<small class="text-muted">' + row.no_identitas + '</small>' +
                 '</td>' +
-                
-                // UID Buku (NEW - Clickable Badge)
                 '<td>' +
                     '<span class="badge-uid" data-uid="' + row.uid_buku + '" onclick="copyUID(this)" title="Click to copy">' +
-                        '<i class="fas fa-wifi"></i>' +
+                        '<i class="fas fa-wifi"></i> ' +
                         row.uid_buku +
-                        '<i class="fas fa-copy copy-icon"></i>' +
+                        ' <i class="fas fa-copy copy-icon"></i>' +
                     '</span>' +
                 '</td>' +
-                
-                // Judul Buku + Kode Eksemplar
                 '<td>' +
                     row.judul_buku + '<br>' +
                     '<small class="text-muted">Kode: ' + row.kode_eksemplar + '</small>' +
                 '</td>' +
-                
-                // Staff (NEW - Nama + Timestamp)
                 '<td>' +
                     '<div class="staff-info">' +
                         '<strong>' + row.nama_staff + '</strong><br>' +
                         '<small class="text-muted">' +
-                            '<i class="fas fa-calendar-alt"></i>' + row.tanggal_pinjam_compact +
+                            '<i class="fas fa-calendar-alt"></i> ' + row.tanggal_pinjam_compact +
                         '</small>' +
                     '</div>' +
                 '</td>' +
-                
-                // Status (Badge + Hari Tersisa)
                 '<td>' +
                     '<span class="badge bg-' + (row.waktu_badge || 'secondary') + '">' +
                         (row.status_waktu || 'N/A') +
                     '</span><br>' +
                     '<small>' + row.hari_tersisa + ' hari</small>' +
                 '</td>' +
-                
-                // Aksi (NEW - View Detail Button)
                 '<td>' +
                     '<button class="btn btn-sm btn-outline-primary btn-view-detail" ' +
                             'onclick="viewDetail(' + row.id + ')" ' +
@@ -873,7 +956,6 @@ const PeminjamanApp = (function() {
                         '<i class="fas fa-eye"></i>' +
                     '</button>' +
                 '</td>' +
-                
             '</tr>';
         });
         
@@ -881,8 +963,9 @@ const PeminjamanApp = (function() {
     }
 
     // ========================================
-    // COPY UID TO CLIPBOARD (NEW)
+    // COPY UID TO CLIPBOARD
     // ========================================
+    
     function copyUID(element) {
         const uid = element.getAttribute('data-uid');
         const tempInput = document.createElement('textarea');
@@ -907,43 +990,12 @@ const PeminjamanApp = (function() {
     }
 
     // ========================================
-    // VIEW DETAIL (NEW)
+    // VIEW DETAIL
     // ========================================
+    
     function viewDetail(peminjamanId) {
         console.log('[View Detail] Peminjaman ID:', peminjamanId);
         window.location.href = 'detail_peminjaman.php?id=' + peminjamanId;
-    }
-
-    // ========================================
-    // UTILITY: Show Toast (Ensure this exists)
-    // ========================================
-    function showToast(type, message, timer = 3000) {
-        if (window.DarkModeUtils && typeof window.DarkModeUtils.showToast === 'function') {
-            window.DarkModeUtils.showToast(type, message, timer);
-        } else if (typeof Swal !== 'undefined') {
-            const Toast = Swal.mixin({
-                toast: true,
-                position: 'top-end',
-                showConfirmButton: false,
-                timer: timer,
-                timerProgressBar: true,
-                didOpen: (toast) => {
-                    toast.addEventListener('mouseenter', Swal.stopTimer);
-                    toast.addEventListener('mouseleave', Swal.resumeTimer);
-                }
-            });
-            Toast.fire({ icon: type, title: message });
-        } else {
-            console.log('[Toast] ' + type + ': ' + message);
-        }
-    }
-
-    function showError(title, message) {
-        if (window.DarkModeUtils && typeof window.DarkModeUtils.showError === 'function') {
-            window.DarkModeUtils.showError(title, message);
-        } else {
-            alert(title + ': ' + message);
-        }
     }
 
     // ========================================
@@ -986,7 +1038,7 @@ const PeminjamanApp = (function() {
     }
 
     // ========================================
-    // SWEETALERT HELPERS
+    // UTILITY HELPERS
     // ========================================
     
     function showToast(type, message, timer) {
@@ -994,6 +1046,19 @@ const PeminjamanApp = (function() {
         
         if (window.DarkModeUtils && typeof window.DarkModeUtils.showToast === 'function') {
             window.DarkModeUtils.showToast(type, message, timer);
+        } else if (typeof Swal !== 'undefined') {
+            const Toast = Swal.mixin({
+                toast: true,
+                position: 'top-end',
+                showConfirmButton: false,
+                timer: timer,
+                timerProgressBar: true,
+                didOpen: (toast) => {
+                    toast.addEventListener('mouseenter', Swal.stopTimer);
+                    toast.addEventListener('mouseleave', Swal.resumeTimer);
+                }
+            });
+            Toast.fire({ icon: type, title: message });
         } else {
             console.log('[Toast] ' + type + ': ' + message);
         }
@@ -1002,6 +1067,13 @@ const PeminjamanApp = (function() {
     function showError(title, message) {
         if (window.DarkModeUtils && typeof window.DarkModeUtils.showError === 'function') {
             window.DarkModeUtils.showError(title, message);
+        } else if (typeof Swal !== 'undefined') {
+            Swal.fire({
+                title: title,
+                html: message,
+                icon: 'error',
+                confirmButtonText: 'OK'
+            });
         } else {
             alert(title + ': ' + message);
         }
@@ -1014,6 +1086,7 @@ const PeminjamanApp = (function() {
     function cleanup() {
         if (state.autoRefreshInterval) clearInterval(state.autoRefreshInterval);
         if (state.rfidTimeout) clearTimeout(state.rfidTimeout);
+        if (state.searchTimeout) clearTimeout(state.searchTimeout);
     }
 
     window.addEventListener('beforeunload', cleanup);
@@ -1022,7 +1095,6 @@ const PeminjamanApp = (function() {
     // PUBLIC API & GLOBAL EXPORTS
     // ========================================
     
-    // Ekspor fungsi yang dibutuhkan secara global
     window.copyUID = copyUID;
     window.viewDetail = viewDetail;
     window.refreshMonitoringTable = refreshMonitoringTable;
@@ -1047,4 +1119,4 @@ if (document.readyState === 'loading') {
     PeminjamanApp.init();
 }
 
-console.log('[Peminjaman] Version 2.5.2 - Global functions fixed & loaded');
+console.log('[Peminjaman] Version 2.6.0 - Search & Filters loaded');
